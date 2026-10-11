@@ -9,16 +9,23 @@ from pathlib import Path
 
 ENGINE_DATA_ENV = "PULSE_ENGINE_DATA"
 MARKER = Path("schema") / "config.schema.json"
+CHECKOUT_PACKAGE_DIR = Path("packages") / "cli" / "src" / "pulseai"
 
 
 class EngineDataError(RuntimeError):
     """Engine data could not be located."""
 
 
-def _checkout_root() -> Path | None:
-    """Nearest parent of this file holding the marker: a source checkout or editable install."""
-    for parent in Path(__file__).resolve().parents:
-        if (parent / MARKER).is_file():
+def _checkout_root(module_dir: Path | None = None) -> Path | None:
+    """Return the source checkout (or editable install) root this module lives in, if any.
+
+    An ancestor of the module directory counts only when it holds the marker file and its
+    packages/cli/src/pulseai directory is this very module directory, so a stray marker in an
+    unrelated ancestor (for example above a virtualenv) never shadows the data bundled in a wheel.
+    """
+    own = (module_dir if module_dir is not None else Path(__file__).parent).resolve()
+    for parent in own.parents:
+        if (parent / MARKER).is_file() and (parent / CHECKOUT_PACKAGE_DIR).resolve() == own:
             return parent
     return None
 

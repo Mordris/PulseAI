@@ -37,6 +37,33 @@ def test_packaged_data_used_outside_a_checkout(
     assert engine_root() == packaged
 
 
+def test_checkout_wins_over_packaged_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    checkout = tmp_path / "checkout"
+    packaged = tmp_path / "_data"
+    for root in (checkout, packaged):
+        (root / "schema").mkdir(parents=True)
+        (root / "schema" / "config.schema.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(paths, "_checkout_root", lambda: checkout)
+    monkeypatch.setattr(paths, "_packaged_data_dir", lambda: packaged)
+    assert engine_root() == checkout
+
+
+def test_checkout_root_found_for_the_repository_layout(tmp_path: Path) -> None:
+    package_dir = tmp_path / "packages" / "cli" / "src" / "pulseai"
+    package_dir.mkdir(parents=True)
+    (tmp_path / "schema").mkdir()
+    (tmp_path / "schema" / "config.schema.json").write_text("{}", encoding="utf-8")
+    assert paths._checkout_root(package_dir) == tmp_path.resolve()
+
+
+def test_checkout_root_ignores_a_stray_marker_above_an_installed_package(tmp_path: Path) -> None:
+    (tmp_path / "schema").mkdir()
+    (tmp_path / "schema" / "config.schema.json").write_text("{}", encoding="utf-8")
+    installed = tmp_path / "venv" / "lib" / "site-packages" / "pulseai"
+    installed.mkdir(parents=True)
+    assert paths._checkout_root(installed) is None
+
+
 def test_no_data_anywhere_is_an_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(paths, "_checkout_root", lambda: None)
     monkeypatch.setattr(paths, "_packaged_data_dir", lambda: tmp_path / "missing")
@@ -46,13 +73,18 @@ def test_no_data_anywhere_is_an_error(tmp_path: Path, monkeypatch: pytest.Monkey
 
 @pytest.mark.slow
 def test_wheel_bundles_engine_data(repo_root: Path, tmp_path: Path) -> None:
-    subprocess.run(
-        ["uv", "build", "--wheel", "--package", "pulseai", "--out-dir", str(tmp_path)],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-    )
+    try:
+        subprocess.run(
+            ["uv", "build", "--wheel", "--package", "pulseai", "--out-dir", str(tmp_path)],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        pytest.fail(f"uv build failed:\n{exc.stderr}")
     wheel = next(tmp_path.glob("pulseai-*.whl"))
-    names = set(zipfile.ZipFile(wheel).namelist())
+    with zipfile.ZipFile(wheel) as zf:
+        names = set(zf.namelist())
     for rel in ("schema/config.schema.json", "defaults/pulse.config.yaml"):
         assert f"pulseai/_data/{rel}" in names
