@@ -3,7 +3,11 @@
   "meta": {
     "date": "2026-10-11",
     "edition": 1,
-    "window": { "start": "2026-10-10T14:00:00Z", "end": "2026-10-11T14:00:00Z", "tz": "Europe/Istanbul" },
+    "window": {
+      "start": "2026-10-10T14:00:00Z",
+      "end": "2026-10-11T14:00:00Z",
+      "tz": "Europe/Istanbul"
+    },
     "language": "en",
     "engine_version": "0.1.0",
     "host": "fixture",
@@ -34,9 +38,16 @@
       "summary": "Example Co launched a hosted inference service for open-weights models.",
       "why_it_matters": "Another hosting option for teams running open-weights models.",
       "sources": [
-        { "url": "https://example.org/news/launch", "title": "Example Co announcement", "tier": "T1", "kind": "primary" }
+        {
+          "url": "https://example.org/news/launch",
+          "title": "Example Co announcement",
+          "tier": "T1",
+          "kind": "primary"
+        }
       ],
-      "facts": [{ "label": "Regions", "value": 3, "source_ref": 0, "quote": "available in three regions" }],
+      "facts": [
+        { "label": "Regions", "value": 3, "source_ref": 0, "quote": "available in three regions" }
+      ],
       "visuals": [
         {
           "kind": "table",
@@ -49,7 +60,11 @@
         }
       ],
       "images": [],
-      "detail": { "who": "Example Co", "what": "Launched an inference cloud", "builder_impact": "Another hosting option for open-weights models." }
+      "detail": {
+        "who": "Example Co",
+        "what": "Launched an inference cloud",
+        "builder_impact": "Another hosting option for open-weights models."
+      }
     },
     {
       "id": "sample-paper",
@@ -64,7 +79,12 @@
       "summary": "Spending inference compute on verification improves multi-step agent tasks.",
       "why_it_matters": "Suggests trying a verify-then-expand loop before switching to a larger model.",
       "sources": [
-        { "url": "https://example.org/papers/verification-loops", "title": "Verification loops (preprint)", "tier": "T1", "kind": "primary" }
+        {
+          "url": "https://example.org/papers/verification-loops",
+          "title": "Verification loops (preprint)",
+          "tier": "T1",
+          "kind": "primary"
+        }
       ],
       "facts": [],
       "visuals": [],
@@ -80,7 +100,12 @@
         "critical_review": ["Preprint, not peer reviewed"],
         "reproducibility": {},
         "takeaway": "Try a critic loop before upgrading models.",
-        "reading_guide": { "sections": ["Section 3"], "glossary": { "Critic": "A model that scores plans" }, "reading_minutes": 20, "difficulty": "intermediate" }
+        "reading_guide": {
+          "sections": ["Section 3"],
+          "glossary": { "Critic": "A model that scores plans" },
+          "reading_minutes": 20,
+          "difficulty": "intermediate"
+        }
       }
     }
   ],

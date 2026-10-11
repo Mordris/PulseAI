@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from jsonschema.exceptions import SchemaError
+
 from pulseai.config import ConfigError, load_config
 from pulseai.issues import Issue
 from pulseai.models.config import PulseConfig
@@ -16,7 +18,7 @@ from pulseai.registry.loader import RegistryError, load_registry
 from pulseai.schemas import (
     ITEM_TYPE_SCHEMA_DIR,
     SchemaNotFoundError,
-    SchemaShapeError,
+    schema_file,
     validate_document,
 )
 
@@ -82,8 +84,13 @@ def _check_registry_refs(report: dict[str, Any], ctx: _Context) -> Iterator[Issu
         schema = f"{ITEM_TYPE_SCHEMA_DIR}/{item_type['schema']}"
         try:
             messages = validate_document(item["detail"], schema, ctx.instance_dir)
-        except (SchemaNotFoundError, SchemaShapeError) as exc:
+        except SchemaNotFoundError as exc:
             messages = [str(exc)]
+        except (ValueError, SchemaError) as exc:
+            # ValueError covers JSONDecodeError, UnicodeDecodeError, and SchemaShapeError.
+            problem = exc.message if isinstance(exc, SchemaError) else str(exc)
+            path = schema_file(schema, ctx.instance_dir)
+            messages = [f"{path}: invalid item-type schema ({problem})"]
         for message in messages:
             yield _error(f"{where}/detail", message)
 
@@ -99,13 +106,20 @@ def _check_unique_ids(report: dict[str, Any]) -> Iterator[Issue]:
             yield _error("visuals", f"duplicate visual id {visual_id!r}")
 
 
+def _unknown_item(report: dict[str, Any], ref: str) -> str:
+    """Why `ref` is not a published item. References resolve against items, never signals."""
+    if any(item["id"] == ref for item in report["signals"]):
+        return f"item {ref!r} is a signal; references must point at a published item"
+    return f"unknown item {ref!r}"
+
+
 def _check_references(report: dict[str, Any]) -> Iterator[Issue]:
-    known = {item["id"] for _, item in _items(report)}
+    published = {item["id"] for item in report["items"]}
     for key in ("tldr", "adoption_radar", "action_list"):
         for index, entry in enumerate(report[key]):
             ref = entry.get("item_id")
-            if ref is not None and ref not in known:
-                yield _error(f"{key}/{index}/item_id", f"unknown item {ref!r}")
+            if ref is not None and ref not in published:
+                yield _error(f"{key}/{index}/item_id", _unknown_item(report, ref))
 
 
 def _check_sources(report: dict[str, Any]) -> Iterator[Issue]:
@@ -138,12 +152,14 @@ def _check_confidence_routing(report: dict[str, Any], ctx: _Context) -> Iterator
             yield _error(where, "confirmed items belong in items, not signals")
         elif item["confidence"] == "rumor" and rumor == "exclude":
             yield _error(where, "rumors are excluded (confidence.rumor = exclude)")
+        elif item["confidence"] == "reported" and reported == "main":
+            yield _error(where, "reported items go in items (confidence.reported = main)")
         elif item["confidence"] == "reported" and reported == "exclude":
             yield _error(where, "reported items are excluded (confidence.reported = exclude)")
 
 
 def _check_featured(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
-    by_id = {item["id"]: item for _, item in _items(report)}
+    by_id = {item["id"]: item for item in report["items"]}
     for slot, item_id in report["featured"].items():
         where = f"featured/{slot}"
         group = ctx.featured_slots.get(slot)
@@ -152,7 +168,7 @@ def _check_featured(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
             continue
         item = by_id.get(item_id)
         if item is None:
-            yield _error(where, f"unknown item {item_id!r}")
+            yield _error(where, _unknown_item(report, item_id))
             continue
         types = group["match"].get("types")
         if types and item["type"] not in types:
@@ -176,17 +192,34 @@ def _check_visuals(report: dict[str, Any]) -> Iterator[Issue]:
                     yield _error(f"{where}/rows/{index}", f"{len(row)} cells, expected {width}")
 
 
+def _count(count: int, noun: str) -> str:
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
 def _check_section_config(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
-    counts = Counter(item["section"] for item in report["items"])
-    for section_id, count in sorted(counts.items()):
+    published = Counter(item["section"] for item in report["items"])
+    signals = Counter(item["section"] for item in report["signals"])
+    for section_id in sorted(published.keys() | signals.keys()):
+        if section_id not in ctx.section_ids:
+            continue  # reported as an unknown section already
         toggle = ctx.cfg.sections.get(section_id)
         if toggle is None or not toggle.enabled:
-            yield _error("items", f"section {section_id!r} is disabled but has {count} items")
-        elif count > toggle.max_items:
+            parts = [
+                _count(count, noun)
+                for count, noun in (
+                    (published[section_id], "item"),
+                    (signals[section_id], "signal"),
+                )
+                if count
+            ]
+            where = "items" if published[section_id] else "signals"
+            yield _error(where, f"section {section_id!r} is disabled but has {' and '.join(parts)}")
+        elif published[section_id] > toggle.max_items:
             yield Issue(
                 "warning",
                 "items",
-                f"section {section_id!r} has {count} items; max_items is {toggle.max_items}",
+                f"section {section_id!r} has {_count(published[section_id], 'item')}; "
+                f"max_items is {toggle.max_items}",
             )
 
 
@@ -232,9 +265,16 @@ def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
     return sorted(issues)
 
 
+def _reject_constant(name: str) -> Any:
+    msg = f"{name} is not valid JSON"
+    raise ValueError(msg)
+
+
 def validate_report_file(path: Path, instance_dir: Path | None = None) -> list[Issue]:
     try:
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as exc:
+        text = path.read_text(encoding="utf-8-sig")
+        # ValueError covers UnicodeDecodeError, JSONDecodeError, and the NaN/Infinity rejection.
+        data = json.loads(text, parse_constant=_reject_constant)
+    except (OSError, ValueError) as exc:
         return [_error("file", f"{path}: {exc}")]
     return validate_report(data, instance_dir)
