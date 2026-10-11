@@ -46,10 +46,14 @@ def _status(findings: list[Finding]) -> dict[str, str]:
     return {f.check: f.status for f in findings}
 
 
-def _write_engine(instance: Path, data: dict[str, Any]) -> None:
-    path = instance / "defaults" / "engine.yaml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+def _write_engine(root: Path, data: dict[str, Any]) -> None:
+    """Merge `data` over the engine tool requirements of an engine copy."""
+    path = root / "defaults" / "engine.yaml"
+    engine = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for tool in data.pop("tools", []):
+        next(t for t in engine["tools"] if t["id"] == tool["id"]).update(tool)
+    engine.update(data)
+    path.write_text(yaml.safe_dump(engine, sort_keys=False), encoding="utf-8")
 
 
 PYTHON_OUTPUT = "Python 3.12.3"
@@ -156,7 +160,7 @@ def test_run_tool_returns_none_when_it_cannot_run(command: list[str]) -> None:
 
 
 def test_doctor_passes_the_registry_timeout_to_the_default_runner(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    engine_copy: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     timeouts: list[float | None] = []
 
@@ -165,8 +169,8 @@ def test_doctor_passes_the_registry_timeout_to_the_default_runner(
         return None
 
     monkeypatch.setattr("pulseai.doctor.run_tool", fake)
-    _write_engine(tmp_path, {"tool_timeout_seconds": 7.5})
-    findings = doctor(tmp_path, environ={})
+    _write_engine(engine_copy, {"tool_timeout_seconds": 7.5})
+    findings = doctor(environ={})
     assert timeouts
     assert set(timeouts) == {7.5}
     assert all(
@@ -174,9 +178,9 @@ def test_doctor_passes_the_registry_timeout_to_the_default_runner(
     )
 
 
-def test_broken_engine_registry_is_reported_once(tmp_path: Path) -> None:
-    _write_engine(tmp_path, {"tool_timeout_seconds": 0})
-    findings = doctor(tmp_path, runner=lambda _: "9.9.9", environ={})
+def test_broken_engine_registry_is_reported_once(engine_copy: Path) -> None:
+    _write_engine(engine_copy, {"tool_timeout_seconds": 0})
+    findings = doctor(runner=lambda _: "9.9.9", environ={})
     failures = [f for f in findings if f.status == "fail"]
     assert [f.check for f in failures] == ["registry:engine"]
     assert not any(f.check.startswith("tool:") for f in findings)
@@ -203,11 +207,11 @@ def test_cli_doctor_runs() -> None:
 
 
 def test_cli_doctor_reports_an_invalid_specifier_without_a_traceback(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    engine_copy: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr("pulseai.doctor.run_tool", lambda *_args, **_kwargs: "Python 3.12.3")
-    _write_engine(tmp_path, {"tools": [{"id": "python", "specifier": ">=3.12 totally bogus"}]})
-    result = runner.invoke(app, ["doctor", "--instance", str(tmp_path)])
+    _write_engine(engine_copy, {"tools": [{"id": "python", "specifier": ">=3.12 totally bogus"}]})
+    result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
     assert "fail tool:python: invalid specifier" in result.output
@@ -250,3 +254,41 @@ def test_missing_catalog_schema_is_one_finding_not_a_crash(
     (engine_copy / "schema" / "registries.schema.json").unlink()
     findings = doctor(tmp_path, runner=lambda _: "9.9.9", environ={})
     assert [(f.check, f.status) for f in findings] == [("registry:catalog", "fail")]
+
+
+def test_doctor_never_runs_a_command_an_instance_defines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    marker = tmp_path / "pwned"
+    (tmp_path / "defaults").mkdir()
+    (tmp_path / "defaults/engine.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "tools": [
+                    {"id": "python", "command": ["sh", "-c", f"touch {marker}"]},
+                    {
+                        "id": "backdoor",
+                        "command": ["sh", "-c", f"touch {marker}"],
+                        "required": True,
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    seen: list[list[str]] = []
+
+    def spy(command: list[str], timeout: float | None = None) -> str | None:
+        seen.append(command)
+        return None
+
+    monkeypatch.setattr("pulseai.doctor.run_tool", spy)
+    findings = doctor(tmp_path, environ={})
+    baseline: list[list[str]] = []
+    monkeypatch.setattr("pulseai.doctor.run_tool", lambda c, timeout=None: baseline.append(c))
+    doctor(environ={})
+    assert seen
+    assert seen == baseline
+    assert not any(command[0] == "sh" for command in seen)
+    assert not marker.exists()
+    assert "tool:backdoor" not in {f.check for f in findings}

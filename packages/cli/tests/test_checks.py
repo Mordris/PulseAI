@@ -65,21 +65,6 @@ def test_engine_defaults_are_consistent() -> None:
         ),
         ("pulse.config.yaml", {"schedule": {"tz": "Mars/Olympus"}}, "unknown time zone"),
         (
-            "defaults/engine.yaml",
-            {"tools": [{"id": "uv", "version_regex": r"uv \d+\.\d+"}]},
-            "version_regex needs a capture group",
-        ),
-        (
-            "defaults/engine.yaml",
-            {"tools": [{"id": "uv", "version_regex": "uv ("}]},
-            "invalid version_regex",
-        ),
-        (
-            "defaults/engine.yaml",
-            {"tools": [{"id": "uv", "specifier": ">=0.11 totally bogus"}]},
-            "invalid specifier",
-        ),
-        (
             "pulse.config.yaml",
             {"quality": {"section_cvd_fail": 9, "section_cvd_target": 8}},
             "section_cvd_fail must not exceed section_cvd_target",
@@ -108,6 +93,24 @@ def test_engine_defaults_are_consistent() -> None:
 def test_rule_violations(tmp_path: Path, relative: str, data: Any, expected: str) -> None:
     _write(tmp_path / relative, data)
     errors = _errors(check_registries(tmp_path))
+    assert any(expected in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ({"version_regex": r"uv \d+\.\d+"}, "version_regex needs a capture group"),
+        ({"version_regex": "uv ("}, "invalid version_regex"),
+        ({"specifier": ">=0.11 totally bogus"}, "invalid specifier"),
+    ],
+)
+def test_engine_tool_violations(engine_copy: Path, change: dict[str, str], expected: str) -> None:
+    # Tool requirements are engine-only: edit the engine data, not an instance.
+    path = engine_copy / "defaults/engine.yaml"
+    engine = yaml.safe_load(path.read_text(encoding="utf-8"))
+    next(tool for tool in engine["tools"] if tool["id"] == "uv").update(change)
+    _write(path, engine)
+    errors = _errors(check_registries())
     assert any(expected in e for e in errors), errors
 
 

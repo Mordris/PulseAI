@@ -177,7 +177,7 @@ PULSE__SCHEDULE__TIME=18:30 uv run pulse config show
 | Roles | [`taxonomy/roles.yaml`](taxonomy/roles.yaml) | Agent roles that `models_by_role` assigns models to |
 | Sources | [`sources/registry/`](sources/registry/) | Feeds, APIs, MCP tools, and searches |
 | Locales | [`locales/`](locales/) | Interface text for each language; an instance can add a language with its own `locales/<language>.json` |
-| Engine | [`defaults/engine.yaml`](defaults/engine.yaml) | Tool requirements checked by `pulse doctor` |
+| Engine | [`defaults/engine.yaml`](defaults/engine.yaml) | Tool requirements checked by `pulse doctor` (engine-only: an instance cannot override it) |
 
 Every contract lives in [`schema/`](schema/) as JSON Schema. Python models are generated from it,
 and TypeScript validators are built from the same files.
@@ -203,7 +203,12 @@ sources:
     _remove: true
 ```
 
-Then run `pulse registry check` to confirm everything still fits together.
+Then run `pulse registry check` to confirm everything still fits together. An id may appear only
+once per file; to replace an entry completely, list `_remove: true` for its id and then the new
+entry.
+
+Tool requirements are the exception: the engine registry lists commands that `pulse doctor` runs,
+so it is engine-only and an instance's `defaults/engine.yaml` is ignored.
 
 ## Architecture
 

@@ -9,6 +9,7 @@ registries:
     schema: engine.schema.json
     paths: [defaults/engine.yaml]
     list_key: tools
+    instance_overridable: false
   - id: sections
     schema: sections.schema.json
     paths: [taxonomy/sections.yaml]

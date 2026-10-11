@@ -43,6 +43,11 @@
           "type": "string",
           "pattern": "^[a-z_]+$",
           "description": "Key holding the id-keyed list when several engine files are combined."
+        },
+        "instance_overridable": {
+          "type": "boolean",
+          "default": true,
+          "description": "False makes the registry engine-only: instance files are never read, so an instance cannot change what the engine runs."
         }
       }
     }

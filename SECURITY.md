@@ -6,6 +6,15 @@ security problems. Expect an acknowledgement within 7 days.
 
 Supported versions: the latest release.
 
+## Trust model
+
+An instance (your `pulse-instance` repository) is data, not code: its YAML and JSON files are
+validated against the engine's schemas and never executed. The one registry that names commands,
+the tool requirements in `defaults/engine.yaml` that `pulse doctor` runs, is engine-only. The
+loader never reads an instance's copy of it (`instance_overridable: false` in
+`defaults/registries.yaml`), so a pull request or a stale clone of an instance cannot make
+`pulse doctor` run something else.
+
 ## Automated controls
 
 | Control | Where |

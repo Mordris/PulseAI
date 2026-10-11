@@ -42,6 +42,12 @@ class RegistrySpec(BaseModel):
             pattern="^[a-z_]+$",
         ),
     ] = None
+    instance_overridable: Annotated[
+        bool | None,
+        Field(
+            description="False makes the registry engine-only: instance files are never read, so an instance cannot change what the engine runs."
+        ),
+    ] = True
 
 
 class RegistriesCatalog(BaseModel):

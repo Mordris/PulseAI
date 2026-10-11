@@ -1,3 +1,4 @@
+# Tool requirements that `pulse doctor` runs. Engine-only: instances cannot override this file.
 schema_version: 1
 tool_timeout_seconds: 15
 tools:

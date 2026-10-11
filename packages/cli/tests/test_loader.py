@@ -299,3 +299,26 @@ def test_instance_can_add_a_language(tmp_path: Path) -> None:
 def test_a_language_without_any_file_is_an_error_with_an_instance_too(tmp_path: Path) -> None:
     with pytest.raises(RegistryError, match=r"no engine or instance files match locales/xx\.json"):
         load_locale("xx", tmp_path)
+
+
+def test_the_engine_registry_is_engine_only(tmp_path: Path) -> None:
+    instance_file = _write(
+        tmp_path / "defaults/engine.yaml",
+        {"tool_timeout_seconds": 99, "tools": [{"id": "python", "command": ["sh", "-c", "evil"]}]},
+    )
+    loaded = load_registry("engine", tmp_path)
+    assert instance_file not in loaded.files
+    assert loaded.data == load_registry("engine").data
+    assert loaded.data["tool_timeout_seconds"] != 99
+
+
+def test_a_broken_instance_file_for_an_engine_only_registry_is_never_read(tmp_path: Path) -> None:
+    (tmp_path / "defaults").mkdir()
+    (tmp_path / "defaults/engine.yaml").write_text("{not: [valid", encoding="utf-8")
+    assert load_registry("engine", tmp_path).data == load_registry("engine").data
+
+
+def test_only_the_engine_registry_refuses_instance_files() -> None:
+    overridable = {spec.id: spec.instance_overridable for spec in load_catalog().registries}
+    assert overridable.pop("engine") is False
+    assert all(flag is not False for flag in overridable.values()), overridable

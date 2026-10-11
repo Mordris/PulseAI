@@ -170,10 +170,11 @@ def load_registry(
     values = dict(variables or {})
     _check_variables(values)
     engine_files = _expand(engine_root(), spec.paths, values)
-    instance_patterns = spec.instance_paths or spec.paths
-    instance_files = (
-        _expand(instance_dir, instance_patterns, values) if instance_dir is not None else []
-    )
+    # An engine-only registry (for example the tool commands `pulse doctor` runs) never reads the
+    # instance, so untrusted instance files cannot change what the engine executes.
+    instance_files: list[Path] = []
+    if instance_dir is not None and spec.instance_overridable is not False:
+        instance_files = _expand(instance_dir, spec.instance_paths or spec.paths, values)
     if not engine_files and not instance_files:
         # An instance may supply a file the engine lacks, for example a locale for a new language.
         who = "engine" if instance_dir is None else "engine or instance"
