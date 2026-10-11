@@ -1,0 +1,60 @@
+[project]
+name = "pulseai-workspace"
+version = "0.0.0"
+description = "PulseAI monorepo workspace root (not published)"
+requires-python = ">=3.12"
+dependencies = ["pulseai"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/cli"]
+
+[tool.uv.sources]
+pulseai = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["packages/cli/src/pulseai/models"]
+
+[tool.ruff.format]
+# Ruff 0.17 formats fenced Python blocks inside Markdown; docs/ plans keep unwrapped snippets.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PTH", "N", "S", "C4", "PIE", "RET"]
+
+[tool.ruff.lint.isort]
+# Tests and scripts live outside src/, so Ruff cannot infer that pulseai is first-party.
+known-first-party = ["pulseai"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S603", "S607"]
+"scripts/**" = ["S603", "S607"]
+
+[tool.pyright]
+include = ["packages/cli/src", "packages/cli/tests", "scripts"]
+ignore = ["packages/cli/src/pulseai/models"]
+strict = ["packages/cli/src/pulseai"]
+pythonVersion = "3.12"
+# Resolve pulseai from source as local code; the editable install would be treated as an
+# untyped third-party package (reportMissingTypeStubs) under strict mode.
+extraPaths = ["packages/cli/src"]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["packages/cli/tests"]
+addopts = "-ra --strict-markers"
+markers = ["slow: builds artifacts or spawns subprocesses"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.2",
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
+]

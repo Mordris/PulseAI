@@ -1,9 +1,15 @@
 archive-*/
 .venv/
 __pycache__/
-.pytest_cache/
-runs/
 *.pyc
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+dist/
+build/
+node_modules/
+runs/
 .env
 .claude/worktrees/
 .superpowers/

@@ -1,0 +1,11 @@
+{
+  "name": "pulseai",
+  "owner": { "name": "PulseAI contributors" },
+  "plugins": [
+    {
+      "name": "pulse",
+      "source": "./plugins/pulse",
+      "description": "Research, verify, design, and publish one daily AI and software report"
+    }
+  ]
+}
