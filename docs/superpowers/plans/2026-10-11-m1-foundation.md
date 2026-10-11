@@ -6,7 +6,7 @@
 
 **Architecture:** JSON Schema files in `schema/` define every contract. Registries (`taxonomy/`, `sources/`, `locales/`, `defaults/`) are YAML/JSON data validated against those schemas; a generic loader merges engine defaults with per-instance overrides (by `id`) and validates the result. Python models are generated from the schemas (datamodel-code-generator); TypeScript builds Zod validators from the same files (`z.fromJSONSchema`). Custom code is thin glue: merge, cross-reference checks, schedule conversion, doctor.
 
-**Tech Stack:** Python ≥3.12 (CI: 3.12 and latest 3.15), uv workspace, Typer, Pydantic + pydantic-settings, jsonschema, PyYAML, jmespath, packaging, datamodel-code-generator, check-jsonschema, pytest, Ruff, Pyright; Node LTS (24), pnpm workspace, TypeScript, Zod 4, yaml, rfc6902, Vitest, Biome; pre-commit, actionlint, gitleaks, Renovate, release-please, CodeQL.
+**Tech Stack:** (security: gitleaks, TruffleHog, OSV-Scanner, zizmor, OpenSSF Scorecard, Harden-Runner, CodeQL, SBOM + provenance) Python ≥3.12 (CI: 3.12 and latest 3.15), uv workspace, Typer, Pydantic + pydantic-settings, jsonschema, PyYAML, jmespath, packaging, datamodel-code-generator, check-jsonschema, pytest, Ruff, Pyright; Node LTS (24), pnpm workspace, TypeScript, Zod 4, yaml, rfc6902, Vitest, Biome; pre-commit, actionlint, gitleaks, Renovate, release-please, CodeQL.
 
 **Spec:** `docs/superpowers/specs/2026-10-11-pulseai-daily-research-routine-design.md` (v2). Read §3 (engineering standards), §6 (repositories), §7 (registries and config), §9 (data model), §20 (milestones).
 
@@ -15,7 +15,8 @@
 ## Global Constraints
 
 - **Latest versions:** add dependencies with `uv add` / `pnpm add` **without version pins** so the resolver picks the latest stable; lockfiles (`uv.lock`, `pnpm-lock.yaml`) record them. Versions current on 2026-10-11 are listed per task for reference only.
-- **GitHub Actions are pinned by commit SHA** with the version in a trailing comment (values given in Task 12).
+- **GitHub Actions are pinned by commit SHA** with the version in a trailing comment (values given in Tasks 12 and 13).
+- **Workflow hardening (every workflow):** top-level `permissions: {}` with least-privilege per job; the first step of every job is `step-security/harden-runner` with `egress-policy: audit` (records outbound network calls so exfiltration and leaks are visible); every `actions/checkout` sets `persist-credentials: false`. `zizmor` (Task 13) enforces these rules in CI.
 - **No hardcoding:** code must not embed section ids, item-type ids, source URLs, model ids, colors, UI strings, thresholds, limits, or schedules. They live in `schema/`, `defaults/`, `taxonomy/`, `sources/`, `locales/`. Code may contain rules (how to check) but not values (what to check against).
 - **Schemas:** JSON Schema draft 2020-12; `$id` uses `urn:pulseai:schema:<name>`; every object has `"additionalProperties": false`; every object that should become a named model has a unique `title`; **never use `if`/`then`/`else`** (Zod's `fromJSONSchema` rejects them — use `oneOf` with `const` discriminators).
 - **Ids:** registry ids match `^[a-z0-9]+(?:[_-][a-z0-9]+)*$`; report item ids match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (max 64).
@@ -75,6 +76,7 @@ locales/{en,tr}.json                        # Task 4
 templates/instance/pulse.config.yaml        # Task 6
 packages/contracts/                         # Task 9  TS Zod contracts
 .github/workflows/{ci,codeql,dependency-review,release-please}.yml  # Task 12
+.github/workflows/{secret-scan,vulnerability-scan,workflow-security,scorecard}.yml, .gitleaks.toml  # Task 13
 renovate.json, release-please-config.json, .release-please-manifest.json, .github/CODEOWNERS  # Task 12
 docs/adr/0001-oss-first-registry-driven-stack.md  # Task 12
 ```
@@ -5206,6 +5208,9 @@ Action pins (latest releases on 2026-10-11; Renovate keeps them current):
 - `github/codeql-action/*@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3`
 - `actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0`
 - `googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0`
+- `step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1`
+- `actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2`
+- `anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3`
 
 - [ ] **Step 1: Write the CI workflow**
 
@@ -5218,8 +5223,7 @@ on:
     branches: [main]
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -5229,12 +5233,19 @@ jobs:
   python:
     name: python (${{ matrix.python }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         python: ["3.12", "3.15"]
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: ${{ matrix.python }}
@@ -5249,8 +5260,15 @@ jobs:
 
   node:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -5275,13 +5293,13 @@ on:
   schedule:
     - cron: "23 3 * * 1"
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     strategy:
@@ -5289,7 +5307,12 @@ jobs:
       matrix:
         language: [python, javascript-typescript, actions]
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           languages: ${{ matrix.language }}
@@ -5303,8 +5326,7 @@ name: Dependency review
 on:
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   review:
@@ -5313,11 +5335,19 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: moderate
           comment-summary-in-pr: on-failure
+          allow-licenses: >-
+            MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, MPL-2.0,
+            PSF-2.0, Python-2.0, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib
 ```
 
 - [ ] **Step 3: Write the release configuration**
@@ -5366,8 +5396,7 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   release-please:
@@ -5378,6 +5407,9 @@ jobs:
     outputs:
       cli_release_created: ${{ steps.release.outputs['packages/cli--release_created'] }}
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
@@ -5392,11 +5424,28 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: write
     steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: uv build --wheel --package pulseai --out-dir dist
-      - run: uv publish dist/*
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.whl
+      - name: Software bill of materials
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: pulseai.spdx.json
+          upload-artifact: true
+      - run: uv publish dist/*.whl
 ```
 (PyPI trusted publishing must be configured once for project `pulseai` with this workflow and environment `pypi`; document it in CONTRIBUTING.md.)
 
@@ -5529,6 +5578,287 @@ Expected: every command exits 0.
 ```bash
 git add .github renovate.json release-please-config.json .release-please-manifest.json CONTRIBUTING.md SECURITY.md docs/adr
 git commit -m "ci: add CI, CodeQL, dependency review, releases, and Renovate
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 13: Secret-leak, vulnerability, and workflow-security scanning
+
+**Files:**
+- Create: `.github/workflows/secret-scan.yml`, `.github/workflows/vulnerability-scan.yml`, `.github/workflows/workflow-security.yml`, `.github/workflows/scorecard.yml`, `.gitleaks.toml`
+- Modify: `SECURITY.md`, `CONTRIBUTING.md`, `.pre-commit-config.yaml`
+
+**Interfaces:**
+- Consumes: the workflows from Task 12 (zizmor audits them).
+- Produces: required checks `Secret scan / gitleaks`, `Secret scan / trufflehog`, `Vulnerability scan`, `Workflow security / zizmor`; weekly OpenSSF Scorecard results in the Security tab.
+
+Action pins (latest releases on 2026-10-11):
+- `gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0`
+- `trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2`
+- `google/osv-scanner-action` reusable workflows `@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0`
+- `zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4`
+- `ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4`
+- `actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2`
+
+- [ ] **Step 1: Write the secret-leak workflow (two independent scanners, full history)**
+
+`.github/workflows/secret-scan.yml`:
+```yaml
+name: Secret scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  trufflehog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        with:
+          extra_args: --results=verified,unknown
+```
+
+`.gitleaks.toml` (default rules plus PulseAI-specific secrets; values are env var names, never secrets):
+```toml
+title = "PulseAI gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "apprise-notification-url"
+description = "Apprise URL with embedded credentials (tgram://, discord://, slack://, mailto://user:pass@)"
+regex = '''(?i)\b(tgram|discord|slack|mailtos?|ntfys?|pover|pbul|matrixs?)://[^\s'"]*[A-Za-z0-9_-]{16,}[^\s'"]*'''
+keywords = ["tgram://", "discord://", "slack://", "mailto://", "mailtos://", "ntfy://", "ntfys://", "pover://", "pbul://", "matrix://", "matrixs://"]
+
+[[rules]]
+id = "claude-code-oauth-token"
+description = "Claude Code long-lived OAuth token"
+regex = '''sk-ant-oat\d{2}-[A-Za-z0-9_-]{20,}'''
+keywords = ["sk-ant-oat"]
+
+[[rules]]
+id = "routine-fire-token"
+description = "Claude routine API trigger token"
+regex = '''trig_[A-Za-z0-9]{20,}'''
+keywords = ["trig_"]
+
+[allowlist]
+description = "Documentation placeholders"
+regexes = ['''sk-ant-oat01-xxxxx''', '''trig_01ABCDEFGHJKLMNOPQRSTUVW''']
+```
+
+- [ ] **Step 2: Write the vulnerability workflow (uv.lock and pnpm-lock.yaml)**
+
+`.github/workflows/vulnerability-scan.yml`:
+```yaml
+name: Vulnerability scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  scan-pr:
+    if: github.event_name == 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+
+  scan:
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+```
+
+- [ ] **Step 3: Write the workflow-security and Scorecard workflows**
+
+`.github/workflows/workflow-security.yml`:
+```yaml
+name: Workflow security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+```
+
+`.github/workflows/scorecard.yml`:
+```yaml
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "33 5 * * 1"
+
+permissions: {}
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 5
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: results.sarif
+```
+
+- [ ] **Step 4: Run zizmor locally in pre-commit and point gitleaks at the config**
+
+In `.pre-commit-config.yaml`, give the gitleaks hook the config and add zizmor:
+```yaml
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        args: ["--config=.gitleaks.toml"]
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+```
+Then run `uv run pre-commit autoupdate` so the zizmor hook moves to its latest tag (the `rev` above is a starting point; autoupdate replaces it).
+
+- [ ] **Step 5: Document the security controls and the one-time repository settings**
+
+Append to `SECURITY.md`:
+```markdown
+## Automated controls
+
+| Control | Where |
+|---|---|
+| Secret leaks (pattern + verified) | `secret-scan.yml`: gitleaks with `.gitleaks.toml`, TruffleHog; both scan full history on every push, PR, and nightly |
+| Secrets before they reach git | pre-commit `gitleaks` hook |
+| Vulnerable dependencies | `vulnerability-scan.yml`: OSV-Scanner over `uv.lock` and `pnpm-lock.yaml` on PRs and nightly; `dependency-review.yml` blocks new vulnerable or disallowed-license dependencies |
+| Code scanning | `codeql.yml` (Python, TypeScript, Actions) |
+| Workflow security | `workflow-security.yml` (zizmor); SHA-pinned actions; `permissions: {}` defaults; `persist-credentials: false` |
+| Runtime egress audit | `step-security/harden-runner` as the first step of every job |
+| Supply chain | `scorecard.yml` (OpenSSF Scorecard), Renovate updates, release SBOM (SPDX) and build provenance attestations |
+
+## One-time repository settings (owner)
+
+1. Settings → Code security: enable secret scanning **and push protection**, private vulnerability
+   reporting, Dependabot alerts (updates stay with Renovate), and CodeQL default setup off (the
+   workflow is the source of truth).
+2. Settings → Rules: protect `main` — require pull requests, linear history, and these checks:
+   `python (3.12)`, `python (3.15)`, `node`, `analyze`, `review`, `gitleaks`, `trufflehog`,
+   `scan-pr`, `zizmor`.
+3. Settings → Actions → General: allow only SHA-pinned actions and set the default
+   `GITHUB_TOKEN` permission to read-only.
+```
+
+Append to `CONTRIBUTING.md`:
+```markdown
+## Security checks
+
+Never commit secrets, notification URLs, or tokens; they belong in host secret stores. The
+pre-commit `gitleaks` hook blocks most leaks locally; CI repeats gitleaks and TruffleHog on full
+history. If a secret was ever committed, rotate it first, then remove it from history.
+```
+
+- [ ] **Step 6: Validate locally**
+
+Run:
+```bash
+uv run pre-commit run --all-files
+uvx zizmor --persona=auditor .github/workflows
+uv run pre-commit run gitleaks --all-files
+```
+Expected: pre-commit passes; zizmor reports no findings at `--persona=regular` (the default) — fix any it reports in the workflow files; the `auditor` persona may list informational notes, which are acceptable when documented in a comment next to the line. gitleaks reports no leaks.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add .github .gitleaks.toml .pre-commit-config.yaml SECURITY.md CONTRIBUTING.md
+git commit -m "ci: add secret-leak, vulnerability, workflow-security, and Scorecard scanning
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
