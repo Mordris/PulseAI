@@ -5,7 +5,7 @@
 - 2: unusable input: engine data, the registry catalog, config, a registry that fails to load, or
   an unreadable or unparseable file.
 
-Messages about problems go to stderr, except the doctor report, which always goes to stdout.
+Errors go to stderr and warnings to stdout, except the doctor report, which always goes to stdout.
 """
 
 import sys
@@ -23,13 +23,24 @@ from pulseai.paths import ENGINE_DATA_ENV
 
 runner = CliRunner()
 
-VALID, ISSUE, BROKEN_CONFIG, NO_ENGINE_DATA, BROKEN_CATALOG, BROKEN_REPORT = (
+(
+    VALID,
+    ISSUE,
+    BROKEN_CONFIG,
+    NO_ENGINE_DATA,
+    BROKEN_CATALOG,
+    BROKEN_REPORT,
+    BROKEN_LOCALE,
+    BROKEN_SECTIONS,
+) = (
     "valid",
     "validation-issue",
     "broken-config",
     "no-engine-data",
     "broken-catalog",
     "broken-report",
+    "broken-locale",
+    "broken-sections",
 )
 
 
@@ -85,6 +96,13 @@ def _prepare(
     elif scenario == BROKEN_REPORT:
         report = tmp_path / "report.json"
         report.write_text("{not json", encoding="utf-8")
+    elif scenario == BROKEN_LOCALE:
+        # An instance override of the default language's locale that is not even JSON.
+        (instance / "locales").mkdir()
+        (instance / "locales/en.json").write_text("{not json", encoding="utf-8")
+    elif scenario == BROKEN_SECTIONS:
+        (instance / "taxonomy").mkdir()
+        (instance / "taxonomy/sections.yaml").write_text("sections: [", encoding="utf-8")
     return Setup(instance, report)
 
 
@@ -121,6 +139,8 @@ COMMANDS: dict[str, tuple[Callable[[Setup], list[str]], dict[str, Expect]]] = {
             BROKEN_CONFIG: Expect(2, "stderr", "schedule/time"),
             NO_ENGINE_DATA: Expect(2, "stderr", ENGINE_DATA_ENV),
             BROKEN_CATALOG: Expect(2, "stderr", "registries.yaml"),
+            BROKEN_LOCALE: Expect(2, "stderr", "locales/en.json"),
+            BROKEN_SECTIONS: Expect(2, "stderr", "taxonomy/sections.yaml"),
         },
     ),
     "validate": (
@@ -143,6 +163,8 @@ COMMANDS: dict[str, tuple[Callable[[Setup], list[str]], dict[str, Expect]]] = {
             BROKEN_CONFIG: Expect(1, "stdout", "fail registry:load: "),
             NO_ENGINE_DATA: Expect(1, "stdout", f"fail engine:data: {ENGINE_DATA_ENV}"),
             BROKEN_CATALOG: Expect(1, "stdout", "fail registry:catalog: "),
+            BROKEN_LOCALE: Expect(1, "stdout", "fail registry:language: "),
+            BROKEN_SECTIONS: Expect(1, "stdout", "fail registry:load: "),
         },
     ),
 }

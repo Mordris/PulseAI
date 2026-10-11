@@ -24,7 +24,8 @@ from pulseai.report.validate import validate_report_file
 from pulseai.schedule import HOSTS, render_host
 
 # Exit codes: 0 fine; 1 validation issues in input that loaded (doctor: any failing check);
-# 2 unusable input (engine data, catalog, config, registries that fail to load, unreadable files).
+# 2 unusable input (engine data, catalog, config, registries or locales that fail to load,
+# unreadable files).
 EXIT_ISSUES = 1
 EXIT_UNUSABLE = 2
 

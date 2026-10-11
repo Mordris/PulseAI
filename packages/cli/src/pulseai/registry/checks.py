@@ -106,7 +106,8 @@ def _check_locales(
         merged = load_locale(cfg.language, instance_dir)
         own = load_registry(LOCALE_REGISTRY, instance_dir, {LOCALE_VARIABLE: cfg.language}).data
     except RegistryError as exc:
-        yield _error("language", str(exc))
+        # Like any other registry that fails to load, a broken locale makes the input unusable.
+        yield unusable_issue("language", str(exc))
         return
     for where, key in labels:
         if key not in merged:
