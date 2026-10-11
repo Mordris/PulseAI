@@ -166,8 +166,9 @@ def test_malformed_template_is_reported(tmp_path: Path, source: dict[str, Any]) 
     [
         ("{not json", "Expecting property name"),
         ('{"type": 5}', "5 is not valid under any of the given schemas"),
+        ("true", "must be a JSON object"),
     ],
-    ids=["not-json", "not-a-schema"],
+    ids=["not-json", "not-a-schema", "boolean-schema"],
 )
 def test_broken_item_type_schema_is_reported(tmp_path: Path, content: str, problem: str) -> None:
     broken = tmp_path / "schema/item-types/broken.schema.json"

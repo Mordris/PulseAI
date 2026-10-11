@@ -23,6 +23,10 @@ class SchemaNotFoundError(FileNotFoundError):
     """No schema with this name exists in the instance or the engine."""
 
 
+class SchemaShapeError(ValueError):
+    """A schema file is valid JSON Schema but not an object (for example a bare `true`)."""
+
+
 def schema_file(name: str, instance_dir: Path | None = None) -> Path:
     candidates = [instance_dir / SCHEMA_DIR / name] if instance_dir else []
     candidates.append(data_path(SCHEMA_DIR, name))
@@ -46,7 +50,12 @@ def clear_schema_cache() -> None:
 
 
 def load_schema(name: str, instance_dir: Path | None = None) -> dict[str, Any]:
-    return cast("dict[str, Any]", _validator(schema_file(name, instance_dir)).schema)
+    path = schema_file(name, instance_dir)
+    schema = _validator(path).schema
+    if not isinstance(schema, dict):
+        msg = f"schema {name!r} ({path}) must be a JSON object"
+        raise SchemaShapeError(msg)
+    return schema
 
 
 def _pointer(error: ValidationError) -> str:

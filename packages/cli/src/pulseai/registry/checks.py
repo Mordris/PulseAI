@@ -25,7 +25,7 @@ from pulseai.registry.loader import (
     load_locale,
     load_registry,
 )
-from pulseai.schemas import SchemaNotFoundError, load_schema, schema_file
+from pulseai.schemas import SchemaNotFoundError, SchemaShapeError, load_schema, schema_file
 
 ITEM_TYPE_SCHEMA_DIR = "item-types"
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
@@ -74,7 +74,7 @@ def _check_item_types(
         name = f"{ITEM_TYPE_SCHEMA_DIR}/{item_type['schema']}"
         try:
             properties = set(load_schema(name, instance_dir).get("properties", {}))
-        except SchemaNotFoundError as exc:
+        except (SchemaNotFoundError, SchemaShapeError) as exc:
             yield _error(f"item_types/{i}/schema", str(exc))
             continue
         except (ValueError, SchemaError) as exc:
