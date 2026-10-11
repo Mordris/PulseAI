@@ -67,3 +67,20 @@ def test_cli_config_check_fails_with_exit_2(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "check", "--instance", str(tmp_path)])
     assert result.exit_code == 2
     assert "language" in result.output
+
+
+def test_primary_tiers_default_and_override(tmp_path: Path) -> None:
+    assert load_config().quality.primary_tiers == ["T1", "T1-data"]
+    (tmp_path / "pulse.config.yaml").write_text(
+        "quality:\n  primary_tiers: [T1]\n", encoding="utf-8"
+    )
+    assert load_config(tmp_path).quality.primary_tiers == ["T1"]
+
+
+@pytest.mark.parametrize("value", ["[]", "[T1, T1]", "[T9]"], ids=["empty", "repeated", "unknown"])
+def test_invalid_primary_tiers_are_rejected(tmp_path: Path, value: str) -> None:
+    (tmp_path / "pulse.config.yaml").write_text(
+        f"quality:\n  primary_tiers: {value}\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigError, match="primary_tiers"):
+        load_config(tmp_path)

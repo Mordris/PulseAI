@@ -66,6 +66,34 @@ def test_disabled_section_with_items_is_an_error(tmp_path: Path, minimal: dict[s
     assert errors == ["section 'models' is disabled but has 1 item"]
 
 
+def test_primary_tiers_come_from_the_config(tmp_path: Path, minimal: dict[str, Any]) -> None:
+    assert validate_report(minimal, tmp_path) == []
+    _config(tmp_path, "quality:\n  primary_tiers: [T1-data]\n")
+    errors = _errors(validate_report(minimal, tmp_path))
+    assert errors
+    assert {i.where for i in errors} <= {"items/0", "items/1"}
+    assert {i.message for i in errors} == {
+        "confirmed items need a primary source of tier T1-data",
+    }
+
+
+def test_a_wider_primary_tier_list_accepts_more_sources(
+    tmp_path: Path, minimal: dict[str, Any]
+) -> None:
+    for item in minimal["items"]:
+        for source in item["sources"]:
+            source["tier"] = "T2"
+    assert _errors(validate_report(minimal, tmp_path))
+    _config(tmp_path, "quality:\n  primary_tiers: [T1, T1-data, T2]\n")
+    assert validate_report(minimal, tmp_path) == []
+
+
+def test_the_default_message_names_the_configured_tiers(minimal: dict[str, Any]) -> None:
+    minimal["items"][0]["sources"][0]["kind"] = "secondary"
+    messages = [i.message for i in _errors(validate_report(minimal))]
+    assert "confirmed items need a primary source of tier T1 or T1-data" in messages
+
+
 def test_too_many_items_is_a_warning(tmp_path: Path, minimal: dict[str, Any]) -> None:
     (tmp_path / "pulse.config.yaml").write_text(
         "sections:\n  research: { enabled: true, max_items: 1 }\n", encoding="utf-8"

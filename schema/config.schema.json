@@ -131,14 +131,22 @@
         "section_delta_e_min",
         "section_cvd_fail",
         "section_cvd_target",
-        "design_review_min_score"
+        "design_review_min_score",
+        "primary_tiers"
       ],
       "properties": {
         "text_contrast_min": { "type": "number", "minimum": 1, "maximum": 21 },
         "section_delta_e_min": { "type": "number", "minimum": 0 },
         "section_cvd_fail": { "type": "number", "minimum": 0 },
         "section_cvd_target": { "type": "number", "minimum": 0 },
-        "design_review_min_score": { "type": "number", "minimum": 0, "maximum": 10 }
+        "design_review_min_score": { "type": "number", "minimum": 0, "maximum": 10 },
+        "primary_tiers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["T1", "T1-data", "T2", "T3"] },
+          "description": "Source tiers that count as primary evidence for a confirmed item."
+        }
       }
     },
     "theme": {

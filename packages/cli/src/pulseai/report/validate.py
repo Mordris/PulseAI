@@ -26,7 +26,6 @@ from pulseai.schemas import (
 )
 
 REPORT_SCHEMA = "report.schema.json"
-PRIMARY_TIERS = frozenset({"T1", "T1-data"})
 VEGA_LITE_KIND = "vega-lite"
 TABLE_KIND = "table"
 
@@ -125,12 +124,15 @@ def _check_references(report: dict[str, Any]) -> Iterator[Issue]:
                 yield _error(f"{key}/{index}/item_id", _unknown_item(report, ref))
 
 
-def _check_sources(report: dict[str, Any]) -> Iterator[Issue]:
+def _check_sources(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
+    tiers = ctx.cfg.quality.primary_tiers
     for where, item in _items(report):
         sources = item["sources"]
-        has_primary = any(s["kind"] == "primary" and s["tier"] in PRIMARY_TIERS for s in sources)
+        has_primary = any(s["kind"] == "primary" and s["tier"] in tiers for s in sources)
         if item["confidence"] == "confirmed" and not has_primary:
-            yield _error(where, "confirmed items need a primary T1 or T1-data source")
+            yield _error(
+                where, f"confirmed items need a primary source of tier {' or '.join(tiers)}"
+            )
         for index, fact in enumerate(item["facts"]):
             if fact["source_ref"] >= len(sources):
                 yield _error(
@@ -262,7 +264,7 @@ def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
         *_check_registry_refs(report, ctx),
         *_check_unique_ids(report),
         *_check_references(report),
-        *_check_sources(report),
+        *_check_sources(report, ctx),
         *_check_confidence_routing(report, ctx),
         *_check_featured(report, ctx),
         *_check_visuals(report),

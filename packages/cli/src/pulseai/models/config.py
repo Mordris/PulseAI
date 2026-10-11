@@ -81,6 +81,13 @@ class QualityConfig(BaseModel):
     section_cvd_fail: Annotated[float, Field(ge=0.0)]
     section_cvd_target: Annotated[float, Field(ge=0.0)]
     design_review_min_score: Annotated[float, Field(ge=0.0, le=10.0)]
+    primary_tiers: Annotated[
+        list[Literal["T1", "T1-data", "T2", "T3"]],
+        Field(
+            description="Source tiers that count as primary evidence for a confirmed item.",
+            min_length=1,
+        ),
+    ]
 
 
 class VisualsConfig(BaseModel):
