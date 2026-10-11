@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import typer
 import yaml
@@ -138,6 +139,15 @@ schedule_app = typer.Typer(help="Show scheduler settings for each host.", no_arg
 app.add_typer(schedule_app, name="schedule")
 
 
+def require_time_zone(name: str) -> None:
+    """Exit with code 2 unless `name` is a known IANA time zone."""
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        typer.echo(f"unknown time zone {name!r}", err=True)
+        raise typer.Exit(2) from None
+
+
 @schedule_app.command("print")
 def schedule_print(
     host: Annotated[str, typer.Option("--host", help=f"One of: {', '.join(HOSTS)}")],
@@ -152,4 +162,6 @@ def schedule_print(
         raise typer.Exit(2)
     cfg = load_config_or_exit(instance)
     zone = machine_tz or cfg.schedule.tz
+    require_time_zone(cfg.schedule.tz)
+    require_time_zone(zone)
     typer.echo(render_host(cfg.schedule, host, date.today(), zone), nl=False)

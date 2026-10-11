@@ -12,7 +12,7 @@ Host = Literal["routine", "actions", "systemd", "launchd"]
 HOSTS: tuple[Host, ...] = get_args(Host)
 CLOUD_HOSTS: frozenset[Host] = frozenset({"routine", "actions"})
 _ANCHOR = date(2000, 1, 3)
-_PROBE_MONTHS = (1, 7)
+_DAYS_IN_LEAP_YEAR = 366
 
 
 def parse_hhmm(value: str) -> time:
@@ -32,11 +32,19 @@ def run_time(cfg: ScheduleConfig, host: Host) -> time:
 
 
 def utc_offsets(tz: str, year: int) -> list[timedelta]:
-    """Distinct UTC offsets of a zone in a year (January first, then July)."""
+    """Distinct UTC offsets of a zone in a year, in the order they first apply.
+
+    Every day of the year is checked at 12:00 local time, so short-lived offsets (such as
+    Morocco's Ramadan break) are not missed.
+    """
     zone = ZoneInfo(tz)
+    noon = datetime(year, 1, 1, 12, tzinfo=zone)
     offsets: list[timedelta] = []
-    for month in _PROBE_MONTHS:
-        offset = datetime(year, month, 15, 12, tzinfo=zone).utcoffset()
+    for day in range(_DAYS_IN_LEAP_YEAR):
+        moment = noon + timedelta(days=day)
+        if moment.year != year:
+            break
+        offset = moment.utcoffset()
         if offset is not None and offset not in offsets:
             offsets.append(offset)
     return offsets
