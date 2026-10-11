@@ -107,6 +107,44 @@ def test_read_document_unsupported_suffix(tmp_path: Path) -> None:
         read_document(path)
 
 
+def test_read_document_not_utf8_names_the_file(tmp_path: Path) -> None:
+    path = tmp_path / "x.yaml"
+    path.write_bytes("a: 1\n".encode("utf-16"))
+    with pytest.raises(RegistryError, match="not valid UTF-8") as info:
+        read_document(path)
+    assert str(path) in str(info.value)
+
+
+def test_read_document_unreadable_without_strerror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(self: Path, *args: object, **kwargs: object) -> str:
+        raise OSError
+
+    monkeypatch.setattr(Path, "read_text", fail)
+    path = tmp_path / "x.yaml"
+    with pytest.raises(RegistryError, match="cannot read") as info:
+        read_document(path)
+    assert str(path) in str(info.value)
+    assert "None" not in str(info.value)
+
+
+@pytest.mark.parametrize("language", ["*", "?", "[a]", "../en", "..", "a/b", "a\\b", "/etc/passwd"])
+def test_locale_rejects_unsafe_language(language: str) -> None:
+    with pytest.raises(RegistryError, match="variable 'language'"):
+        load_locale(language)
+
+
+@pytest.mark.parametrize("template", ["locales/{}.json", "locales/{language.nope}.json"])
+def test_invalid_path_template_is_a_registry_error(engine_copy: Path, template: str) -> None:
+    catalog_path = engine_copy / "defaults/registries.yaml"
+    catalog = yaml.safe_load(catalog_path.read_text(encoding="utf-8"))
+    next(r for r in catalog["registries"] if r["id"] == "locale")["paths"] = [template]
+    _write(catalog_path, catalog)
+    with pytest.raises(RegistryError, match="not a valid template"):
+        load_locale("en")
+
+
 def test_locale_falls_back() -> None:
     tr = load_locale("tr")
     en = load_locale("en")

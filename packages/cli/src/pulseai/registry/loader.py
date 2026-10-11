@@ -20,6 +20,7 @@ CATALOG_PARTS = ("defaults", "registries.yaml")
 CATALOG_SCHEMA = "registries.schema.json"
 YAML_SUFFIXES = frozenset({".yaml", ".yml"})
 GLOB_CHARS = frozenset("*?[")
+UNSAFE_VARIABLE_PARTS = ("/", "\\", "..")
 LOCALE_REGISTRY = "locale"
 LOCALE_VARIABLE = "language"
 
@@ -42,8 +43,11 @@ def _bullets(lines: Sequence[str]) -> str:
 def read_document(path: Path) -> Any:
     try:
         text = path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError as exc:
+        msg = f"{path}: not valid UTF-8 ({exc.reason})"
+        raise RegistryError(msg) from None
     except OSError as exc:
-        msg = f"{path}: cannot read ({exc.strerror})"
+        msg = f"{path}: cannot read ({exc.strerror or type(exc).__name__})"
         raise RegistryError(msg) from None
     if not text.strip():
         msg = f"{path}: file is empty"
@@ -81,6 +85,14 @@ def registry_spec(registry_id: str) -> RegistrySpec:
     raise RegistryError(msg)
 
 
+def _check_variables(variables: Mapping[str, str]) -> None:
+    """Reject values that could widen a glob or climb out of the directory they are used in."""
+    for name, value in variables.items():
+        if GLOB_CHARS & set(value) or any(part in value for part in UNSAFE_VARIABLE_PARTS):
+            msg = f"variable {name!r} has an unsafe value {value!r}"
+            raise RegistryError(msg)
+
+
 def _expand(root: Path, patterns: Sequence[str], variables: Mapping[str, str]) -> list[Path]:
     found: list[Path] = []
     for pattern in patterns:
@@ -89,7 +101,10 @@ def _expand(root: Path, patterns: Sequence[str], variables: Mapping[str, str]) -
         except KeyError as exc:
             msg = f"path {pattern!r} needs variable {exc.args[0]!r}"
             raise RegistryError(msg) from None
-        if GLOB_CHARS & set(relative):
+        except (ValueError, IndexError, AttributeError) as exc:
+            msg = f"path {pattern!r} is not a valid template ({exc})"
+            raise RegistryError(msg) from None
+        if GLOB_CHARS & set(pattern):
             found.extend(sorted(p for p in root.glob(relative) if p.is_file()))
         elif (root / relative).is_file():
             found.append(root / relative)
@@ -132,6 +147,7 @@ def load_registry(
     """Load one registry: combine engine files, merge instance overrides, validate the result."""
     spec = registry_spec(registry_id)
     values = dict(variables or {})
+    _check_variables(values)
     engine_files = _expand(engine_root(), spec.paths, values)
     if not engine_files:
         msg = f"{registry_id}: no engine files match {', '.join(spec.paths)}"
