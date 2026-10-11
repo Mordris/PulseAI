@@ -18,8 +18,9 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 from pulseai.config import unknown_env_overrides
+from pulseai.paths import EngineDataError
 from pulseai.registry.checks import check_registries
-from pulseai.registry.loader import RegistryError, load_registry
+from pulseai.registry.loader import RegistryError, load_catalog, load_registry
 
 PYTHON_TOKEN = "{python}"  # noqa: S105 - command placeholder in the registry, not a secret
 
@@ -40,6 +41,12 @@ def format_finding(finding: Finding) -> str:
     if finding.hint and finding.status != "ok":
         line += f" (hint: {finding.hint})"
     return line
+
+
+def infrastructure_finding(exc: EngineDataError | RegistryError) -> Finding:
+    """The finding for engine data or the registry catalog being unusable."""
+    check = "engine:data" if isinstance(exc, EngineDataError) else "registry:catalog"
+    return Finding(check, "fail", str(exc))
 
 
 def run_tool(command: list[str], timeout: float | None = None) -> str | None:
@@ -104,6 +111,10 @@ def doctor(
     runner: Runner | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> list[Finding]:
+    try:
+        load_catalog()
+    except (EngineDataError, RegistryError) as exc:
+        return [infrastructure_finding(exc)]  # nothing else can be checked without the catalog
     findings: list[Finding] = []
     engine_error: str | None = None
     try:

@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from pulseai.cli import app
 from pulseai.issues import Issue
+from pulseai.paths import ENGINE_DATA_ENV
 from pulseai.report.validate import validate_report, validate_report_file
 
 runner = CliRunner()
@@ -114,6 +115,44 @@ def test_broken_detail_schema_is_an_issue(
     assert [i.where for i in errors] == ["items/0/detail"]
     assert str(broken) in errors[0].message
     assert problem in errors[0].message
+
+
+def _write_industry_schema(directory: Path, schema: dict[str, Any]) -> Path:
+    path = directory / "schema/item-types/industry.schema.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(schema), encoding="utf-8")
+    return path
+
+
+def test_unresolvable_ref_in_a_detail_schema_is_an_issue(
+    tmp_path: Path, minimal: dict[str, Any]
+) -> None:
+    broken = _write_industry_schema(
+        tmp_path,
+        {"type": "object", "properties": {"who": {"$ref": "#/$defs/missing"}}},
+    )
+    errors = _errors(validate_report(minimal, tmp_path))
+    assert [i.where for i in errors] == ["items/0/detail"]
+    assert str(broken) in errors[0].message
+    assert "unresolvable $ref '#/$defs/missing'" in errors[0].message
+
+
+def test_unreadable_detail_schema_is_an_issue(
+    tmp_path: Path, minimal: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broken = _write_industry_schema(tmp_path, {"type": "object"})
+    real_read_text = Path.read_text
+
+    def read_text(self: Path, *args: Any, **kwargs: Any) -> str:
+        if self == broken:
+            raise PermissionError(13, "Permission denied")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_text)
+    errors = _errors(validate_report(minimal, tmp_path))
+    assert [i.where for i in errors] == ["items/0/detail"]
+    assert str(broken) in errors[0].message
+    assert "cannot read (Permission denied)" in errors[0].message
 
 
 REPORTED_MAIN = "confidence:\n  reported: main\n"
@@ -283,17 +322,78 @@ def test_unknown_section_is_not_also_reported_disabled(minimal: dict[str, Any]) 
         b'{"schema_version": NaN}',
         b'{"schema_version": Infinity}',
         b'{"schema_version": -Infinity}',
+        b'{"schema_version": 1e999}',
+        b'{"schema_version": -1e999}',
+        b"[" * 100_000,
     ],
-    ids=["utf-16", "malformed", "nan", "infinity", "negative-infinity"],
+    ids=[
+        "utf-16",
+        "malformed",
+        "nan",
+        "infinity",
+        "negative-infinity",
+        "overflow",
+        "negative-overflow",
+        "too-deep",
+    ],
 )
 def test_unreadable_report_file_is_a_file_issue(tmp_path: Path, content: bytes) -> None:
     path = tmp_path / "report.json"
     path.write_bytes(content)
-    assert [i.where for i in validate_report_file(path)] == ["file"]
+    issues = validate_report_file(path)
+    assert [(i.where, i.unusable) for i in issues] == [("file", True)]
     result = runner.invoke(app, ["validate", str(path)])
-    assert result.exit_code == 1
-    assert "error file:" in result.output
+    assert result.exit_code == 2
+    assert "error file:" in result.stderr
+
+
+def test_recursion_while_checking_a_report_is_a_file_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, repo_root: Path
+) -> None:
+    # Python 3.12's JSON parser accepts nesting deeper than the Python-level checks can walk.
+    def too_deep(*_args: object) -> str | None:
+        raise RecursionError
+
+    monkeypatch.setattr("pulseai.report.validate.validate_report", too_deep)
+    good = repo_root / "schema/examples/report/valid/minimal.json"
+    issues = validate_report_file(good)
+    assert [(i.where, i.unusable) for i in issues] == [("file", True)]
+    assert "nested too deeply" in issues[0].message
 
 
 def test_missing_report_file_is_a_file_issue(tmp_path: Path) -> None:
-    assert [i.where for i in validate_report_file(tmp_path / "missing.json")] == ["file"]
+    issues = validate_report_file(tmp_path / "missing.json")
+    assert [(i.where, i.unusable) for i in issues] == [("file", True)]
+
+
+def test_validation_problems_are_not_unusable(minimal: dict[str, Any]) -> None:
+    minimal["items"][0]["section"] = "weather"
+    issues = validate_report(minimal)
+    assert issues
+    assert not any(i.unusable for i in issues)
+
+
+def test_unusable_config_is_a_load_issue_not_a_validation_issue(
+    tmp_path: Path, minimal: dict[str, Any]
+) -> None:
+    _config(tmp_path, "schedule: { time: '99:99' }\n")
+    issues = validate_report(minimal, tmp_path)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+
+
+def test_missing_engine_data_is_a_load_issue(
+    tmp_path: Path, minimal: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENGINE_DATA_ENV, str(tmp_path / "nowhere"))
+    issues = validate_report(minimal, tmp_path)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+    assert ENGINE_DATA_ENV in issues[0].message
+
+
+def test_missing_engine_report_schema_is_a_load_issue(
+    engine_copy: Path, minimal: dict[str, Any]
+) -> None:
+    (engine_copy / "schema/report.schema.json").unlink()
+    issues = validate_report(minimal)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+    assert "report.schema.json" in issues[0].message

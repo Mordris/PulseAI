@@ -15,8 +15,9 @@ from jsonschema.exceptions import SchemaError
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from pulseai.config import ConfigError, load_config
-from pulseai.issues import Issue
+from pulseai.issues import Issue, unusable_issue
 from pulseai.models.config import PulseConfig
+from pulseai.paths import EngineDataError
 from pulseai.registry.loader import (
     LOCALE_REGISTRY,
     LOCALE_VARIABLE,
@@ -83,7 +84,8 @@ def _check_item_types(
             yield _error(f"item_types/{i}/schema", str(exc))
             continue
         except (ValueError, SchemaError) as exc:
-            # ValueError covers JSONDecodeError and UnicodeDecodeError from the schema file.
+            # ValueError covers JSONDecodeError, UnicodeDecodeError, an unreadable file, and a
+            # dangling $ref.
             problem = exc.message if isinstance(exc, SchemaError) else str(exc)
             yield _error(
                 f"item_types/{i}/schema", f"{schema_file(name, instance_dir)}: invalid ({problem})"
@@ -202,8 +204,8 @@ def check_registries(instance_dir: Path | None = None) -> list[Issue]:
         roles = load_registry("roles", instance_dir).data["roles"]
         sources = load_registry("sources", instance_dir).data["sources"]
         tools = load_registry("engine", instance_dir).data["tools"]
-    except (RegistryError, ConfigError) as exc:
-        return [_error("load", str(exc))]
+    except (EngineDataError, RegistryError, ConfigError) as exc:
+        return [unusable_issue("load", str(exc))]
 
     section_ids = {s["id"] for s in sections}
     type_ids = {t["id"] for t in item_types}

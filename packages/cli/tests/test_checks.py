@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 from pulseai.cli import app
 from pulseai.issues import Issue
+from pulseai.paths import ENGINE_DATA_ENV
 from pulseai.registry.checks import check_registries
 
 runner = CliRunner()
@@ -200,6 +201,59 @@ def test_broken_item_type_schema_is_reported(tmp_path: Path, content: str, probl
     ), errors
 
 
+def test_unresolvable_ref_in_an_item_type_schema_is_reported(tmp_path: Path) -> None:
+    broken = tmp_path / "schema/item-types/industry.schema.json"
+    broken.parent.mkdir(parents=True)
+    broken.write_text(
+        json.dumps({"type": "object", "properties": {"who": {"$ref": "#/$defs/missing"}}}),
+        encoding="utf-8",
+    )
+    errors = _errors(check_registries(tmp_path))
+    assert any(
+        e.startswith("item_types/")
+        and str(broken) in e
+        and "unresolvable $ref '#/$defs/missing'" in e
+        for e in errors
+    ), errors
+
+
+def test_resolvable_refs_are_accepted(tmp_path: Path) -> None:
+    ok = tmp_path / "schema/item-types/industry.schema.json"
+    ok.parent.mkdir(parents=True)
+    ok.write_text(
+        json.dumps(
+            {
+                "$defs": {"name": {"type": "string"}},
+                "type": "object",
+                "properties": {"who": {"$ref": "#/$defs/name"}, "what": {"$ref": "#/$defs/name"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert not any("unresolvable" in e for e in _errors(check_registries(tmp_path)))
+
+
+def test_unreadable_item_type_schema_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broken = tmp_path / "schema/item-types/industry.schema.json"
+    broken.parent.mkdir(parents=True)
+    broken.write_text("{}", encoding="utf-8")
+    real_read_text = Path.read_text
+
+    def read_text(self: Path, *args: Any, **kwargs: Any) -> str:
+        if self == broken:
+            raise PermissionError(13, "Permission denied")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_text)
+    errors = _errors(check_registries(tmp_path))
+    assert any(
+        e.startswith("item_types/") and str(broken) in e and "cannot read (Permission denied)" in e
+        for e in errors
+    ), errors
+
+
 def test_missing_translation_is_a_warning(tmp_path: Path, engine_copy: Path) -> None:
     # Instance locale overrides merge over the engine file and cannot delete keys, so remove the
     # translation from a writable engine copy instead.
@@ -221,3 +275,25 @@ def test_cli_registry_check_exit_codes(tmp_path: Path) -> None:
     bad = runner.invoke(app, ["registry", "check", "--instance", str(tmp_path)])
     assert bad.exit_code == 1
     assert "unknown role 'intern'" in bad.output
+
+
+def test_rule_violations_are_not_unusable(tmp_path: Path) -> None:
+    _write(tmp_path / "pulse.config.yaml", {"models_by_role": {"intern": "x"}})
+    issues = check_registries(tmp_path)
+    assert _errors(issues)
+    assert not any(i.unusable for i in issues)
+
+
+def test_an_unloadable_config_is_one_unusable_load_issue(tmp_path: Path) -> None:
+    _write(tmp_path / "pulse.config.yaml", {"schedule": {"time": "99:99"}})
+    issues = check_registries(tmp_path)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+
+
+def test_missing_engine_data_is_an_unusable_load_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENGINE_DATA_ENV, str(tmp_path / "nowhere"))
+    issues = check_registries(tmp_path)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+    assert ENGINE_DATA_ENV in issues[0].message

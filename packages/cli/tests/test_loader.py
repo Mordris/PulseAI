@@ -5,6 +5,8 @@ import yaml
 
 from pulseai.registry.loader import (
     RegistryError,
+    _expand,  # pyright: ignore[reportPrivateUsage]
+    load_catalog,
     load_locale,
     load_registry,
     read_document,
@@ -129,6 +131,30 @@ def test_read_document_unreadable_without_strerror(
     assert "None" not in str(info.value)
 
 
+def test_read_document_yaml_value_error_names_the_file(tmp_path: Path) -> None:
+    # PyYAML constructs an unquoted impossible date itself and raises a plain ValueError.
+    path = tmp_path / "x.yaml"
+    path.write_text("released: 2026-02-30\n", encoding="utf-8")
+    with pytest.raises(RegistryError, match="cannot parse") as info:
+        read_document(path)
+    assert str(path) in str(info.value)
+
+
+@pytest.mark.parametrize("suffix", [".yaml", ".json"])
+def test_read_document_too_deeply_nested_names_the_file(tmp_path: Path, suffix: str) -> None:
+    path = tmp_path / f"x{suffix}"
+    path.write_text("[" * 100_000, encoding="utf-8")
+    with pytest.raises(RegistryError, match="nested too deeply") as info:
+        read_document(path)
+    assert str(path) in str(info.value)
+
+
+def test_expand_reports_a_template_that_format_map_rejects_with_type_error(tmp_path: Path) -> None:
+    # "{language[x]}" indexes a string with a string, which raises TypeError.
+    with pytest.raises(RegistryError, match="not a valid template"):
+        _expand(tmp_path, ["locales/{language[x]}.json"], {"language": "en"})
+
+
 @pytest.mark.parametrize("language", ["*", "?", "[a]", "../en", "..", "a/b", "a\\b", "/etc/passwd"])
 def test_locale_rejects_unsafe_language(language: str) -> None:
     with pytest.raises(RegistryError, match="variable 'language'"):
@@ -155,3 +181,15 @@ def test_locale_falls_back() -> None:
 def test_missing_locale_is_an_error() -> None:
     with pytest.raises(RegistryError, match="no engine files"):
         load_locale("xx")
+
+
+def test_missing_engine_schema_is_a_registry_error(engine_copy: Path) -> None:
+    (engine_copy / "schema/sections.schema.json").unlink()
+    with pytest.raises(RegistryError, match=r"sections.*sections\.schema\.json"):
+        load_registry("sections")
+
+
+def test_missing_catalog_schema_is_a_registry_error(engine_copy: Path) -> None:
+    (engine_copy / "schema/registries.schema.json").unlink()
+    with pytest.raises(RegistryError, match=r"registries\.schema\.json"):
+        load_catalog()

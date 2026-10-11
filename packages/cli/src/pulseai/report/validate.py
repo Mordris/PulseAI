@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -12,11 +13,13 @@ from typing import Any, cast
 from jsonschema.exceptions import SchemaError
 
 from pulseai.config import ConfigError, load_config
-from pulseai.issues import Issue
+from pulseai.issues import Issue, unusable_issue
 from pulseai.models.config import PulseConfig
+from pulseai.paths import EngineDataError
 from pulseai.registry.loader import RegistryError, load_registry
 from pulseai.schemas import (
     ITEM_TYPE_SCHEMA_DIR,
+    SCHEMA_PROBLEMS,
     SchemaNotFoundError,
     schema_file,
     validate_document,
@@ -244,13 +247,16 @@ def _context(instance_dir: Path | None) -> _Context:
 
 def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
     """All problems with a report; schema problems stop further checks."""
-    schema_errors = validate_document(data, REPORT_SCHEMA)
+    try:
+        schema_errors = validate_document(data, REPORT_SCHEMA)
+    except (EngineDataError, *SCHEMA_PROBLEMS) as exc:
+        return [unusable_issue("load", f"cannot use schema {REPORT_SCHEMA!r} ({exc})")]
     if schema_errors:
         return [_error("schema", message) for message in schema_errors]
     try:
         ctx = _context(instance_dir)
-    except (ConfigError, RegistryError) as exc:
-        return [_error("load", str(exc))]
+    except (EngineDataError, ConfigError, RegistryError) as exc:
+        return [unusable_issue("load", str(exc))]
     report: dict[str, Any] = data
     issues = [
         *_check_registry_refs(report, ctx),
@@ -270,11 +276,26 @@ def _reject_constant(name: str) -> Any:
     raise ValueError(msg)
 
 
+def _finite_float(text: str) -> float:
+    """A JSON number as a float; 1e999 overflows to infinity, which JSON cannot represent."""
+    value = float(text)
+    if not math.isfinite(value):
+        msg = f"{text} is too large to be a JSON number"
+        raise ValueError(msg)
+    return value
+
+
 def validate_report_file(path: Path, instance_dir: Path | None = None) -> list[Issue]:
     try:
         text = path.read_text(encoding="utf-8-sig")
-        # ValueError covers UnicodeDecodeError, JSONDecodeError, and the NaN/Infinity rejection.
-        data = json.loads(text, parse_constant=_reject_constant)
+        # ValueError covers UnicodeDecodeError, JSONDecodeError, and the NaN/Infinity/1e999
+        # rejection.
+        data = json.loads(text, parse_constant=_reject_constant, parse_float=_finite_float)
+    except RecursionError:
+        return [unusable_issue("file", f"{path}: nested too deeply")]
     except (OSError, ValueError) as exc:
-        return [_error("file", f"{path}: {exc}")]
-    return validate_report(data, instance_dir)
+        return [unusable_issue("file", f"{path}: {exc}")]
+    try:
+        return validate_report(data, instance_dir)
+    except RecursionError:
+        return [unusable_issue("file", f"{path}: nested too deeply")]

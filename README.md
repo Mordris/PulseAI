@@ -132,6 +132,12 @@ uv run pulse validate schema/examples/report/valid/minimal.json  # check a repor
 uv run pulse schedule print --host actions                       # scheduler settings per host
 ```
 
+Exit codes are the same for every command: `0` when the input is fine, `1` when it loaded but has
+validation problems, and `2` when it cannot be used at all (engine data, the registry catalog,
+configuration, a registry that fails to load, or an unreadable report). Problems are printed to
+stderr. `pulse doctor` is a report: it prints every finding to stdout and exits `1` if any check
+fails, even when the cause is unusable input.
+
 <details>
 <summary><b>Install the Claude Code plugin</b></summary>
 

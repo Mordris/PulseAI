@@ -14,7 +14,7 @@ import yaml
 from pulseai.models.registries import RegistriesCatalog, RegistrySpec
 from pulseai.paths import data_path, engine_root
 from pulseai.registry.merge import ID_KEY, merge
-from pulseai.schemas import validate_document
+from pulseai.schemas import SCHEMA_PROBLEMS, validate_document
 
 CATALOG_PARTS = ("defaults", "registries.yaml")
 CATALOG_SCHEMA = "registries.schema.json"
@@ -57,18 +57,32 @@ def read_document(path: Path) -> Any:
             return yaml.safe_load(text)
         if path.suffix == ".json":
             return json.loads(text)
-    except (yaml.YAMLError, json.JSONDecodeError) as exc:
+    except RecursionError:
+        msg = f"{path}: cannot parse (nested too deeply)"
+        raise RegistryError(msg) from None
+    except (yaml.YAMLError, ValueError) as exc:
+        # ValueError covers JSONDecodeError and values PyYAML builds itself, such as the
+        # unquoted date 2026-02-30.
         msg = f"{path}: cannot parse ({exc})"
         raise RegistryError(msg) from None
     msg = f"{path}: unsupported file type {path.suffix!r}; use .yaml, .yml or .json"
     raise RegistryError(msg)
 
 
+def _schema_errors(doc: Any, schema_name: str, owner: str) -> list[str]:
+    """Validate `doc`; a schema that is missing or broken makes `owner` unusable."""
+    try:
+        return validate_document(doc, schema_name)
+    except SCHEMA_PROBLEMS as exc:
+        msg = f"{owner}: cannot use schema {schema_name!r} ({exc})"
+        raise RegistryError(msg) from None
+
+
 @cache
 def load_catalog() -> RegistriesCatalog:
     path = data_path(*CATALOG_PARTS)
     doc = read_document(path)
-    errors = validate_document(doc, CATALOG_SCHEMA)
+    errors = _schema_errors(doc, CATALOG_SCHEMA, str(path))
     if errors:
         msg = f"{path}: invalid registry catalog\n{_bullets(errors)}"
         raise RegistryError(msg)
@@ -101,7 +115,7 @@ def _expand(root: Path, patterns: Sequence[str], variables: Mapping[str, str]) -
         except KeyError as exc:
             msg = f"path {pattern!r} needs variable {exc.args[0]!r}"
             raise RegistryError(msg) from None
-        except (ValueError, IndexError, AttributeError) as exc:
+        except (ValueError, IndexError, AttributeError, TypeError) as exc:
             msg = f"path {pattern!r} is not a valid template ({exc})"
             raise RegistryError(msg) from None
         if GLOB_CHARS & set(pattern):
@@ -167,7 +181,7 @@ def load_registry(
         msg = f"{registry_id}: nothing was loaded"
         raise RegistryError(msg)
     files = (*engine_files, *instance_files)
-    errors = validate_document(data, spec.schema_)
+    errors = _schema_errors(data, spec.schema_, registry_id)
     if errors:
         sources = ", ".join(str(f) for f in files)
         msg = f"{registry_id} ({sources}): invalid after merging\n{_bullets(errors)}"

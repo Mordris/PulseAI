@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from pulseai.cli import app
 from pulseai.doctor import Finding, Runner, check_tools, doctor, format_finding, run_tool
+from pulseai.paths import ENGINE_DATA_ENV
 
 runner = CliRunner()
 
@@ -226,3 +227,26 @@ def test_format_finding_shows_the_hint_only_for_problems() -> None:
     assert format_finding(Finding("tool:x", "warn", "odd", "try this")) == (
         "warn tool:x: odd (hint: try this)"
     )
+
+
+def test_missing_engine_data_is_one_finding_not_a_crash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENGINE_DATA_ENV, str(tmp_path / "nowhere"))
+    findings = doctor(tmp_path, runner=lambda _: "9.9.9", environ={})
+    assert [(f.check, f.status) for f in findings] == [("engine:data", "fail")]
+    assert ENGINE_DATA_ENV in findings[0].detail
+
+
+def test_unreadable_catalog_is_one_finding_not_a_crash(engine_copy: Path, tmp_path: Path) -> None:
+    (engine_copy / "defaults" / "registries.yaml").write_text("registries: [", encoding="utf-8")
+    findings = doctor(tmp_path, runner=lambda _: "9.9.9", environ={})
+    assert [(f.check, f.status) for f in findings] == [("registry:catalog", "fail")]
+
+
+def test_missing_catalog_schema_is_one_finding_not_a_crash(
+    engine_copy: Path, tmp_path: Path
+) -> None:
+    (engine_copy / "schema" / "registries.schema.json").unlink()
+    findings = doctor(tmp_path, runner=lambda _: "9.9.9", environ={})
+    assert [(f.check, f.status) for f in findings] == [("registry:catalog", "fail")]

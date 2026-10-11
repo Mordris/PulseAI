@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Annotated
@@ -12,14 +14,19 @@ import yaml
 
 from pulseai import __version__
 from pulseai.config import ConfigError, load_config
-from pulseai.doctor import Finding, format_finding
 from pulseai.doctor import doctor as run_doctor
-from pulseai.issues import Issue, format_issue, has_errors
-from pulseai.models.config import PulseConfig
+from pulseai.doctor import format_finding, infrastructure_finding
+from pulseai.issues import Issue, format_issue, has_errors, is_unusable
+from pulseai.paths import EngineDataError
 from pulseai.registry.checks import check_registries
 from pulseai.registry.loader import RegistryError, registry_spec
 from pulseai.report.validate import validate_report_file
 from pulseai.schedule import HOSTS, render_host
+
+# Exit codes: 0 fine; 1 validation issues in input that loaded (doctor: any failing check);
+# 2 unusable input (engine data, catalog, config, registries that fail to load, unreadable files).
+EXIT_ISSUES = 1
+EXIT_UNUSABLE = 2
 
 app = typer.Typer(
     name="pulse",
@@ -66,6 +73,24 @@ InstanceOption = Annotated[
 ]
 
 
+def unusable_input_exits[**P, R](command: Callable[P, R]) -> Callable[P, R]:
+    """Run a command; engine data, catalog, registry, or config failures end it with exit 2.
+
+    Every command that reads engine data or an instance is wrapped, so none can print a traceback
+    for input it cannot use.
+    """
+
+    @functools.wraps(command)
+    def run(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return command(*args, **kwargs)
+        except (EngineDataError, RegistryError, ConfigError) as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(EXIT_UNUSABLE) from None
+
+    return run
+
+
 def resolve_instance(path: Path | None) -> Path | None:
     if path is not None:
         return path
@@ -75,31 +100,25 @@ def resolve_instance(path: Path | None) -> Path | None:
     return cwd if any((cwd / marker).is_file() for marker in markers) else None
 
 
-def load_config_or_exit(instance: Path | None) -> PulseConfig:
-    try:
-        return load_config(resolve_instance(instance))
-    except ConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(2) from None
-
-
 config_app = typer.Typer(help="Inspect the effective configuration.", no_args_is_help=True)
 app.add_typer(config_app, name="config")
 
 
 @config_app.command("show")
+@unusable_input_exits
 def config_show(instance: InstanceOption = None) -> None:
     """Print the effective configuration (defaults + instance + environment) as YAML."""
-    cfg = load_config_or_exit(instance)
+    cfg = load_config(resolve_instance(instance))
     effective = cfg.model_dump(mode="json", exclude_unset=True)
     text = yaml.safe_dump(effective, sort_keys=False, allow_unicode=True)
     typer.echo(text, nl=False)
 
 
 @config_app.command("check")
+@unusable_input_exits
 def config_check(instance: InstanceOption = None) -> None:
     """Validate the effective configuration."""
-    load_config_or_exit(instance)
+    load_config(resolve_instance(instance))
     typer.echo("Configuration is valid.")
 
 
@@ -108,21 +127,29 @@ def print_issues(issues: list[Issue]) -> None:
         typer.echo(format_issue(issue), err=issue.level == "error")
 
 
+def exit_for(issues: list[Issue]) -> None:
+    """Print the issues, then exit 2 for unusable input or 1 for validation errors."""
+    print_issues(issues)
+    if is_unusable(issues):
+        raise typer.Exit(EXIT_UNUSABLE)
+    if has_errors(issues):
+        raise typer.Exit(EXIT_ISSUES)
+
+
 registry_app = typer.Typer(help="Check registries.", no_args_is_help=True)
 app.add_typer(registry_app, name="registry")
 
 
 @registry_app.command("check")
+@unusable_input_exits
 def registry_check(instance: InstanceOption = None) -> None:
     """Check that registries and config are consistent with each other."""
-    issues = check_registries(resolve_instance(instance))
-    print_issues(issues)
-    if has_errors(issues):
-        raise typer.Exit(1)
+    exit_for(check_registries(resolve_instance(instance)))
     typer.echo("Registries are consistent.")
 
 
 @app.command("validate")
+@unusable_input_exits
 def validate_command(
     report: Annotated[
         Path, typer.Argument(exists=True, dir_okay=False, help="report.json to check")
@@ -130,26 +157,25 @@ def validate_command(
     instance: InstanceOption = None,
 ) -> None:
     """Validate a report.json against the schemas, registries, and config."""
-    issues = validate_report_file(report, resolve_instance(instance))
-    print_issues(issues)
-    if has_errors(issues):
-        raise typer.Exit(1)
+    exit_for(validate_report_file(report, resolve_instance(instance)))
     typer.echo(f"{report}: valid")
 
 
 @app.command("doctor")
 def doctor_command(instance: InstanceOption = None) -> None:
-    """Check tools, versions, registries, config, and environment overrides."""
+    """Check tools, versions, registries, config, and environment overrides.
+
+    The doctor is a report: problems with the engine data or catalog are findings, not crashes,
+    and any failing check exits 1.
+    """
     try:
-        instance_dir = resolve_instance(instance)
-    except RegistryError as exc:
-        typer.echo(format_finding(Finding("registry:catalog", "fail", str(exc))))
-        raise typer.Exit(1) from None
-    findings = run_doctor(instance_dir)
+        findings = run_doctor(resolve_instance(instance))
+    except (EngineDataError, RegistryError) as exc:
+        findings = [infrastructure_finding(exc)]
     for finding in findings:
         typer.echo(format_finding(finding))
     if any(f.status == "fail" for f in findings):
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ISSUES)
 
 
 schedule_app = typer.Typer(help="Show scheduler settings for each host.", no_args_is_help=True)
@@ -162,10 +188,11 @@ def require_time_zone(name: str) -> None:
         ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError):
         typer.echo(f"unknown time zone {name!r}", err=True)
-        raise typer.Exit(2) from None
+        raise typer.Exit(EXIT_UNUSABLE) from None
 
 
 @schedule_app.command("print")
+@unusable_input_exits
 def schedule_print(
     host: Annotated[str, typer.Option("--host", help=f"One of: {', '.join(HOSTS)}")],
     machine_tz: Annotated[
@@ -176,8 +203,8 @@ def schedule_print(
     """Print the schedule for a host, derived from schedule.time and schedule.tz."""
     if host not in HOSTS:
         typer.echo(f"unknown host {host!r}; choose one of: {', '.join(HOSTS)}", err=True)
-        raise typer.Exit(2)
-    cfg = load_config_or_exit(instance)
+        raise typer.Exit(EXIT_UNUSABLE)
+    cfg = load_config(resolve_instance(instance))
     zone = machine_tz or cfg.schedule.tz
     require_time_zone(cfg.schedule.tz)
     require_time_zone(zone)

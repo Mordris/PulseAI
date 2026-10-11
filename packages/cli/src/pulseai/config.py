@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 
 from pulseai.models.config import PulseConfig
 from pulseai.registry.loader import RegistryError, load_registry
-from pulseai.schemas import validate_document
+from pulseai.schemas import SCHEMA_PROBLEMS, validate_document
 
 CONFIG_REGISTRY = "config"
 CONFIG_SCHEMA = "config.schema.json"
@@ -58,7 +58,11 @@ def load_config(instance_dir: Path | None = None) -> PulseConfig:
     # exclude_unset: optional fields the generated model defaults to None must not become explicit
     # nulls (the schema forbids them), while provided nulls such as site.url stay.
     effective = settings.model_dump(mode="json", exclude_unset=True)
-    errors = validate_document(effective, CONFIG_SCHEMA)
+    try:
+        errors = validate_document(effective, CONFIG_SCHEMA)
+    except SCHEMA_PROBLEMS as exc:
+        msg = f"cannot use schema {CONFIG_SCHEMA!r} ({exc})"
+        raise ConfigError(msg) from None
     if errors:
         msg = "configuration is invalid after environment overrides\n" + "\n".join(
             f"  - {e}" for e in errors
