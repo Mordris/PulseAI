@@ -10,7 +10,7 @@ Supported versions: the latest release.
 
 | Control | Where |
 |---|---|
-| Secret leaks (pattern + verified) | `secret-scan.yml`: gitleaks with `.gitleaks.toml`, TruffleHog; both scan full history on every push, PR, and nightly |
+| Secret leaks (pattern + verified) | `secret-scan.yml`: gitleaks with `.gitleaks.toml`, TruffleHog; push and PR runs scan the pushed or PR commit range, nightly and manual runs scan the full history |
 | Secrets before they reach git | pre-commit `gitleaks` hook |
 | Vulnerable dependencies | `vulnerability-scan.yml`: OSV-Scanner over `uv.lock` and `pnpm-lock.yaml` on PRs and nightly; `dependency-review.yml` blocks new vulnerable or disallowed-license dependencies |
 | Code scanning | `codeql.yml` (Python, TypeScript, Actions) |
@@ -25,6 +25,8 @@ Supported versions: the latest release.
    workflow is the source of truth).
 2. Settings → Rules: protect `main` — require pull requests, linear history, and these checks:
    `python (3.12)`, `python (3.15)`, `node`, `analyze`, `review`, `gitleaks`, `trufflehog`,
-   `scan-pr`, `zizmor`.
+   `scan-pr`, `zizmor`. Checks that come from reusable workflows (for example OSV `scan-pr`)
+   report as `<job> / <inner job>`; confirm their exact names from the first CI run before adding
+   them to the ruleset.
 3. Settings → Actions → General: allow only SHA-pinned actions and set the default
    `GITHUB_TOKEN` permission to read-only.
