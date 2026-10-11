@@ -25,9 +25,14 @@ from pulseai.registry.loader import (
     load_locale,
     load_registry,
 )
-from pulseai.schemas import SchemaNotFoundError, SchemaShapeError, load_schema, schema_file
+from pulseai.schemas import (
+    ITEM_TYPE_SCHEMA_DIR,
+    SchemaNotFoundError,
+    SchemaShapeError,
+    load_schema,
+    schema_file,
+)
 
-ITEM_TYPE_SCHEMA_DIR = "item-types"
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
 
 

@@ -14,6 +14,7 @@ from pulseai.issues import Issue, format_issue, has_errors
 from pulseai.models.config import PulseConfig
 from pulseai.registry.checks import check_registries
 from pulseai.registry.loader import registry_spec
+from pulseai.report.validate import validate_report_file
 
 app = typer.Typer(
     name="pulse",
@@ -114,3 +115,18 @@ def registry_check(instance: InstanceOption = None) -> None:
     if has_errors(issues):
         raise typer.Exit(1)
     typer.echo("Registries are consistent.")
+
+
+@app.command("validate")
+def validate_command(
+    report: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, help="report.json to check")
+    ],
+    instance: InstanceOption = None,
+) -> None:
+    """Validate a report.json against the schemas, registries, and config."""
+    issues = validate_report_file(report, resolve_instance(instance))
+    print_issues(issues)
+    if has_errors(issues):
+        raise typer.Exit(1)
+    typer.echo(f"{report}: valid")

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "date": "2026-10-11",
+    "edition": 1,
+    "window": { "start": "2026-10-10T14:00:00Z", "end": "2026-10-11T14:00:00Z", "tz": "Europe/Istanbul" },
+    "language": "en",
+    "engine_version": "0.1.0",
+    "host": "fixture",
+    "models": { "editor": "claude-opus-5-5" },
+    "stats": { "scanned": 120, "triaged": 18, "verified": 4, "published": 2 },
+    "cost_usd": null,
+    "source_health": [{ "source_id": "hf-daily-papers", "ok": true, "items": 42 }],
+    "sample": true,
+    "mode": "normal"
+  },
+  "headline": "Sample edition for schema tests",
+  "pulse_score": { "value": 7, "avg_7d": null },
+  "kpis": [{ "label": "Items published", "value": 2 }],
+  "tldr": [{ "text": "Example Co opens an inference cloud.", "item_id": "example-co-launch" }],
+  "featured": { "paper_of_the_day": "sample-paper" },
+  "front_page": [],
+  "items": [
+    {
+      "id": "example-co-launch",
+      "section": "models",
+      "type": "industry",
+      "title": "Example Co opens an inference cloud",
+      "entity_key": "example-co/inference-cloud",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 3,
+      "confidence": "confirmed",
+      "summary": "Example Co launched a hosted inference service for open-weights models.",
+      "why_it_matters": "Another hosting option for teams running open-weights models.",
+      "sources": [
+        { "url": "https://example.org/news/launch", "title": "Example Co announcement", "tier": "T1", "kind": "primary" }
+      ],
+      "facts": [{ "label": "Regions", "value": 3, "source_ref": 0, "quote": "available in three regions" }],
+      "visuals": [
+        {
+          "kind": "table",
+          "id": "regions-table",
+          "title": "Launch regions",
+          "alt": "Table listing the three launch regions",
+          "source_note": "Example Co announcement",
+          "columns": ["Region"],
+          "rows": [["EU"], ["US"], ["APAC"]]
+        }
+      ],
+      "images": [],
+      "detail": { "who": "Example Co", "what": "Launched an inference cloud", "builder_impact": "Another hosting option for open-weights models." }
+    },
+    {
+      "id": "sample-paper",
+      "section": "research",
+      "type": "paper",
+      "title": "A sample paper about verification loops",
+      "entity_key": "paper/sample-verification-loops",
+      "impact": 4,
+      "novelty": 4,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "Spending inference compute on verification improves multi-step agent tasks.",
+      "why_it_matters": "Suggests trying a verify-then-expand loop before switching to a larger model.",
+      "sources": [
+        { "url": "https://example.org/papers/verification-loops", "title": "Verification loops (preprint)", "tier": "T1", "kind": "primary" }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "peer_reviewed": false,
+        "authors": ["A. Example"],
+        "tldr": "Verification loops beat larger models on multi-step tasks.",
+        "plain_explanation": "The model checks its own plans before acting.",
+        "problem": "Agents make compounding errors on long tasks.",
+        "key_idea": "Score candidate plans with a critic and expand only the best ones.",
+        "method_steps": ["Sample plans", "Score with a critic", "Expand the best branches"],
+        "critical_review": ["Preprint, not peer reviewed"],
+        "reproducibility": {},
+        "takeaway": "Try a critic loop before upgrading models.",
+        "reading_guide": { "sections": ["Section 3"], "glossary": { "Critic": "A model that scores plans" }, "reading_minutes": 20, "difficulty": "intermediate" }
+      }
+    }
+  ],
+  "adoption_radar": [],
+  "action_list": [{ "text": "Read the sample paper's method section.", "item_id": "sample-paper" }],
+  "signals": [],
+  "corrections": [],
+  "section_notes": {},
+  "methodology": { "notes": ["Hand-written sample for schema tests."], "rejected": [] }
+}

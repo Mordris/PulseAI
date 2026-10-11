@@ -53,6 +53,7 @@ markers = ["slow: builds artifacts or spawns subprocesses"]
 [dependency-groups]
 dev = [
     "datamodel-code-generator>=0.83.0",
+    "jsonpatch>=1.35",
     "pre-commit>=4.6.2",
     "pyright>=1.1.414",
     "pytest>=9.1.1",

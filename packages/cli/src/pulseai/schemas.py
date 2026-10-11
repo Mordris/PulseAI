@@ -17,6 +17,7 @@ from jsonschema.protocols import Validator
 from pulseai.paths import data_path
 
 SCHEMA_DIR = "schema"
+ITEM_TYPE_SCHEMA_DIR = "item-types"
 
 
 class SchemaNotFoundError(FileNotFoundError):
