@@ -12,6 +12,7 @@ import yaml
 
 from pulseai import __version__
 from pulseai.config import ConfigError, load_config
+from pulseai.doctor import doctor as run_doctor
 from pulseai.issues import Issue, format_issue, has_errors
 from pulseai.models.config import PulseConfig
 from pulseai.registry.checks import check_registries
@@ -133,6 +134,19 @@ def validate_command(
     if has_errors(issues):
         raise typer.Exit(1)
     typer.echo(f"{report}: valid")
+
+
+@app.command("doctor")
+def doctor_command(instance: InstanceOption = None) -> None:
+    """Check tools, versions, registries, config, and environment overrides."""
+    findings = run_doctor(resolve_instance(instance))
+    for finding in findings:
+        line = f"{finding.status:4} {finding.check}: {finding.detail}"
+        if finding.hint and finding.status != "ok":
+            line += f" (hint: {finding.hint})"
+        typer.echo(line)
+    if any(f.status == "fail" for f in findings):
+        raise typer.Exit(1)
 
 
 schedule_app = typer.Typer(help="Show scheduler settings for each host.", no_args_is_help=True)
