@@ -43,3 +43,9 @@ One-time repository setup:
 3. Create the `pypi` environment (Settings, Environments).
 4. Configure PyPI trusted publishing for the `pulseai` project with workflow `release-please.yml`
    and environment `pypi`.
+
+## Security checks
+
+Never commit secrets, notification URLs, or tokens; they belong in host secret stores. The
+pre-commit `gitleaks` hook blocks most leaks locally; CI repeats gitleaks and TruffleHog on full
+history. If a secret was ever committed, rotate it first, then remove it from history.
