@@ -46,7 +46,9 @@ def _describe(pointer: str, message: str) -> str:
     """'<VARIABLE> (<path>): <message>' so the reader knows which environment variable to fix."""
     if not pointer or pointer == "<root>":
         return message
-    variable = ENV_PREFIX + ENV_DELIMITER.join(part.upper() for part in pointer.split("/"))
+    # A list is set whole by one variable, so its item indexes belong in the path only.
+    names = [part.upper() for part in pointer.split("/") if not part.isdecimal()]
+    variable = ENV_PREFIX + ENV_DELIMITER.join(names)
     return f"{variable} ({pointer}): {message}"
 
 

@@ -59,6 +59,18 @@ def test_env_override_rejected_by_the_schema_names_variable(
     assert "PULSE__INTERESTS__HIGH (interests/high): " in message
 
 
+def test_env_override_list_item_errors_name_the_variable_not_an_index(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The whole list is one variable; the index belongs in the field path only.
+    monkeypatch.setenv("PULSE__INTERESTS__HIGH", "[1]")
+    with pytest.raises(ConfigError) as info:
+        load_config()
+    message = str(info.value)
+    assert "PULSE__INTERESTS__HIGH (interests/high/0): " in message
+    assert "PULSE__INTERESTS__HIGH__0" not in message
+
+
 def test_unknown_instance_key_names_file(tmp_path: Path) -> None:
     path = tmp_path / "pulse.config.yaml"
     path.write_text("schedul:\n  time: '18:30'\n", encoding="utf-8")
