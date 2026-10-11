@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:config",
+  "title": "PulseConfig",
+  "description": "Effective configuration: defaults/pulse.config.yaml merged with the instance pulse.config.yaml and PULSE__ environment overrides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "engine",
+    "schedule",
+    "language",
+    "interests",
+    "sections",
+    "deep_dive",
+    "confidence",
+    "window",
+    "models_by_role",
+    "limits",
+    "quality",
+    "theme",
+    "visuals",
+    "mcp",
+    "site",
+    "publish",
+    "notify",
+    "telemetry"
+  ],
+  "properties": {
+    "engine": {
+      "title": "EngineConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Engine release (semver) or git ref."
+        }
+      }
+    },
+    "schedule": {
+      "title": "ScheduleConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time", "tz", "cloud_offset_minutes_when_on_hour"],
+      "properties": {
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "description": "Local start time, 24-hour HH:MM."
+        },
+        "tz": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA time zone, e.g. Europe/Istanbul."
+        },
+        "cloud_offset_minutes_when_on_hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 59,
+          "description": "Cloud schedulers start late on the hour; shift on-the-hour times by this many minutes."
+        }
+      }
+    },
+    "language": { "$ref": "#/$defs/language" },
+    "interests": {
+      "title": "InterestsConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["high", "normal"],
+      "properties": {
+        "high": { "$ref": "#/$defs/terms" },
+        "normal": { "$ref": "#/$defs/terms" }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/sectionToggle" }
+    },
+    "deep_dive": {
+      "title": "DeepDiveConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_impact"],
+      "properties": { "min_impact": { "$ref": "#/$defs/score" } }
+    },
+    "confidence": {
+      "title": "ConfidenceConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reported", "rumor"],
+      "properties": {
+        "reported": { "enum": ["main", "signals_box", "exclude"] },
+        "rumor": { "enum": ["signals_box", "exclude"] }
+      }
+    },
+    "window": {
+      "title": "WindowConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_hours"],
+      "properties": { "max_hours": { "type": "integer", "minimum": 24, "maximum": 336 } }
+    },
+    "models_by_role": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "limits": {
+      "title": "LimitsConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_minutes", "max_budget_usd", "design_fix_rounds", "agent_max_turns"],
+      "properties": {
+        "run_minutes": { "type": "integer", "minimum": 5, "maximum": 240 },
+        "max_budget_usd": { "type": "number", "exclusiveMinimum": 0 },
+        "design_fix_rounds": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "agent_max_turns": { "type": "integer", "minimum": 1, "maximum": 500 }
+      }
+    },
+    "quality": {
+      "title": "QualityConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_contrast_min",
+        "section_delta_e_min",
+        "section_cvd_fail",
+        "section_cvd_target",
+        "design_review_min_score"
+      ],
+      "properties": {
+        "text_contrast_min": { "type": "number", "minimum": 1, "maximum": 21 },
+        "section_delta_e_min": { "type": "number", "minimum": 0 },
+        "section_cvd_fail": { "type": "number", "minimum": 0 },
+        "section_cvd_target": { "type": "number", "minimum": 0 },
+        "design_review_min_score": { "type": "number", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "theme": {
+      "title": "ThemeConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "switcher", "preset", "overrides"],
+      "properties": {
+        "default": { "enum": ["auto", "light", "dark"] },
+        "switcher": { "type": "boolean" },
+        "preset": { "$ref": "#/$defs/id" },
+        "overrides": {
+          "title": "ThemeOverrides",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accent": { "$ref": "#/$defs/hex" },
+            "font_display": { "$ref": "#/$defs/font" },
+            "font_body": { "$ref": "#/$defs/font" },
+            "sections": {
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/id" },
+              "additionalProperties": { "$ref": "#/$defs/hex" }
+            }
+          }
+        }
+      }
+    },
+    "visuals": {
+      "title": "VisualsConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_per_deep_dive", "motion", "notify_media"],
+      "properties": {
+        "min_per_deep_dive": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "motion": { "type": "boolean" },
+        "notify_media": { "enum": ["png", "gif", "none"] }
+      }
+    },
+    "mcp": {
+      "title": "McpConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "optional"],
+      "properties": {
+        "enabled": { "$ref": "#/$defs/ids" },
+        "optional": { "$ref": "#/$defs/ids" }
+      }
+    },
+    "site": {
+      "title": "SiteConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "search"],
+      "properties": {
+        "url": { "type": ["string", "null"], "format": "uri", "pattern": "^https://" },
+        "search": { "type": "boolean" }
+      }
+    },
+    "publish": {
+      "title": "PublishConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "branch"],
+      "properties": {
+        "repo": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "branch": { "type": "string", "minLength": 1 }
+      }
+    },
+    "notify": {
+      "title": "NotifyConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urls_env", "on_failure"],
+      "properties": {
+        "urls_env": { "$ref": "#/$defs/envName" },
+        "on_failure": { "type": "boolean" }
+      }
+    },
+    "telemetry": {
+      "title": "TelemetryConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["otel_endpoint_env"],
+      "properties": { "otel_endpoint_env": { "$ref": "#/$defs/envName" } }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "language": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$" },
+    "terms": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "score": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "font": { "type": "string", "minLength": 1, "pattern": "^[^<>{};]+$" },
+    "envName": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "sectionToggle": {
+      "title": "SectionToggle",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "max_items"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "max_items": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "options": { "type": "object" }
+      }
+    }
+  }
+}
