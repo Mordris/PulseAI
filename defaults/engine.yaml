@@ -25,7 +25,7 @@ tools:
     version_regex: '(\d+\.\d+\.\d+)'
     specifier: ">=12"
     required: true
-    hint: Enable pnpm with "corepack enable pnpm"
+    hint: Install pnpm with "npm install -g pnpm"; it then uses the version pinned in package.json
   - id: claude
     command: [claude, --version]
     version_regex: '(\d+\.\d+\.\d+)'

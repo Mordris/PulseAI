@@ -3,13 +3,18 @@
 ## Setup
 
     uv sync
-    corepack enable pnpm && pnpm install
+    npm install -g pnpm
+    pnpm install
     uv run pre-commit install
+
+Node.js stopped bundling Corepack in version 25, so install pnpm with npm. Once pnpm runs inside
+this repository it uses the version pinned in `package.json` (`packageManager`).
 
 ## Everyday commands
 
     uv run pytest                                   # Python tests
     pnpm test                                       # TypeScript tests
+    uv run ruff format .                            # format Python (before ruff check)
     uv run ruff check . && uv run pyright           # Python lint and types
     pnpm lint && pnpm typecheck                     # TypeScript lint and types
     uv run python scripts/generate_models.py        # after editing schema/*.schema.json
