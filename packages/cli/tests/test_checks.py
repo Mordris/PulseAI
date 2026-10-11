@@ -236,6 +236,21 @@ def test_resolvable_refs_are_accepted(tmp_path: Path) -> None:
     assert not any("unresolvable" in e for e in _errors(check_registries(tmp_path)))
 
 
+def test_item_type_schema_with_a_dollar_id_property_is_accepted(tmp_path: Path) -> None:
+    ok = tmp_path / "schema/item-types/industry.schema.json"
+    ok.parent.mkdir(parents=True)
+    ok.write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "properties": {"$id": {"type": "string", "examples": [{"$ref": "#/nowhere"}]}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert not any(str(ok) in e for e in _errors(check_registries(tmp_path)))
+
+
 def test_unreadable_item_type_schema_is_reported(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

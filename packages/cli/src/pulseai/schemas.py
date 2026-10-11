@@ -112,21 +112,23 @@ class _Resolver(Protocol):
 
 
 def _refs(node: Any, resolver: _Resolver) -> Iterator[str]:
-    """Yield every `$ref` under `node` that its resolver cannot resolve."""
-    if isinstance(node, list):
-        for child in cast("list[Any]", node):
-            yield from _refs(child, resolver)
-    elif isinstance(node, dict):
-        mapping = cast("dict[str, Any]", node)
-        resolver = resolver.in_subresource(DRAFT202012.create_resource(mapping))
-        ref = mapping.get("$ref")
+    """Yield every `$ref` in the schema `node` and its subschemas that the resolver cannot resolve.
+
+    Only real subschemas are visited (`properties` values, `items`, `$defs`, and so on), so a
+    property that happens to be named `$id` or `$ref`, and `$ref`-shaped data under `examples`,
+    `default`, `const` or `enum`, are never read as schema keywords.
+    """
+    resource = DRAFT202012.create_resource(node)
+    resolver = resolver.in_subresource(resource)
+    if isinstance(node, dict):
+        ref = cast("dict[str, Any]", node).get("$ref")
         if isinstance(ref, str):
             try:
                 resolver.lookup(ref)
             except Unresolvable:
                 yield ref
-        for child in mapping.values():
-            yield from _refs(child, resolver)
+    for subschema in resource.subresources():
+        yield from _refs(subschema.contents, resolver)
 
 
 def check_references(schema: Any) -> None:
