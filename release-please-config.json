@@ -16,6 +16,11 @@
           "type": "json",
           "path": "/plugins/pulse/.claude-plugin/plugin.json",
           "jsonpath": "$.version"
+        },
+        {
+          "type": "toml",
+          "path": "/uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='pulseai')].version"
         }
       ]
     },

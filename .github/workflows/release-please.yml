@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
       pull-requests: write
     outputs:
       cli_release_created: ${{ steps.release.outputs['packages/cli--release_created'] }}
@@ -21,6 +22,9 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
+          # Pull requests opened with the default GITHUB_TOKEN never trigger CI, so a release PR
+          # could not satisfy required checks. Provide RELEASE_PLEASE_TOKEN (see CONTRIBUTING.md).
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -41,6 +45,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          # No dependency cache in the job that signs and publishes the wheel (cache poisoning).
+          enable-cache: false
       - run: uv build --wheel --package pulseai --out-dir dist
       - name: Build provenance attestation
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

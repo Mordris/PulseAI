@@ -27,5 +27,19 @@
 ## Releasing
 
 Merging the release-please pull request tags `cli-vX.Y.Z` and `contracts-vX.Y.Z` together and
-publishes the `pulseai` wheel to PyPI through trusted publishing (configure the PyPI project once
-with workflow `release-please.yml` and environment `pypi`).
+publishes the `pulseai` wheel to PyPI through trusted publishing.
+
+One-time repository setup:
+
+1. Create a GitHub App (preferred) or a fine-grained personal access token with read and write
+   access to contents, pull requests, and issues, and make it available to the release job as
+   the `RELEASE_PLEASE_TOKEN` repository secret (a token as-is; for a GitHub App, mint its
+   installation token in the workflow with `actions/create-github-app-token`). Pull requests
+   opened with the default `GITHUB_TOKEN` never trigger CI, so without this token the release
+   pull request cannot satisfy required checks. The workflow falls back to `GITHUB_TOKEN` when
+   the secret is missing.
+2. In Settings, Actions, General, enable "Allow GitHub Actions to create and approve pull
+   requests".
+3. Create the `pypi` environment (Settings, Environments).
+4. Configure PyPI trusted publishing for the `pulseai` project with workflow `release-please.yml`
+   and environment `pypi`.
