@@ -64,6 +64,21 @@ def test_engine_defaults_are_consistent() -> None:
         ),
         ("pulse.config.yaml", {"schedule": {"tz": "Mars/Olympus"}}, "unknown time zone"),
         (
+            "defaults/engine.yaml",
+            {"tools": [{"id": "uv", "version_regex": r"uv \d+\.\d+"}]},
+            "version_regex needs a capture group",
+        ),
+        (
+            "defaults/engine.yaml",
+            {"tools": [{"id": "uv", "version_regex": "uv ("}]},
+            "invalid version_regex",
+        ),
+        (
+            "defaults/engine.yaml",
+            {"tools": [{"id": "uv", "specifier": ">=0.11 totally bogus"}]},
+            "invalid specifier",
+        ),
+        (
             "pulse.config.yaml",
             {"quality": {"section_cvd_fail": 9, "section_cvd_target": 8}},
             "section_cvd_fail must not exceed section_cvd_target",

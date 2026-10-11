@@ -5,9 +5,15 @@
   "description": "Engine requirements checked by pulse doctor.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "tools"],
+  "required": ["schema_version", "tool_timeout_seconds", "tools"],
   "properties": {
     "schema_version": { "const": 1 },
+    "tool_timeout_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "description": "How long pulse doctor waits for each tool's version command."
+    },
     "tools": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/tool" } }
   },
   "$defs": {

@@ -12,11 +12,12 @@ import yaml
 
 from pulseai import __version__
 from pulseai.config import ConfigError, load_config
+from pulseai.doctor import Finding, format_finding
 from pulseai.doctor import doctor as run_doctor
 from pulseai.issues import Issue, format_issue, has_errors
 from pulseai.models.config import PulseConfig
 from pulseai.registry.checks import check_registries
-from pulseai.registry.loader import registry_spec
+from pulseai.registry.loader import RegistryError, registry_spec
 from pulseai.report.validate import validate_report_file
 from pulseai.schedule import HOSTS, render_host
 
@@ -139,12 +140,14 @@ def validate_command(
 @app.command("doctor")
 def doctor_command(instance: InstanceOption = None) -> None:
     """Check tools, versions, registries, config, and environment overrides."""
-    findings = run_doctor(resolve_instance(instance))
+    try:
+        instance_dir = resolve_instance(instance)
+    except RegistryError as exc:
+        typer.echo(format_finding(Finding("registry:catalog", "fail", str(exc))))
+        raise typer.Exit(1) from None
+    findings = run_doctor(instance_dir)
     for finding in findings:
-        line = f"{finding.status:4} {finding.check}: {finding.detail}"
-        if finding.hint and finding.status != "ok":
-            line += f" (hint: {finding.hint})"
-        typer.echo(line)
+        typer.echo(format_finding(finding))
     if any(f.status == "fail" for f in findings):
         raise typer.Exit(1)
 

@@ -1,4 +1,5 @@
 schema_version: 1
+tool_timeout_seconds: 15
 tools:
   - id: python
     command: ["{python}", "--version"]

@@ -44,4 +44,12 @@ class EngineRegistry(BaseModel):
         extra="forbid",
     )
     schema_version: Literal[1]
+    tool_timeout_seconds: Annotated[
+        float,
+        Field(
+            description="How long pulse doctor waits for each tool's version command.",
+            gt=0.0,
+            le=300.0,
+        ),
+    ]
     tools: Annotated[list[Tool], Field(min_length=1)]

@@ -179,14 +179,18 @@ def _check_sources(
 
 def _check_engine(tools: list[dict[str, Any]]) -> Iterator[Issue]:
     for i, tool in enumerate(tools):
+        where = f"tools/{i} ({tool['id']})"
         try:
-            re.compile(tool["version_regex"])
+            pattern = re.compile(tool["version_regex"])
         except re.error as exc:
-            yield _error(f"tools/{i} ({tool['id']})", f"invalid version_regex: {exc}")
+            yield _error(where, f"invalid version_regex: {exc}")
+        else:
+            if pattern.groups < 1:
+                yield _error(where, "version_regex needs a capture group")
         try:
             SpecifierSet(tool["specifier"])
         except InvalidSpecifier:
-            yield _error(f"tools/{i} ({tool['id']})", f"invalid specifier {tool['specifier']!r}")
+            yield _error(where, f"invalid specifier {tool['specifier']!r}")
 
 
 def check_registries(instance_dir: Path | None = None) -> list[Issue]:
