@@ -50,6 +50,15 @@ def test_invalid_schema_cases_are_rejected(repo_root: Path, minimal: dict[str, A
 
 
 @pytest.mark.parametrize(
+    "timestamp",
+    ["2026-10-11T14:00:00Z", "2026-10-11T14:00:00.250Z", "2026-10-11T17:00:00+03:00"],
+)
+def test_utc_and_offset_timestamps_are_accepted(minimal: dict[str, Any], timestamp: str) -> None:
+    minimal["meta"]["window"]["end"] = timestamp
+    assert validate_report(minimal) == []
+
+
+@pytest.mark.parametrize(
     "case", _load(TESTS / "data/report-semantic-cases.json"), ids=lambda c: c["name"]
 )
 def test_semantic_cases_are_rejected(minimal: dict[str, Any], case: dict[str, Any]) -> None:

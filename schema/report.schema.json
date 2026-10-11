@@ -54,6 +54,12 @@
     "text": { "type": "string", "minLength": 1, "maxLength": 4000 },
     "alt": { "type": "string", "minLength": 1, "maxLength": 500 },
     "httpUrl": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+      "description": "RFC 3339 timestamp. The pattern requires an uppercase T and Z, which is all Zod accepts, so Python and TypeScript agree."
+    },
     "score": { "type": "integer", "minimum": 1, "maximum": 5 },
     "meta": {
       "title": "ReportMeta",
@@ -82,8 +88,8 @@
           "additionalProperties": false,
           "required": ["start", "end", "tz"],
           "properties": {
-            "start": { "type": "string", "format": "date-time" },
-            "end": { "type": "string", "format": "date-time" },
+            "start": { "$ref": "#/$defs/dateTime" },
+            "end": { "$ref": "#/$defs/dateTime" },
             "tz": { "type": "string", "minLength": 1 }
           }
         },
@@ -236,7 +242,7 @@
         "title": { "$ref": "#/$defs/shortText" },
         "tier": { "enum": ["T1", "T1-data", "T2", "T3"] },
         "kind": { "enum": ["primary", "secondary"] },
-        "fetched_at": { "type": "string", "format": "date-time" }
+        "fetched_at": { "$ref": "#/$defs/dateTime" }
       }
     },
     "fact": {

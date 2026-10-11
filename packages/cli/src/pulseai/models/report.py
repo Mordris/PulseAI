@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import date as date_aliased
 from typing import Annotated, Any, Literal
 
-from pydantic import AnyUrl, AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field
 from typing_extensions import TypeAliasType
 
 type Id = Annotated[str, Field(pattern="^[a-z0-9]+(?:[_-][a-z0-9]+)*$")]
@@ -27,6 +27,15 @@ type Alt = Annotated[str, Field(max_length=500, min_length=1)]
 type HttpUrl = AnyUrl
 
 
+type DateTime = Annotated[
+    str,
+    Field(
+        description="RFC 3339 timestamp. The pattern requires an uppercase T and Z, which is all Zod accepts, so Python and TypeScript agree.",
+        pattern="^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+    ),
+]
+
+
 type Score = Annotated[int, Field(ge=1, le=5)]
 
 
@@ -34,8 +43,8 @@ class ReportWindow(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    start: AwareDatetime
-    end: AwareDatetime
+    start: DateTime
+    end: DateTime
     tz: Annotated[str, Field(min_length=1)]
 
 
@@ -169,7 +178,7 @@ class ItemSource(BaseModel):
     title: ShortText
     tier: Literal["T1", "T1-data", "T2", "T3"]
     kind: Literal["primary", "secondary"]
-    fetched_at: AwareDatetime | None = None
+    fetched_at: DateTime | None = None
 
 
 class ItemFact(BaseModel):

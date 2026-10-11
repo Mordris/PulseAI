@@ -33,6 +33,9 @@ FLAGS = [
     "--use-title-as-name",
     "--use-schema-description",
     "--use-type-alias",
+    # Keep timestamps as str: their pattern (uppercase T and Z, see report.schema.json) cannot be
+    # applied to pydantic's datetime types.
+    "--type-mappings", "string+date-time=string",
     "--formatters", "builtin",
 ]  # fmt: skip
 
