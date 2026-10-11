@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
@@ -15,6 +16,7 @@ from pulseai.models.config import PulseConfig
 from pulseai.registry.checks import check_registries
 from pulseai.registry.loader import registry_spec
 from pulseai.report.validate import validate_report_file
+from pulseai.schedule import HOSTS, render_host
 
 app = typer.Typer(
     name="pulse",
@@ -130,3 +132,24 @@ def validate_command(
     if has_errors(issues):
         raise typer.Exit(1)
     typer.echo(f"{report}: valid")
+
+
+schedule_app = typer.Typer(help="Show scheduler settings for each host.", no_args_is_help=True)
+app.add_typer(schedule_app, name="schedule")
+
+
+@schedule_app.command("print")
+def schedule_print(
+    host: Annotated[str, typer.Option("--host", help=f"One of: {', '.join(HOSTS)}")],
+    machine_tz: Annotated[
+        str | None, typer.Option("--machine-tz", help="Machine time zone (launchd only).")
+    ] = None,
+    instance: InstanceOption = None,
+) -> None:
+    """Print the schedule for a host, derived from schedule.time and schedule.tz."""
+    if host not in HOSTS:
+        typer.echo(f"unknown host {host!r}; choose one of: {', '.join(HOSTS)}", err=True)
+        raise typer.Exit(2)
+    cfg = load_config_or_exit(instance)
+    zone = machine_tz or cfg.schedule.tz
+    typer.echo(render_host(cfg.schedule, host, date.today(), zone), nl=False)
