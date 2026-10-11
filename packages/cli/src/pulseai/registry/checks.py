@@ -11,13 +11,21 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jmespath
 from jmespath.exceptions import JMESPathError
+from jsonschema.exceptions import SchemaError
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from pulseai.config import ConfigError, load_config
 from pulseai.issues import Issue
 from pulseai.models.config import PulseConfig
-from pulseai.registry.loader import RegistryError, load_catalog, load_locale, load_registry
-from pulseai.schemas import SchemaNotFoundError, load_schema
+from pulseai.registry.loader import (
+    LOCALE_REGISTRY,
+    LOCALE_VARIABLE,
+    RegistryError,
+    load_catalog,
+    load_locale,
+    load_registry,
+)
+from pulseai.schemas import SchemaNotFoundError, load_schema, schema_file
 
 ITEM_TYPE_SCHEMA_DIR = "item-types"
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
@@ -69,6 +77,13 @@ def _check_item_types(
         except SchemaNotFoundError as exc:
             yield _error(f"item_types/{i}/schema", str(exc))
             continue
+        except (ValueError, SchemaError) as exc:
+            # ValueError covers JSONDecodeError and UnicodeDecodeError from the schema file.
+            problem = exc.message if isinstance(exc, SchemaError) else str(exc)
+            yield _error(
+                f"item_types/{i}/schema", f"{schema_file(name, instance_dir)}: invalid ({problem})"
+            )
+            continue
         for key in ("brief_fields", "markdown_fields"):
             for field in item_type[key]:
                 if field not in properties:
@@ -82,7 +97,7 @@ def _check_locales(
 ) -> Iterator[Issue]:
     try:
         merged = load_locale(cfg.language, instance_dir)
-        own = load_registry("locale", instance_dir, {"language": cfg.language}).data
+        own = load_registry(LOCALE_REGISTRY, instance_dir, {LOCALE_VARIABLE: cfg.language}).data
     except RegistryError as exc:
         yield _error("language", str(exc))
         return
@@ -135,7 +150,12 @@ def _check_sources(
             expressions += list(collector.get("track", []))
         templates += source.get("search", {}).get("queries", [])
         for template in templates:
-            for field in _template_fields(template):
+            try:
+                fields = list(_template_fields(template))
+            except ValueError as exc:
+                yield _error(where, f"invalid template {template!r}: {exc}")
+                continue
+            for field in fields:
                 if field not in allowed_variables:
                     yield _error(where, f"unknown template variable {field!r} in {template!r}")
         for expression in expressions:
@@ -145,7 +165,11 @@ def _check_sources(
                 yield _error(where, f"invalid JMESPath {expression!r}: {exc}")
         mcp = source.get("mcp")
         if mcp is not None and source["enabled"] and mcp["server"] not in mcp_servers:
-            yield _error(where, f"MCP server {mcp['server']!r} is not enabled in config.mcp")
+            yield _error(
+                where,
+                f"MCP server {mcp['server']!r} is not listed in config.mcp.enabled "
+                "or config.mcp.optional",
+            )
 
 
 def _check_engine(tools: list[dict[str, Any]]) -> Iterator[Issue]:

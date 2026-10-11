@@ -85,7 +85,7 @@ def test_engine_defaults_are_consistent() -> None:
                     }
                 ],
             },
-            "MCP server 'jira' is not enabled",
+            "MCP server 'jira' is not listed in config.mcp.enabled or config.mcp.optional",
         ),
     ],
 )
@@ -123,6 +123,65 @@ def test_bad_source_reports_every_problem(tmp_path: Path) -> None:
     assert "unknown section 'weather'" in joined
     assert "unknown template variable 'when'" in joined
     assert "invalid JMESPath" in joined
+
+
+def _source(**extra: Any) -> dict[str, Any]:
+    return {
+        "id": "templated",
+        "name": "Templated",
+        "tier": "T2",
+        "sections": ["tooling"],
+        "trust": 2,
+        "enabled": True,
+        **extra,
+    }
+
+
+def _collector_source(url: str) -> dict[str, Any]:
+    collector = {"kind": "json", "url": url, "items": "items", "fields": {"title": "t", "url": "u"}}
+    return _source(via="collector", collector=collector)
+
+
+def _search_source(query: str) -> dict[str, Any]:
+    return _source(via="search", search={"queries": [query]})
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        _collector_source("https://e.org/{"),
+        _collector_source("https://e.org/a}b"),
+        _search_source("{foo OR bar"),
+    ],
+    ids=["collector-open-brace", "collector-close-brace", "search-open-brace"],
+)
+def test_malformed_template_is_reported(tmp_path: Path, source: dict[str, Any]) -> None:
+    _write(tmp_path / "sources/registry/mine.yaml", {"schema_version": 1, "sources": [source]})
+    errors = _errors(check_registries(tmp_path))
+    assert any("invalid template" in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    ("content", "problem"),
+    [
+        ("{not json", "Expecting property name"),
+        ('{"type": 5}', "5 is not valid under any of the given schemas"),
+    ],
+    ids=["not-json", "not-a-schema"],
+)
+def test_broken_item_type_schema_is_reported(tmp_path: Path, content: str, problem: str) -> None:
+    broken = tmp_path / "schema/item-types/broken.schema.json"
+    broken.parent.mkdir(parents=True)
+    broken.write_text(content, encoding="utf-8")
+    _write(
+        tmp_path / "taxonomy/item-types.yaml",
+        {"schema_version": 1, "item_types": [{"id": "industry", "schema": "broken.schema.json"}]},
+    )
+    errors = _errors(check_registries(tmp_path))
+    assert any(
+        e.startswith("item_types/") and "/schema:" in e and str(broken) in e and problem in e
+        for e in errors
+    ), errors
 
 
 def test_missing_translation_is_a_warning(tmp_path: Path, engine_copy: Path) -> None:
