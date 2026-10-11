@@ -10,7 +10,9 @@ import yaml
 
 from pulseai import __version__
 from pulseai.config import ConfigError, load_config
+from pulseai.issues import Issue, format_issue, has_errors
 from pulseai.models.config import PulseConfig
+from pulseai.registry.checks import check_registries
 from pulseai.registry.loader import registry_spec
 
 app = typer.Typer(
@@ -93,3 +95,22 @@ def config_check(instance: InstanceOption = None) -> None:
     """Validate the effective configuration."""
     load_config_or_exit(instance)
     typer.echo("Configuration is valid.")
+
+
+def print_issues(issues: list[Issue]) -> None:
+    for issue in issues:
+        typer.echo(format_issue(issue), err=issue.level == "error")
+
+
+registry_app = typer.Typer(help="Check registries.", no_args_is_help=True)
+app.add_typer(registry_app, name="registry")
+
+
+@registry_app.command("check")
+def registry_check(instance: InstanceOption = None) -> None:
+    """Check that registries and config are consistent with each other."""
+    issues = check_registries(resolve_instance(instance))
+    print_issues(issues)
+    if has_errors(issues):
+        raise typer.Exit(1)
+    typer.echo("Registries are consistent.")
