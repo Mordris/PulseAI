@@ -33,8 +33,30 @@ def test_env_override_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_env_override_invalid_value_names_variable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PULSE__SCHEDULE__TIME", "99:99")
-    with pytest.raises(ConfigError, match="schedule/time"):
+    with pytest.raises(ConfigError, match=r"PULSE__SCHEDULE__TIME \(schedule/time\): ") as info:
         load_config()
+    assert "environment overrides are invalid" in str(info.value)
+
+
+def test_env_override_nested_keys_name_the_whole_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PULSE__SECTIONS__MODELS__MAX_ITEMS", "many")
+    with pytest.raises(ConfigError) as info:
+        load_config()
+    assert "PULSE__SECTIONS__MODELS__MAX_ITEMS (sections/models/max_items): " in str(info.value)
+
+
+def test_env_override_rejected_by_the_schema_names_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The generated model accepts repeated values; only the JSON Schema (uniqueItems) rejects them.
+    monkeypatch.setenv("PULSE__INTERESTS__HIGH", '["a", "a"]')
+    with pytest.raises(ConfigError) as info:
+        load_config()
+    message = str(info.value)
+    assert "after environment overrides" in message
+    assert "PULSE__INTERESTS__HIGH (interests/high): " in message
 
 
 def test_unknown_instance_key_names_file(tmp_path: Path) -> None:

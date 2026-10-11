@@ -42,6 +42,14 @@ class PulseSettings(BaseSettings, PulseConfig):  # pyright: ignore[reportIncompa
         return (env_settings, init_settings)
 
 
+def _describe(pointer: str, message: str) -> str:
+    """'<VARIABLE> (<path>): <message>' so the reader knows which environment variable to fix."""
+    if not pointer or pointer == "<root>":
+        return message
+    variable = ENV_PREFIX + ENV_DELIMITER.join(part.upper() for part in pointer.split("/"))
+    return f"{variable} ({pointer}): {message}"
+
+
 def load_config(instance_dir: Path | None = None) -> PulseConfig:
     try:
         merged = load_registry(CONFIG_REGISTRY, instance_dir).data
@@ -51,7 +59,8 @@ def load_config(instance_dir: Path | None = None) -> PulseConfig:
         settings = PulseSettings(**merged)
     except ValidationError as exc:
         lines = [
-            f"  - {'/'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in exc.errors()
+            f"  - {_describe('/'.join(str(part) for part in err['loc']), err['msg'])}"
+            for err in exc.errors()
         ]
         msg = "environment overrides are invalid\n" + "\n".join(lines)
         raise ConfigError(msg) from None
@@ -64,9 +73,12 @@ def load_config(instance_dir: Path | None = None) -> PulseConfig:
         msg = f"cannot use schema {CONFIG_SCHEMA!r} ({exc})"
         raise ConfigError(msg) from None
     if errors:
-        msg = "configuration is invalid after environment overrides\n" + "\n".join(
-            f"  - {e}" for e in errors
-        )
+        # The files were validated while loading, so only an environment override can break this.
+        lines: list[str] = []
+        for error in errors:
+            pointer, separator, message = error.partition(": ")
+            lines.append(f"  - {_describe(pointer, message) if separator else error}")
+        msg = "configuration is invalid after environment overrides\n" + "\n".join(lines)
         raise ConfigError(msg)
     return PulseConfig.model_validate(effective)
 
