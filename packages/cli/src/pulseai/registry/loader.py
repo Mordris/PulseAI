@@ -13,7 +13,7 @@ import yaml
 
 from pulseai.models.registries import RegistriesCatalog, RegistrySpec
 from pulseai.paths import data_path, engine_root
-from pulseai.registry.merge import ID_KEY, merge
+from pulseai.registry.merge import ID_KEY, find_duplicate_ids, merge
 from pulseai.schemas import SCHEMA_PROBLEMS, validate_document
 
 CATALOG_PARTS = ("defaults", "registries.yaml")
@@ -137,6 +137,13 @@ def _dict_items(doc: dict[str, Any], list_key: str) -> list[dict[str, Any]]:
     return [cast("dict[str, Any]", item) for item in items if isinstance(item, dict)]
 
 
+def _duplicates(doc: dict[str, Any], path: Path) -> list[str]:
+    return [
+        f"{path}: duplicate id {item_id!r} in {pointer}"
+        for pointer, item_id in find_duplicate_ids(doc)
+    ]
+
+
 def _combine(
     acc: dict[str, Any] | None, doc: dict[str, Any], path: Path, list_key: str | None
 ) -> dict[str, Any]:
@@ -167,15 +174,23 @@ def load_registry(
         msg = f"{registry_id}: no engine files match {', '.join(spec.paths)}"
         raise RegistryError(msg)
 
+    duplicates: list[str] = []
     data: dict[str, Any] | None = None
     for path in engine_files:
-        data = _combine(data, _require_mapping(read_document(path), path), path, spec.list_key)
+        doc = _require_mapping(read_document(path), path)
+        duplicates += _duplicates(doc, path)
+        data = _combine(data, doc, path, spec.list_key)
 
     instance_files: list[Path] = []
     if instance_dir is not None:
         instance_files = _expand(instance_dir, spec.instance_paths or spec.paths, values)
         for path in instance_files:
-            data = merge(data, _require_mapping(read_document(path), path))
+            doc = _require_mapping(read_document(path), path)
+            duplicates += _duplicates(doc, path)
+            data = merge(data, doc)
+    if duplicates:
+        msg = f"{registry_id}: duplicate ids\n{_bullets(duplicates)}"
+        raise RegistryError(msg)
 
     if data is None:
         msg = f"{registry_id}: nothing was loaded"

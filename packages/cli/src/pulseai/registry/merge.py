@@ -5,7 +5,8 @@ Rules:
 - lists whose items are all mappings with an ``id`` merge by id (base order kept, new ids appended);
   an override item with ``_remove: true`` deletes the base item with that id, and an id added
   again after its removal goes to the end;
-- duplicate ids inside one base list collapse to a single entry holding the last occurrence;
+- duplicate ids inside one base list collapse to a single entry holding the last occurrence (the
+  loader rejects such files with ``find_duplicate_ids`` before they are merged);
 - every other value (scalars, plain lists, empty lists) is replaced by the override;
 - ``_remove`` keys never appear in a result (whatever their value), items marked ``_remove: true``
   are dropped wherever they occur, and a result never shares mutable objects with its inputs.
@@ -14,6 +15,7 @@ Rules:
 from __future__ import annotations
 
 import copy
+from collections import Counter
 from typing import Any, cast
 
 REMOVE_KEY = "_remove"
@@ -81,3 +83,26 @@ def merge(base: Any, override: Any) -> Any:
     if _is_id_list(base) and _is_id_list(override):
         return _merge_by_id(base, override)
     return _clean(override)
+
+
+def find_duplicate_ids(doc: Any, pointer: str = "") -> list[tuple[str, str]]:
+    """Every id used twice in an id-keyed list of ``doc``, as ``(pointer to the list, id)``.
+
+    Items marked ``_remove: true`` do not count, so removing an entry and adding it again in one
+    list stays a valid way to replace it.
+    """
+    found: list[tuple[str, str]] = []
+    mapping = _as_dict(doc)
+    if mapping is not None:
+        for key, value in mapping.items():
+            found += find_duplicate_ids(value, f"{pointer}/{key}" if pointer else str(key))
+        return found
+    items = _as_list(doc)
+    if items is None:
+        return found
+    if _is_id_list(items):
+        counts = Counter(str(item[ID_KEY]) for item in items if not _is_removed(item))
+        found += [(pointer, item_id) for item_id, count in counts.items() if count > 1]
+    for index, item in enumerate(items):
+        found += find_duplicate_ids(item, f"{pointer}/{index}")
+    return found

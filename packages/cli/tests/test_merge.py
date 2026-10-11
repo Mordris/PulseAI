@@ -1,4 +1,4 @@
-from pulseai.registry.merge import REMOVE_KEY, merge
+from pulseai.registry.merge import REMOVE_KEY, find_duplicate_ids, merge
 
 
 def _contains_key(value: object, key: str) -> bool:
@@ -116,3 +116,30 @@ def test_duplicate_ids_in_base_collapse_to_the_last_occurrence() -> None:
     assert merge(base, {"items": [{"id": "c"}]}) == {
         "items": [{"id": "a", "v": 3}, {"id": "b"}, {"id": "c"}]
     }
+
+
+def test_find_duplicate_ids_reports_each_repeated_id_with_its_location() -> None:
+    doc = {
+        "sections": [
+            {"id": "a", "groups": [{"id": "g"}, {"id": "g"}, {"id": "h"}]},
+            {"id": "a", "groups": []},
+            {"id": "b"},
+        ],
+        "other": [1, 1],
+    }
+    assert find_duplicate_ids(doc) == [("sections", "a"), ("sections/0/groups", "g")]
+
+
+def test_find_duplicate_ids_ignores_clean_documents_and_plain_values() -> None:
+    assert find_duplicate_ids({"items": [{"id": "a"}, {"id": "b"}], "tags": ["x", "x"]}) == []
+    assert find_duplicate_ids("text") == []
+    assert find_duplicate_ids([]) == []
+
+
+def test_find_duplicate_ids_allows_remove_then_add_again() -> None:
+    # The documented way to replace an entry completely.
+    assert find_duplicate_ids({"items": [{"id": "a", REMOVE_KEY: True}, {"id": "a", "v": 2}]}) == []
+
+
+def test_find_duplicate_ids_counts_ids_that_are_not_strings_alike() -> None:
+    assert find_duplicate_ids({"items": [{"id": 1}, {"id": "1"}]}) == [("items", "1")]

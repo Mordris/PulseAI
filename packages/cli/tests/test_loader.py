@@ -193,3 +193,89 @@ def test_missing_catalog_schema_is_a_registry_error(engine_copy: Path) -> None:
     (engine_copy / "schema/registries.schema.json").unlink()
     with pytest.raises(RegistryError, match=r"registries\.schema\.json"):
         load_catalog()
+
+
+REGISTRY_FILES = [
+    ("sections", "taxonomy/sections.yaml", "sections"),
+    ("item-types", "taxonomy/item-types.yaml", "item_types"),
+    ("roles", "taxonomy/roles.yaml", "roles"),
+    ("sources", "sources/registry/core.yaml", "sources"),
+    ("engine", "defaults/engine.yaml", "tools"),
+]
+
+
+def _repeat_first_entry(path: Path, list_key: str) -> str:
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc[list_key].append(dict(doc[list_key][0]))
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    return str(doc[list_key][0]["id"])
+
+
+@pytest.mark.parametrize(("registry", "relative", "list_key"), REGISTRY_FILES)
+def test_duplicate_ids_within_an_engine_file_are_rejected(
+    engine_copy: Path, registry: str, relative: str, list_key: str
+) -> None:
+    repeated = _repeat_first_entry(engine_copy / relative, list_key)
+    with pytest.raises(RegistryError) as info:
+        load_registry(registry)
+    message = str(info.value)
+    assert str(engine_copy / relative) in message
+    assert f"duplicate id {repeated!r} in {list_key}" in message
+
+
+@pytest.mark.parametrize(("registry", "relative", "list_key"), REGISTRY_FILES[:4])
+def test_duplicate_ids_within_an_instance_file_are_rejected(
+    tmp_path: Path, registry: str, relative: str, list_key: str, repo_root: Path
+) -> None:
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    path.write_text((repo_root / relative).read_text(encoding="utf-8"), encoding="utf-8")
+    repeated = _repeat_first_entry(path, list_key)
+    with pytest.raises(RegistryError) as info:
+        load_registry(registry, tmp_path)
+    assert str(path) in str(info.value)
+    assert f"duplicate id {repeated!r} in {list_key}" in str(info.value)
+
+
+def test_every_duplicate_in_every_file_is_listed(engine_copy: Path, tmp_path: Path) -> None:
+    _repeat_first_entry(engine_copy / "taxonomy/sections.yaml", "sections")
+    path = tmp_path / "taxonomy/sections.yaml"
+    _write(
+        path,
+        {"schema_version": 1, "sections": [{"id": "tooling"}, {"id": "tooling", "order": 1}]},
+    )
+    with pytest.raises(RegistryError) as info:
+        load_registry("sections", tmp_path)
+    message = str(info.value)
+    assert str(engine_copy / "taxonomy/sections.yaml") in message
+    assert str(path) in message
+    assert message.count("duplicate id '") == 2
+
+
+def test_duplicate_group_ids_inside_a_section_are_rejected(tmp_path: Path) -> None:
+    group = {"id": "extra", "label": "groups.top_papers", "match": {"types": ["paper"]}}
+    _write(
+        tmp_path / "taxonomy/sections.yaml",
+        {"schema_version": 1, "sections": [{"id": "research", "groups": [group, group]}]},
+    )
+    with pytest.raises(RegistryError, match=r"duplicate id 'extra' in sections/0/groups"):
+        load_registry("sections", tmp_path)
+
+
+def test_an_instance_can_replace_an_entry_by_removing_and_adding_it(tmp_path: Path) -> None:
+    source = {
+        "id": "simon-willison",
+        "name": "Simon",
+        "tier": "T2",
+        "sections": ["tooling"],
+        "trust": 3,
+        "enabled": True,
+        "via": "collector",
+        "collector": {"kind": "rss", "url": "https://example.org/feed.xml"},
+    }
+    _write(
+        tmp_path / "sources/registry/mine.yaml",
+        {"schema_version": 1, "sources": [{"id": "simon-willison", "_remove": True}, source]},
+    )
+    sources = load_registry("sources", tmp_path).data["sources"]
+    assert [s["name"] for s in sources if s["id"] == "simon-willison"] == ["Simon"]

@@ -297,3 +297,26 @@ def test_missing_engine_data_is_an_unusable_load_issue(
     issues = check_registries(tmp_path)
     assert [(i.where, i.unusable) for i in issues] == [("load", True)]
     assert ENGINE_DATA_ENV in issues[0].message
+
+
+def test_duplicate_ids_in_an_engine_file_fail_the_registry_check(engine_copy: Path) -> None:
+    path = engine_copy / "taxonomy/roles.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["roles"].append(dict(doc["roles"][0]))
+    _write(path, doc)
+    issues = check_registries()
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+    assert f"duplicate id {doc['roles'][0]['id']!r} in roles" in issues[0].message
+    result = runner.invoke(app, ["registry", "check"])
+    assert result.exit_code == 2
+    assert "duplicate id" in result.stderr
+
+
+def test_duplicate_ids_in_an_instance_file_fail_the_registry_check(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "taxonomy/sections.yaml",
+        {"schema_version": 1, "sections": [{"id": "models", "order": 1}, {"id": "models"}]},
+    )
+    issues = check_registries(tmp_path)
+    assert [(i.where, i.unusable) for i in issues] == [("load", True)]
+    assert "duplicate id 'models' in sections" in issues[0].message
