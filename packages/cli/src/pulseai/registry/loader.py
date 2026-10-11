@@ -170,8 +170,15 @@ def load_registry(
     values = dict(variables or {})
     _check_variables(values)
     engine_files = _expand(engine_root(), spec.paths, values)
-    if not engine_files:
-        msg = f"{registry_id}: no engine files match {', '.join(spec.paths)}"
+    instance_patterns = spec.instance_paths or spec.paths
+    instance_files = (
+        _expand(instance_dir, instance_patterns, values) if instance_dir is not None else []
+    )
+    if not engine_files and not instance_files:
+        # An instance may supply a file the engine lacks, for example a locale for a new language.
+        who = "engine" if instance_dir is None else "engine or instance"
+        patterns = ", ".join(pattern.format_map(values) for pattern in spec.paths)
+        msg = f"{registry_id}: no {who} files match {patterns}"
         raise RegistryError(msg)
 
     duplicates: list[str] = []
@@ -181,13 +188,10 @@ def load_registry(
         duplicates += _duplicates(doc, path)
         data = _combine(data, doc, path, spec.list_key)
 
-    instance_files: list[Path] = []
-    if instance_dir is not None:
-        instance_files = _expand(instance_dir, spec.instance_paths or spec.paths, values)
-        for path in instance_files:
-            doc = _require_mapping(read_document(path), path)
-            duplicates += _duplicates(doc, path)
-            data = merge(data, doc)
+    for path in instance_files:
+        doc = _require_mapping(read_document(path), path)
+        duplicates += _duplicates(doc, path)
+        data = merge(data, doc)
     if duplicates:
         msg = f"{registry_id}: duplicate ids\n{_bullets(duplicates)}"
         raise RegistryError(msg)

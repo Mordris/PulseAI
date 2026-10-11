@@ -320,3 +320,25 @@ def test_duplicate_ids_in_an_instance_file_fail_the_registry_check(tmp_path: Pat
     issues = check_registries(tmp_path)
     assert [(i.where, i.unusable) for i in issues] == [("load", True)]
     assert "duplicate id 'models' in sections" in issues[0].message
+
+
+def test_an_instance_can_add_a_language_end_to_end(tmp_path: Path) -> None:
+    _write(tmp_path / "pulse.config.yaml", {"language": "de"})
+    (tmp_path / "locales").mkdir()
+    (tmp_path / "locales/de.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "language": "de",
+                "fallback": "en",
+                "strings": {"sections.models": "Modelle und Labore"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = runner.invoke(app, ["config", "check", "--instance", str(tmp_path)])
+    assert config.exit_code == 0, config.output
+    registries = runner.invoke(app, ["registry", "check", "--instance", str(tmp_path)])
+    assert registries.exit_code == 0, registries.output
+    assert "Registries are consistent." in registries.stdout
+    assert "not translated to 'de'" in registries.stdout

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -279,3 +280,22 @@ def test_an_instance_can_replace_an_entry_by_removing_and_adding_it(tmp_path: Pa
     )
     sources = load_registry("sources", tmp_path).data["sources"]
     assert [s["name"] for s in sources if s["id"] == "simon-willison"] == ["Simon"]
+
+
+def _german(strings: dict[str, str]) -> dict[str, object]:
+    return {"schema_version": 1, "language": "de", "fallback": "en", "strings": strings}
+
+
+def test_instance_can_add_a_language(tmp_path: Path) -> None:
+    (tmp_path / "locales").mkdir()
+    (tmp_path / "locales/de.json").write_text(
+        json.dumps(_german({"sections.models": "Modelle und Labore"})), encoding="utf-8"
+    )
+    de = load_locale("de", tmp_path)
+    assert de["sections.models"] == "Modelle und Labore"
+    assert de["sections.tooling"] == load_locale("en")["sections.tooling"]
+
+
+def test_a_language_without_any_file_is_an_error_with_an_instance_too(tmp_path: Path) -> None:
+    with pytest.raises(RegistryError, match=r"no engine or instance files match locales/xx\.json"):
+        load_locale("xx", tmp_path)

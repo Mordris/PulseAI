@@ -176,7 +176,7 @@ PULSE__SCHEDULE__TIME=18:30 uv run pulse config show
 | Item types | [`taxonomy/item-types.yaml`](taxonomy/item-types.yaml) | Deep-dive types and their detail schemas |
 | Roles | [`taxonomy/roles.yaml`](taxonomy/roles.yaml) | Agent roles that `models_by_role` assigns models to |
 | Sources | [`sources/registry/`](sources/registry/) | Feeds, APIs, MCP tools, and searches |
-| Locales | [`locales/`](locales/) | Interface text for each language |
+| Locales | [`locales/`](locales/) | Interface text for each language; an instance can add a language with its own `locales/<language>.json` |
 | Engine | [`defaults/engine.yaml`](defaults/engine.yaml) | Tool requirements checked by `pulse doctor` |
 
 Every contract lives in [`schema/`](schema/) as JSON Schema. Python models are generated from it,
