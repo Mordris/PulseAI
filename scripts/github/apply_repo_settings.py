@@ -122,16 +122,18 @@ def ruleset_body(settings: dict[str, Any]) -> dict[str, Any]:
             "type": "pull_request",
             "parameters": {
                 "required_approving_review_count": ruleset["required_approvals"],
-                "dismiss_stale_reviews_on_push": True,
-                "require_code_owner_review": False,
-                "require_last_push_approval": False,
-                "required_review_thread_resolution": True,
+                "dismiss_stale_reviews_on_push": ruleset["dismiss_stale_reviews_on_push"],
+                "require_code_owner_review": ruleset["require_code_owner_review"],
+                "require_last_push_approval": ruleset["require_last_push_approval"],
+                "required_review_thread_resolution": ruleset["required_review_thread_resolution"],
             },
         },
         {
             "type": "required_status_checks",
             "parameters": {
-                "strict_required_status_checks_policy": True,
+                "strict_required_status_checks_policy": ruleset[
+                    "strict_required_status_checks_policy"
+                ],
                 "required_status_checks": [{"context": c} for c in ruleset["required_checks"]],
             },
         },
@@ -151,6 +153,11 @@ def _run(call: Call) -> str:
     stdin = json.dumps(call.body) if call.body is not None else None
     result = subprocess.run(call.argv(), input=stdin, capture_output=True, text=True, check=True)
     return result.stdout
+
+
+def _apply(call: Call) -> None:
+    _run(call)
+    print(f"applied {call.method} {call.endpoint}")
 
 
 def _ruleset_call(repo: str, body: dict[str, Any]) -> Call:
@@ -189,9 +196,21 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(body, indent=2))
         return 0
 
-    for call in [*calls, _ruleset_call(args.repo, body)]:
-        _run(call)
-        print(f"applied {call.method} {call.endpoint}")
+    try:
+        for call in calls:
+            _apply(call)
+        # The ruleset call depends on what already exists, so it is resolved last.
+        _apply(_ruleset_call(args.repo, body))
+    except subprocess.CalledProcessError as exc:
+        command = exc.cmd if isinstance(exc.cmd, str) else shlex.join(str(a) for a in exc.cmd)
+        print(f"error: {command} failed with exit status {exc.returncode}", file=sys.stderr)
+        for stream in (exc.stderr, exc.output):
+            if stream and str(stream).strip():
+                print(str(stream).strip(), file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"error: could not run gh: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 

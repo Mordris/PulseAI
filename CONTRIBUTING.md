@@ -55,4 +55,6 @@ secret was ever committed, rotate it first, then remove it from history.
 
 Use the commit template once per clone: `git config commit.template .gitmessage`.
 The pre-commit `commit-msg` hook runs commitlint (Conventional Commits). Pull requests are
-squash-merged, so the PR title becomes the commit: CI checks it with the same rules.
+squash-merged, so the PR title becomes the commit. CI checks that the title uses a Conventional
+Commits type (`feat`, `fix`, and so on); it does not run the full commitlint rule set, so scope
+warnings only show up in your local commit-msg hook.

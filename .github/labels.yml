@@ -1,24 +1,27 @@
-- { name: bug, color: d73a4a, description: Something is not working }
-- { name: enhancement, color: a2eeef, description: New feature or improvement }
-- { name: documentation, color: 0075ca, description: Documentation changes }
-- { name: security, color: b60205, description: Security-related change or report }
-- { name: dependencies, color: 0366d6, description: Dependency updates }
-- { name: breaking-change, color: e11d21, description: Requires a migration }
-- { name: performance, color: fbca04, description: Faster or lighter }
-- { name: question, color: d876e3, description: Further information is requested }
-- { name: needs-triage, color: ededed, description: Waiting for a maintainer to triage }
-- { name: good first issue, color: 7057ff, description: Good for newcomers }
-- { name: help wanted, color: "008672", description: Extra attention is wanted }
-- { name: duplicate, color: cfd3d7, description: This issue or PR already exists }
-- { name: wontfix, color: ffffff, description: This will not be worked on }
-- { name: stale, color: c5def5, description: No recent activity }
-- { name: pinned, color: 5319e7, description: Exempt from stale handling }
-- { name: major-update, color: e99695, description: Major dependency update (manual review) }
-- { name: ignore-for-release, color: eeeeee, description: Excluded from release notes }
-- { name: source-request, color: 1d76db, description: Proposed source for the registry }
-- { name: area/cli, color: c2e0c6, description: pulse CLI }
-- { name: area/contracts, color: c2e0c6, description: TypeScript contracts }
-- { name: area/schema, color: c2e0c6, description: JSON Schemas }
-- { name: area/registry, color: c2e0c6, description: Sections, item types, sources, locales, defaults }
-- { name: area/plugin, color: c2e0c6, description: Claude Code plugin }
-- { name: area/ci, color: c2e0c6, description: Workflows and automation }
+- { name: bug, color: "d73a4a", description: "Something is not working" }
+- { name: enhancement, color: "a2eeef", description: "New feature or improvement" }
+- { name: documentation, color: "0075ca", description: "Documentation changes" }
+- { name: security, color: "b60205", description: "Security-related change or report" }
+- { name: dependencies, color: "0366d6", description: "Dependency updates" }
+- { name: breaking-change, color: "e11d21", description: "Requires a migration" }
+- { name: performance, color: "fbca04", description: "Faster or lighter" }
+- { name: question, color: "d876e3", description: "Further information is requested" }
+- { name: needs-triage, color: "ededed", description: "Waiting for a maintainer to triage" }
+- { name: good first issue, color: "7057ff", description: "Good for newcomers" }
+- { name: help wanted, color: "008672", description: "Extra attention is wanted" }
+- { name: duplicate, color: "cfd3d7", description: "This issue or PR already exists" }
+- { name: invalid, color: "e4e669", description: "Not valid or not reproducible" }
+- { name: wontfix, color: "ffffff", description: "This will not be worked on" }
+- { name: stale, color: "c5def5", description: "No recent activity" }
+- { name: pinned, color: "5319e7", description: "Exempt from stale handling" }
+- { name: major-update, color: "e99695", description: "Major dependency update (manual review)" }
+- { name: ignore-for-release, color: "eeeeee", description: "Excluded from release notes" }
+- { name: source-request, color: "1d76db", description: "Proposed source for the registry" }
+- { name: "autorelease: pending", color: "ededed", description: "release-please PR awaiting merge" }
+- { name: "autorelease: tagged", color: "ededed", description: "release-please release tagged" }
+- { name: area/cli, color: "c2e0c6", description: "pulse CLI" }
+- { name: area/contracts, color: "c2e0c6", description: "TypeScript contracts" }
+- { name: area/schema, color: "c2e0c6", description: "JSON Schemas" }
+- { name: area/registry, color: "c2e0c6", description: "Sections, item types, sources, locales, defaults" }
+- { name: area/plugin, color: "c2e0c6", description: "Claude Code plugin" }
+- { name: area/ci, color: "c2e0c6", description: "Workflows and automation" }

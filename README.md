@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <img alt="PulseAI" src="docs/assets/logo-light.svg" width="420">
+  <img alt="PulseAI" src="docs/assets/logo-light.svg" width="310">
 </picture>
 
 ### Your daily, verified, beautifully visualized AI and software briefing
@@ -32,34 +32,45 @@ consistently designed, chart-rich report.
 ## Why PulseAI
 
 AI models, agent tooling, and research change every day. Newsletters summarize; PulseAI verifies.
-Every item in a report links to a primary source fetched during the run, every number in a chart
-traces to a quoted span, and nothing is repeated from earlier reports unless something changed.
+By design, every item in a report links to a primary source fetched during the run, every number in
+a chart traces to a quoted span, and nothing is repeated from earlier reports unless something
+changed.
 
 ## Highlights
 
+Each capability is marked **available** (in the engine today) or **planned** (with the milestone
+that delivers it; see the [roadmap](#roadmap)).
+
 - **One report a day, on your schedule.** Runs as a Claude Code cloud routine, a GitHub Actions
-  workflow, or a local systemd or launchd timer, all from the same configuration.
+  workflow, or a local systemd or launchd timer, all from the same configuration. *Available:
+  per-host schedule settings (`pulse schedule print`). Planned (M4, M6): the daily run and host
+  adapters.*
 - **Verified, not summarized.** Primary-source requirement, date-window checks, quote-backed
   numbers, confidence labels (Confirmed, Reported, Rumor), and a recall check against expert
-  curators.
+  curators. *Available: report schema and `pulse validate`. Planned (M4): the verifier.*
 - **Remembers what it told you.** Coverage memory links follow-ups to earlier items and drops
-  repeats.
+  repeats. *Planned (M3).*
 - **Deep-dives, not headlines.** Each item expands into a type-specific deep-dive: model releases,
   tool releases, papers, articles, repositories, security advisories, industry news, and
-  leaderboard shifts.
+  leaderboard shifts. *Available: item-type registry and detail schemas. Planned (M4): generating
+  the deep-dives.*
 - **A research desk.** Papers from arXiv, OpenReview, and lab research pages, read in full and
-  briefed the way a reviewer would.
+  briefed the way a reviewer would. *Planned (M5).*
 - **Designed, then checked.** A fixed visual frame with generative charts and diagrams, validated
-  for accessibility and colorblind safety in light and dark themes.
+  for accessibility and colorblind safety in light and dark themes. *Planned (M2 site and visual
+  system, M4 design review).*
 - **Nothing hardcoded.** Sections, item types, sources, languages, themes, models, and thresholds
-  are schema-validated registries you can override without touching code.
+  are schema-validated registries you can override without touching code. *Available.*
 - **Open source first.** Built on Astro, Vega-Lite, Mermaid, Playwright, Apprise, MCP servers, and
-  more; custom code is thin glue.
+  more; custom code is thin glue. See [Architecture](#architecture) for what exists today.
 
 ## How it works
 
+The daily pipeline below is the target design; it lands across milestones M2 to M6 (see the
+[roadmap](#roadmap)).
+
 ```mermaid
-flowchart LR
+flowchart TB
     A["Load memory<br/>config, registries, coverage"] --> B["Research in parallel<br/>section researchers, research desk"]
     B --> C["History check<br/>drop, update, or upgrade"]
     C --> D["Verify<br/>sources, dates, quotes, numbers"]
@@ -76,7 +87,13 @@ PulseAI ships as two pieces:
 | **This repository (the engine)** | The Claude Code plugin (skills, agents, hooks), the `pulse` CLI, JSON Schemas, default registries, the report site, and host adapters |
 | **Your `pulse-instance` (private)** | Your configuration and overrides, plus your daily reports, coverage state, and site |
 
+Today the engine has the `pulse` CLI, JSON Schemas, default registries, and TypeScript contracts.
+The plugin's skills and agents (M4), the report site (M2), and the host adapters (M6) are planned.
+
 ### What a report contains
+
+The report format is defined by the report schema today; the site and the generation arrive in M2
+and M4.
 
 - A masthead with the **Pulse score**: how big the day was compared with your 7-day average
 - KPI tiles, a TL;DR, a generative front-page dashboard, and an adoption radar (adopt, trial,
@@ -101,6 +118,7 @@ git clone https://github.com/Mordris/PulseAI.git
 cd PulseAI
 uv sync
 pnpm install
+uv run pre-commit install   # lint, secret scan, and commit-message hooks
 uv run pulse doctor
 uv run pytest && pnpm test
 ```
@@ -188,7 +206,7 @@ Then run `pulse registry check` to confirm everything still fits together.
 
 ```text
 .claude-plugin/        plugin marketplace
-plugins/pulse/         Claude Code plugin (skills, agents, hooks)
+plugins/pulse/         Claude Code plugin (manifest today; skills and agents planned, M4)
 schema/                JSON Schemas: the single source of truth
 defaults/              engine defaults and the registry catalog
 taxonomy/              sections, item types, roles
@@ -202,21 +220,21 @@ docs/                  spec, plans, and architecture decisions
 
 </details>
 
-| Concern | Built on |
-|---|---|
-| Report site | Astro, Pagefind, Style Dictionary |
-| Charts and diagrams | Vega-Lite, Mermaid |
-| Browser automation and QA | Playwright, axe-core |
-| Data access | MCP servers (GitHub, Hugging Face, arXiv, fetch, Exa, Brave), feedparser, httpx |
-| Contracts | JSON Schema, generated Pydantic models, Zod |
-| Notifications | Apprise |
-| Quality and supply chain | Ruff, Pyright, Biome, pytest, Vitest, CodeQL, OSV-Scanner, gitleaks, TruffleHog, zizmor, OpenSSF Scorecard, Renovate, release-please |
+| Concern | Built on | Status |
+|---|---|---|
+| Report site | Astro, Pagefind, Style Dictionary | Planned (M2) |
+| Charts and diagrams | Vega-Lite, Mermaid | Planned (M2) |
+| Browser automation and QA | Playwright, axe-core | Planned (M2, M4) |
+| Data access | MCP servers (GitHub, Hugging Face, arXiv, fetch, Exa, Brave), feedparser, httpx | Planned (M3) |
+| Contracts | JSON Schema, generated Pydantic models, Zod | Available |
+| Notifications | Apprise | Planned (M6) |
+| Quality and supply chain | Ruff, Pyright, Biome, pytest, Vitest, CodeQL, OSV-Scanner, gitleaks, TruffleHog, zizmor, OpenSSF Scorecard, Renovate, release-please | Available |
 
 ## Security
 
-PulseAI treats fetched web content as untrusted data, keeps secrets out of git with pre-commit and
-CI secret scanning, pins every GitHub Action by commit SHA, and audits CI network egress. To report
-a vulnerability, see [SECURITY.md](SECURITY.md).
+The agents (M4) will treat fetched web content as untrusted data. Today the repository keeps
+secrets out of git with pre-commit and CI secret scanning, pins every GitHub Action by commit SHA,
+and audits CI network egress. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 

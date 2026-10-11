@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:pulseai:github:repository",
+  "$id": "urn:pulseai:schema:github-repository",
   "title": "RepositorySettings",
   "description": "GitHub repository settings applied by scripts/github/apply_repo_settings.py.",
   "type": "object",
@@ -67,7 +67,17 @@
     "ruleset": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "required_approvals", "required_checks", "linear_history"],
+      "required": [
+        "name",
+        "required_approvals",
+        "required_checks",
+        "linear_history",
+        "dismiss_stale_reviews_on_push",
+        "required_review_thread_resolution",
+        "require_code_owner_review",
+        "require_last_push_approval",
+        "strict_required_status_checks_policy"
+      ],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "required_approvals": { "type": "integer", "minimum": 0, "maximum": 6 },
@@ -76,7 +86,12 @@
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
-        "linear_history": { "type": "boolean" }
+        "linear_history": { "type": "boolean" },
+        "dismiss_stale_reviews_on_push": { "type": "boolean" },
+        "required_review_thread_resolution": { "type": "boolean" },
+        "require_code_owner_review": { "type": "boolean" },
+        "require_last_push_approval": { "type": "boolean" },
+        "strict_required_status_checks_policy": { "type": "boolean" }
       }
     }
   }
