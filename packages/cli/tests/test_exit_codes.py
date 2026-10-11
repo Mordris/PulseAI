@@ -194,3 +194,34 @@ def test_every_command_is_in_the_exit_code_matrix() -> None:
 def test_the_matrix_covers_every_scenario_for_commands_that_read_input() -> None:
     for command, (_, expectations) in COMMANDS.items():
         assert {VALID, BROKEN_CONFIG, NO_ENGINE_DATA, BROKEN_CATALOG} <= set(expectations), command
+
+
+NO_INSTANCE_ARGS = {
+    "config show": ["config", "show"],
+    "config check": ["config", "check"],
+    "schedule print": ["schedule", "print", "--host", "actions"],
+    "registry check": ["registry", "check"],
+    "doctor": ["doctor"],
+}
+
+
+@pytest.mark.parametrize("scenario", [NO_ENGINE_DATA, BROKEN_CATALOG])
+@pytest.mark.parametrize("command", [*NO_INSTANCE_ARGS, "validate"])
+def test_finding_the_default_instance_never_crashes(
+    command: str,
+    scenario: str,
+    tmp_path: Path,
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    # Without --instance the CLI reads the catalog just to find the instance in the current
+    # directory, before any command logic runs.
+    setup = _prepare(scenario, tmp_path, repo_root, monkeypatch, request)
+    if scenario == NO_ENGINE_DATA:
+        monkeypatch.setenv(ENGINE_DATA_ENV, "/nonexistent")
+    args = NO_INSTANCE_ARGS.get(command) or ["validate", str(setup.report)]
+    result = runner.invoke(app, args)
+    assert result.exception is None or isinstance(result.exception, SystemExit), result.exception
+    assert result.exit_code == (1 if command == "doctor" else 2), result.output
+    assert "Traceback" not in result.output
