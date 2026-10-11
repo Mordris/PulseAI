@@ -31,13 +31,13 @@ publishes the `pulseai` wheel to PyPI through trusted publishing.
 
 One-time repository setup:
 
-1. Create a GitHub App (preferred) or a fine-grained personal access token with read and write
-   access to contents, pull requests, and issues, and make it available to the release job as
-   the `RELEASE_PLEASE_TOKEN` repository secret (a token as-is; for a GitHub App, mint its
-   installation token in the workflow with `actions/create-github-app-token`). Pull requests
-   opened with the default `GITHUB_TOKEN` never trigger CI, so without this token the release
-   pull request cannot satisfy required checks. The workflow falls back to `GITHUB_TOKEN` when
-   the secret is missing.
+1. Create a fine-grained personal access token with read and write access to contents, pull
+   requests, and issues, and add it as the `RELEASE_PLEASE_TOKEN` repository secret. The release
+   workflow reads that static secret as-is. Pull requests opened with the default `GITHUB_TOKEN`
+   never trigger CI, so without this token the release pull request cannot satisfy required
+   checks. The workflow falls back to `GITHUB_TOKEN` when the secret is missing. A GitHub App
+   would avoid a long-lived personal token, but it needs an `actions/create-github-app-token`
+   step in `release-please.yml` to mint its installation token; that is future work.
 2. In Settings, Actions, General, enable "Allow GitHub Actions to create and approve pull
    requests".
 3. Create the `pypi` environment (Settings, Environments).
@@ -47,5 +47,12 @@ One-time repository setup:
 ## Security checks
 
 Never commit secrets, notification URLs, or tokens; they belong in host secret stores. The
-pre-commit `gitleaks` hook blocks most leaks locally; CI repeats gitleaks and TruffleHog on full
-history. If a secret was ever committed, rotate it first, then remove it from history.
+pre-commit `gitleaks` hook blocks most leaks locally; CI repeats gitleaks and TruffleHog (push and
+pull request runs scan the commit range; nightly and manual runs scan the full history). If a
+secret was ever committed, rotate it first, then remove it from history.
+
+## Commit messages
+
+Use the commit template once per clone: `git config commit.template .gitmessage`.
+The pre-commit `commit-msg` hook runs commitlint (Conventional Commits). Pull requests are
+squash-merged, so the PR title becomes the commit: CI checks it with the same rules.

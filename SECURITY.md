@@ -18,15 +18,15 @@ Supported versions: the latest release.
 | Runtime egress audit | `step-security/harden-runner` as the first step of every job |
 | Supply chain | `scorecard.yml` (OpenSSF Scorecard), Renovate updates, release SBOM (SPDX) and build provenance attestations |
 
-## One-time repository settings (owner)
+## Repository settings
 
-1. Settings → Code security: enable secret scanning **and push protection**, private vulnerability
-   reporting, Dependabot alerts (updates stay with Renovate), and CodeQL default setup off (the
-   workflow is the source of truth).
-2. Settings → Rules: protect `main` — require pull requests, linear history, and these checks:
-   `python (3.12)`, `python (3.15)`, `node`, `analyze`, `review`, `gitleaks`, `trufflehog`,
-   `scan-pr`, `zizmor`. Checks that come from reusable workflows (for example OSV `scan-pr`)
-   report as `<job> / <inner job>`; confirm their exact names from the first CI run before adding
-   them to the ruleset.
-3. Settings → Actions → General: allow only SHA-pinned actions and set the default
-   `GITHUB_TOKEN` permission to read-only.
+Repository settings (features, merge rules, security features, topics, and the `main` ruleset with
+required checks) live in `.github/repository.yml` and are applied with
+`uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME` (use `--dry-run` first).
+Also allow only SHA-pinned actions and set the default `GITHUB_TOKEN` permission to read-only under
+Settings → Actions → General, and keep CodeQL default setup off (the workflow is the source of
+truth).
+
+Checks that come from reusable workflows (the OSV-Scanner jobs in `vulnerability-scan.yml`) report
+as `<job> / <inner job>`. Confirm their exact names from the first CI run, then add them to
+`ruleset.required_checks` in `.github/repository.yml`.

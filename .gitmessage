@@ -1,0 +1,8 @@
+# <type>(<scope>): <summary in imperative mood, no trailing period>
+#
+# Types:  feat fix perf refactor docs test build ci chore revert
+# Scopes: cli contracts schema registry config report schedule doctor site plugin
+#         ci deps docs security release plan spec main
+#
+# Body: what changed and why, wrapped at 72 columns.
+# Footer: "BREAKING CHANGE: <description>" and/or "Refs #<issue>".

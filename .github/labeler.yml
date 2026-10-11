@@ -1,0 +1,21 @@
+area/cli:
+  - changed-files:
+      - any-glob-to-any-file: ["packages/cli/**", "scripts/**"]
+area/contracts:
+  - changed-files:
+      - any-glob-to-any-file: ["packages/contracts/**"]
+area/schema:
+  - changed-files:
+      - any-glob-to-any-file: ["schema/**"]
+area/registry:
+  - changed-files:
+      - any-glob-to-any-file: ["taxonomy/**", "sources/**", "locales/**", "defaults/**"]
+area/plugin:
+  - changed-files:
+      - any-glob-to-any-file: ["plugins/**", ".claude-plugin/**"]
+area/ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/**", ".pre-commit-config.yaml", "renovate.json"]
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ["**/*.md", "docs/**"]

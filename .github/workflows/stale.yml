@@ -1,0 +1,33 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "11 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          days-before-stale: 60
+          days-before-close: 14
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: pinned,security,needs-triage
+          exempt-pr-labels: pinned,security,major-update
+          stale-issue-message: >-
+            This issue has had no activity for 60 days and will close in 14 days unless there is
+            new activity. Comment to keep it open.
+          stale-pr-message: >-
+            This pull request has had no activity for 60 days and will close in 14 days unless
+            there is new activity.

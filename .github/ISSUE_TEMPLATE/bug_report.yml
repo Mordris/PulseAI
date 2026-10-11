@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in PulseAI is broken or behaves unexpectedly.
+title: "bug: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Search existing issues first. For security problems, use the private
+        vulnerability report form instead of this template.
+  - type: input
+    id: version
+    attributes:
+      label: PulseAI version
+      description: Output of `pulse --version`.
+      placeholder: pulse 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Where does it run?
+      options:
+        - Local timer (systemd or launchd)
+        - GitHub Actions
+        - Claude Code cloud routine
+        - Development checkout
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `pulse ...`
+        2. See error
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `pulse doctor`
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed secrets, tokens, notification URLs, and private data from everything above.
+          required: true
