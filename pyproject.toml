@@ -52,6 +52,7 @@ markers = ["slow: builds artifacts or spawns subprocesses"]
 
 [dependency-groups]
 dev = [
+    "check-jsonschema>=0.38.2",
     "datamodel-code-generator>=0.83.0",
     "jsonpatch>=1.35",
     "pre-commit>=4.6.2",

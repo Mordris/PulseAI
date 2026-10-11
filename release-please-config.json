@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": true,
+  "separate-pull-requests": false,
+  "plugins": [
+    { "type": "linked-versions", "groupName": "engine", "components": ["cli", "contracts"] }
+  ],
+  "packages": {
+    "packages/cli": {
+      "release-type": "python",
+      "package-name": "pulseai",
+      "component": "cli",
+      "extra-files": [
+        { "type": "yaml", "path": "/defaults/pulse.config.yaml", "jsonpath": "$.engine.version" },
+        {
+          "type": "json",
+          "path": "/plugins/pulse/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    },
+    "packages/contracts": {
+      "release-type": "node",
+      "package-name": "@pulseai/contracts",
+      "component": "contracts"
+    }
+  }
+}
