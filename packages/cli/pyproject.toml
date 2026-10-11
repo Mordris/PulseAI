@@ -22,3 +22,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pulseai"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"../../schema" = "pulseai/_data/schema"
+"../../defaults" = "pulseai/_data/defaults"
