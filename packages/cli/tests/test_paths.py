@@ -86,5 +86,13 @@ def test_wheel_bundles_engine_data(repo_root: Path, tmp_path: Path) -> None:
     wheel = next(tmp_path.glob("pulseai-*.whl"))
     with zipfile.ZipFile(wheel) as zf:
         names = set(zf.namelist())
-    for rel in ("schema/config.schema.json", "defaults/pulse.config.yaml"):
+    for rel in (
+        "schema/config.schema.json",
+        "schema/item-types/paper.schema.json",
+        "defaults/pulse.config.yaml",
+        "defaults/registries.yaml",
+        "taxonomy/sections.yaml",
+        "sources/registry/core.yaml",
+        "locales/en.json",
+    ):
         assert f"pulseai/_data/{rel}" in names

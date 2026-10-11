@@ -1,0 +1,102 @@
+# Starter sources for M1 validation. M3 expands the default registry.
+schema_version: 1
+sources:
+  - id: claude-code-releases
+    name: Claude Code releases
+    homepage: https://github.com/anthropics/claude-code/releases
+    tier: T1
+    sections: [tooling]
+    trust: 5
+    enabled: true
+    via: mcp
+    mcp:
+      server: github
+      tool: list_releases
+      args: { owner: anthropics, repo: claude-code, perPage: 5 }
+  - id: hf-daily-papers
+    name: Hugging Face Daily Papers
+    homepage: https://huggingface.co/papers
+    tier: T1-data
+    sections: [research]
+    trust: 4
+    enabled: true
+    via: collector
+    collector:
+      kind: json
+      url: "https://huggingface.co/api/daily_papers?date={date}"
+      items: "[*]"
+      fields:
+        id: paper.id
+        title: paper.title
+        url: "join('', ['https://huggingface.co/papers/', paper.id])"
+        published: publishedAt
+        summary: paper.summary
+        signal: paper.upvotes
+  - id: arxiv-cs-ai
+    name: arXiv cs.AI new submissions
+    homepage: https://arxiv.org/list/cs.AI/new
+    tier: T1
+    sections: [research]
+    trust: 4
+    enabled: true
+    via: collector
+    collector: { kind: rss, url: "https://rss.arxiv.org/rss/cs.AI" }
+  - id: openrouter-models
+    name: OpenRouter model catalog
+    homepage: https://openrouter.ai/models
+    tier: T1-data
+    sections: [models]
+    trust: 4
+    enabled: true
+    via: collector
+    collector:
+      kind: json-snapshot-diff
+      url: "https://openrouter.ai/api/v1/models"
+      items: "data[*]"
+      key: id
+      track: [pricing, context_length]
+      fields:
+        id: id
+        title: name
+        url: "join('', ['https://openrouter.ai/', id])"
+        published: created
+        summary: description
+  - id: hn-front-page
+    name: Hacker News front page
+    homepage: https://news.ycombinator.com/
+    tier: T2
+    sections: [models, tooling, research, oss]
+    trust: 3
+    enabled: true
+    via: collector
+    collector:
+      kind: json
+      url: "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=50"
+      items: "hits[*]"
+      fields:
+        id: objectID
+        title: title
+        url: "url || join('', ['https://news.ycombinator.com/item?id=', objectID])"
+        published: created_at
+        signal: points
+  - id: simon-willison
+    name: Simon Willison's Weblog
+    homepage: https://simonwillison.net/
+    tier: T2
+    sections: [models, tooling]
+    trust: 4
+    enabled: true
+    via: collector
+    collector: { kind: atom, url: "https://simonwillison.net/atom/everything/" }
+  - id: discovery-search
+    name: Web discovery searches
+    tier: T3
+    sections: [models, tooling, research, oss]
+    trust: 2
+    enabled: true
+    via: search
+    search:
+      queries:
+        - "new AI model release {date}"
+        - "Claude Code new feature {date}"
+        - "new MCP server release {date}"

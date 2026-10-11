@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:item-types:model_release",
+  "title": "ModelReleaseDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["org", "model", "weights"],
+  "properties": {
+    "org": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "context_tokens": { "type": "integer", "minimum": 1 },
+    "price_in_per_mtok": { "type": "number", "minimum": 0 },
+    "price_out_per_mtok": { "type": "number", "minimum": 0 },
+    "modalities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "availability": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "weights": { "enum": ["open", "closed", "partial"] },
+    "license": { "type": "string", "minLength": 1 },
+    "try_it": { "type": "string", "minLength": 1 }
+  }
+}

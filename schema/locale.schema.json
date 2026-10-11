@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:locale",
+  "title": "Locale",
+  "description": "UI strings for one language (locales/<language>.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "language", "fallback", "strings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "language": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$" },
+    "fallback": { "type": ["string", "null"], "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$" },
+    "strings": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_-]+)+$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

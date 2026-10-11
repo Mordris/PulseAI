@@ -26,3 +26,6 @@ packages = ["src/pulseai"]
 [tool.hatch.build.targets.wheel.force-include]
 "../../schema" = "pulseai/_data/schema"
 "../../defaults" = "pulseai/_data/defaults"
+"../../taxonomy" = "pulseai/_data/taxonomy"
+"../../sources" = "pulseai/_data/sources"
+"../../locales" = "pulseai/_data/locales"

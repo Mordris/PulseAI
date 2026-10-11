@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "language": "tr",
+  "fallback": "en",
+  "strings": {
+    "sections.models": "Modeller ve laboratuvarlar",
+    "sections.tooling": "Ajan tabanlı geliştirme araçları",
+    "sections.research": "Araştırma masası",
+    "sections.oss": "Yazılım ve açık kaynak",
+    "groups.paper_of_the_day": "Günün makalesi",
+    "groups.top_papers": "Öne çıkan makaleler",
+    "groups.also_notable": "Ayrıca dikkat çekenler",
+    "groups.long_reads": "Uzun okumalar",
+    "item_types.model_release": "Model sürümü",
+    "item_types.tool_release": "Sürüm",
+    "item_types.framework_release": "Çatı sürümü",
+    "item_types.paper": "Makale",
+    "item_types.article": "Yazı",
+    "item_types.repo": "Depo",
+    "item_types.security_advisory": "Güvenlik bildirimi",
+    "item_types.industry": "Sektör",
+    "item_types.leaderboard_shift": "Sıralama değişimi"
+  }
+}

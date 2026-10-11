@@ -1,0 +1,38 @@
+schema_version: 1
+tools:
+  - id: python
+    command: ["{python}", "--version"]
+    version_regex: 'Python (\d+\.\d+\.\d+)'
+    specifier: ">=3.12"
+    required: true
+    hint: Install Python 3.12 or newer from https://www.python.org/downloads/
+  - id: uv
+    command: [uv, --version]
+    version_regex: 'uv (\d+\.\d+\.\d+)'
+    specifier: ">=0.11"
+    required: true
+    hint: Install uv from https://docs.astral.sh/uv/getting-started/installation/
+  - id: node
+    command: [node, --version]
+    version_regex: 'v(\d+\.\d+\.\d+)'
+    specifier: ">=24"
+    required: true
+    hint: Install the current Node.js LTS from https://nodejs.org/
+  - id: pnpm
+    command: [pnpm, --version]
+    version_regex: '(\d+\.\d+\.\d+)'
+    specifier: ">=12"
+    required: true
+    hint: Enable pnpm with "corepack enable pnpm"
+  - id: claude
+    command: [claude, --version]
+    version_regex: '(\d+\.\d+\.\d+)'
+    specifier: ">=2.1.259"
+    required: true
+    hint: Update Claude Code with "claude update"
+  - id: git
+    command: [git, --version]
+    version_regex: 'git version (\d+\.\d+\.\d+)'
+    specifier: ">=2.40"
+    required: true
+    hint: Install Git from https://git-scm.com/downloads

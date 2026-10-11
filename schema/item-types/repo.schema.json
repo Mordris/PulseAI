@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:item-types:repo",
+  "title": "RepoDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["full_name", "stars"],
+  "properties": {
+    "full_name": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+    "language": { "type": "string", "minLength": 1 },
+    "license": { "type": "string", "minLength": 1 },
+    "stars": { "type": "integer", "minimum": 0 },
+    "stars_delta_7d": { "type": "integer" },
+    "last_commit": { "type": "string", "format": "date" },
+    "alternatives": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "quickstart": { "type": "string", "minLength": 1 }
+  }
+}
