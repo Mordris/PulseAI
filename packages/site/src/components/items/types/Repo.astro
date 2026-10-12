@@ -1,0 +1,46 @@
+---
+import type { ItemTypesRepoSchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import Code from "../../blocks/Code.astro";
+import KeyValues from "../../blocks/KeyValues.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const { t, fmt } = ctx;
+const d = item.detail as ItemTypesRepoSchema.RepoDetail;
+const facts = [
+  { label: t("fields.full_name"), value: d.full_name },
+  { label: t("fields.language"), value: d.language },
+  { label: t("fields.license"), value: d.license },
+  { label: t("fields.stars"), value: fmt.number(d.stars) },
+  {
+    label: t("fields.stars_delta_7d"),
+    value: d.stars_delta_7d === undefined ? undefined : fmt.signed(d.stars_delta_7d),
+  },
+  {
+    label: t("fields.last_commit"),
+    value: d.last_commit === undefined ? undefined : fmt.date(d.last_commit),
+  },
+];
+---
+
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "stars_trend" && d.stars_delta_7d !== undefined && (
+      <p>{t("ui.repo.stars_delta", { delta: fmt.signed(d.stars_delta_7d), stars: fmt.number(d.stars) })}</p>
+    )}
+    {block === "facts" && <KeyValues entries={facts} />}
+    {block === "alternatives" && d.alternatives && d.alternatives.length > 0 && (
+      <ul>{d.alternatives.map((name) => <li>{name}</li>)}</ul>
+    )}
+    {block === "quickstart" && d.quickstart && <Code code={d.quickstart} />}
+  </Block>
+))}

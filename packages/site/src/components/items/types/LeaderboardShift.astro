@@ -1,0 +1,27 @@
+---
+import type { ItemTypesLeaderboardShiftSchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import { rankChanges } from "../../../lib/frame-charts.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import VegaLite from "../../visuals/VegaLite.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const d = item.detail as ItemTypesLeaderboardShiftSchema.LeaderboardShiftDetail;
+---
+
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "rank_changes" && (
+      <VegaLite ctx={ctx} visual={rankChanges(item.id, d.board, d.movers, ctx)} />
+    )}
+    {block === "reliability" && <p>{d.reliability_note}</p>}
+  </Block>
+))}

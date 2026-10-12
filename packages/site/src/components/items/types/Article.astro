@@ -1,0 +1,42 @@
+---
+import type { ItemTypesArticleSchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import KeyValues from "../../blocks/KeyValues.astro";
+import Badge from "../../frame/Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const { t, fmt } = ctx;
+const d = item.detail as ItemTypesArticleSchema.ArticleDetail;
+---
+
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "key_points" && <ul>{d.key_points.map((point) => <li>{point}</li>)}</ul>}
+    {block === "reading_time" && (
+      <KeyValues
+        entries={[
+          { label: t("fields.author"), value: d.author },
+          { label: t("fields.publication"), value: d.publication },
+          { label: t("fields.reading_minutes"), value: t("ui.paper.minutes", { minutes: fmt.number(d.reading_minutes) }) },
+        ]}
+      />
+    )}
+    {block === "verdict" && (
+      <p>
+        <Badge ctx={ctx} tone={d.worth_full_read ? "color.status.good" : undefined}>
+          {t(d.worth_full_read ? "ui.article.full_read_yes" : "ui.article.full_read_no")}
+        </Badge>
+        {" "}{d.worth_reason}
+      </p>
+    )}
+  </Block>
+))}
