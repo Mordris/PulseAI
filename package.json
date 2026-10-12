@@ -16,7 +16,8 @@
     "demo:build": "pnpm demo:context && pnpm --filter @pulseai/site build:demo",
     "demo:dev": "pnpm demo:context && pnpm --filter @pulseai/site dev:demo",
     "demo:preview": "pnpm --filter @pulseai/site preview:demo",
-    "demo:check": "pnpm --filter @pulseai/site check:demo"
+    "demo:check": "pnpm --filter @pulseai/site check:demo",
+    "demo:e2e": "pnpm --filter @pulseai/site exec node scripts/playwright-docker.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

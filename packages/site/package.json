@@ -11,7 +11,10 @@
     "preview:demo": "node scripts/pulse-site.ts preview --instance ../../examples",
     "check:demo": "node scripts/pulse-site.ts check --instance ../../examples",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "node scripts/playwright-docker.ts --grep-invert @visual",
+    "e2e:visual": "node scripts/playwright-docker.ts --grep @visual",
+    "e2e:visual:update": "node scripts/playwright-docker.ts --grep @visual --update-snapshots"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -32,9 +35,14 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3",
     "yaml": "^2.9.1"
+  },
+  "config": {
+    "playwrightImage": "mcr.microsoft.com/playwright:v1.64.0-noble"
   }
 }
