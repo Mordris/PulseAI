@@ -145,7 +145,9 @@ def test_read_document_yaml_value_error_names_the_file(tmp_path: Path) -> None:
 def test_read_document_too_deeply_nested_names_the_file(tmp_path: Path, suffix: str) -> None:
     path = tmp_path / f"x{suffix}"
     path.write_text("[" * 100_000, encoding="utf-8")
-    with pytest.raises(RegistryError, match="nested too deeply") as info:
+    # Parsers that recurse report "nested too deeply"; newer ones (json on Python 3.15) parse
+    # iteratively and report the truncated document instead. Either way it is a RegistryError.
+    with pytest.raises(RegistryError, match="cannot parse") as info:
         read_document(path)
     assert str(path) in str(info.value)
 
