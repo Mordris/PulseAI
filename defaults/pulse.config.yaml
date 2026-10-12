@@ -38,6 +38,7 @@ quality:
   section_delta_e_min: 12
   section_cvd_fail: 6
   section_cvd_target: 8
+  cvd_simulations: [protan, deutan]
   design_review_min_score: 7
   primary_tiers: [T1, T1-data]
 theme:

@@ -10,7 +10,8 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm -r --if-present test"
+    "test": "pnpm -r --if-present test",
+    "tokens:check": "uv run pulse site context --out .pulse/site-context.json && node packages/tokens/scripts/check-presets.ts --context .pulse/site-context.json --out .pulse/presets"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

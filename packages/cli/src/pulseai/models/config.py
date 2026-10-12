@@ -88,6 +88,13 @@ class QualityConfig(BaseModel):
             min_length=1,
         ),
     ]
+    cvd_simulations: Annotated[
+        list[Literal["protan", "deutan", "tritan"]],
+        Field(
+            description="Color-vision-deficiency simulations applied to distinct color sets (ColorAide filter names).",
+            min_length=1,
+        ),
+    ]
 
 
 class VisualsConfig(BaseModel):

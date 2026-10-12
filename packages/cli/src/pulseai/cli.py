@@ -23,6 +23,7 @@ from pulseai.registry.loader import RegistryError, registry_spec
 from pulseai.report.validate import validate_report_file
 from pulseai.schedule import HOSTS, render_host
 from pulseai.site.context import SiteContextError, default_context_path, write_site_context
+from pulseai.tokens.check import check_tokens, default_tokens_dir
 
 # Exit codes: 0 fine; 1 validation issues in input that loaded (doctor: any failing check);
 # 2 unusable input (engine data, catalog, config, registries or locales that fail to load,
@@ -244,3 +245,26 @@ def site_context(instance: InstanceOption = None, out: OutOption = None) -> None
         typer.echo(f"cannot write {target} ({exc.strerror or type(exc).__name__})", err=True)
         raise typer.Exit(EXIT_UNUSABLE) from None
     typer.echo(f"Wrote {path}")
+
+
+tokens_app = typer.Typer(help="Check design tokens.", no_args_is_help=True)
+app.add_typer(tokens_app, name="tokens")
+
+TokensDirOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--tokens",
+        help="Directory with the resolved token maps. Defaults to <instance>/.pulse/tokens.",
+        file_okay=False,
+        resolve_path=True,
+    ),
+]
+
+
+@tokens_app.command("check")
+@unusable_input_exits
+def tokens_check(instance: InstanceOption = None, tokens: TokensDirOption = None) -> None:
+    """Check resolved design tokens: text contrast and distinguishable color sets in every mode."""
+    instance_dir = resolve_instance(instance)
+    exit_for(check_tokens(tokens or default_tokens_dir(instance_dir), instance_dir))
+    typer.echo("Design tokens pass.")

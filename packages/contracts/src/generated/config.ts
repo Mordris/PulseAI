@@ -93,6 +93,12 @@ export interface QualityConfig {
    * @minItems 1
    */
   primary_tiers: ["T1" | "T1-data" | "T2" | "T3", ...("T1" | "T1-data" | "T2" | "T3")[]];
+  /**
+   * Color-vision-deficiency simulations applied to distinct color sets (ColorAide filter names).
+   *
+   * @minItems 1
+   */
+  cvd_simulations: ["protan" | "deutan" | "tritan", ...("protan" | "deutan" | "tritan")[]];
 }
 export interface ThemeConfig {
   default: "auto" | "light" | "dark";
