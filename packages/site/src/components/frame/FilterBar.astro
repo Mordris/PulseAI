@@ -1,0 +1,130 @@
+---
+import { ALL, STATUS_NEW, STATUS_UPDATES } from "../../lib/filters.ts";
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  items: readonly Item[];
+}
+
+// Options list only what this report holds, in registry and schema order.
+const { ctx, items } = Astro.props;
+const { t } = ctx;
+const present = (values: Iterable<string>) => new Set(values);
+const sections = present(items.map((item) => item.section));
+const types = present(items.map((item) => item.type));
+const confidences = present(items.map((item) => item.confidence));
+const sectionOptions = ctx.sections.filter((section) => sections.has(section.id));
+const typeOptions = [...types]
+  .map((id) => ctx.itemType(id))
+  .filter((itemType) => itemType !== undefined);
+const confidenceOptions = ctx.enums.confidence.filter((value) => confidences.has(value));
+---
+
+<pulse-report-controls class="filters" hidden data-print="hide">
+  <form class="filters__form" aria-label={t("ui.filters.title")}>
+    <div class="filters__field">
+      <label for="filter-section">{t("ui.filters.section")}</label>
+      <select id="filter-section" name="section">
+        <option value={ALL}>{t("ui.filters.all")}</option>
+        {sectionOptions.map((section) => <option value={section.id}>{t(section.label)}</option>)}
+      </select>
+    </div>
+    <div class="filters__field">
+      <label for="filter-type">{t("ui.filters.type")}</label>
+      <select id="filter-type" name="type">
+        <option value={ALL}>{t("ui.filters.all")}</option>
+        {typeOptions.map((itemType) => <option value={itemType.id}>{t(itemType.label)}</option>)}
+      </select>
+    </div>
+    <div class="filters__field">
+      <label for="filter-min_impact">{t("ui.filters.min_impact")}</label>
+      <select id="filter-min_impact" name="min_impact">
+        {ctx.enums.score.map((score) => <option value={score}>{t("ui.filters.impact_at_least", { value: score })}</option>)}
+      </select>
+    </div>
+    {confidenceOptions.length > 1 && (
+      <div class="filters__field">
+        <label for="filter-confidence">{t("ui.filters.confidence")}</label>
+        <select id="filter-confidence" name="confidence">
+          <option value={ALL}>{t("ui.filters.all")}</option>
+          {confidenceOptions.map((value) => <option value={value}>{t(`confidence.${value}`)}</option>)}
+        </select>
+      </div>
+    )}
+    <div class="filters__field">
+      <label for="filter-status">{t("ui.filters.status")}</label>
+      <select id="filter-status" name="status">
+        <option value={ALL}>{t("ui.filters.all")}</option>
+        <option value={STATUS_NEW}>{t("ui.filters.new")}</option>
+        <option value={STATUS_UPDATES}>{t("ui.filters.updates")}</option>
+      </select>
+    </div>
+    <div class="filters__actions">
+      <button class="button" type="reset">{t("ui.filters.reset")}</button>
+      <button class="button" type="button" data-expand-all>{t("ui.filters.expand_all")}</button>
+      <button class="button" type="button" data-collapse-all>{t("ui.filters.collapse_all")}</button>
+    </div>
+  </form>
+  <p
+    class="filters__status"
+    role="status"
+    data-filter-status
+    data-count-template={t("ui.filters.count")}
+    data-empty-template={t("ui.filters.no_match")}
+  ></p>
+</pulse-report-controls>
+
+<script>
+  import "../../client/report-controls.ts";
+</script>
+
+<style>
+  .filters {
+    display: grid;
+    gap: var(--pulse-space-2);
+    margin-block: var(--pulse-space-6) var(--pulse-space-4);
+    padding: var(--pulse-space-3) var(--pulse-space-4);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .filters__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--pulse-space-3);
+  }
+
+  .filters__field {
+    display: grid;
+    gap: var(--pulse-space-1);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  select {
+    min-width: 8rem;
+    padding: var(--pulse-space-1) var(--pulse-space-2);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-strong);
+    border-radius: var(--pulse-radius-md);
+    background: var(--pulse-color-surface-raised);
+    color: var(--pulse-color-text-primary);
+    font: inherit;
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pulse-space-2);
+    margin-inline-start: auto;
+  }
+
+  .filters__status {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+  }
+</style>
