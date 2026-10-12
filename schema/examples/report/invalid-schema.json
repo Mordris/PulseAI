@@ -1,46 +1,234 @@
 [
-  { "name": "missing headline", "patch": [{ "op": "remove", "path": "/headline" }] },
-  { "name": "unknown top-level key", "patch": [{ "op": "add", "path": "/surprise", "value": 1 }] },
+  {
+    "name": "missing headline",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/headline"
+      }
+    ]
+  },
+  {
+    "name": "unknown top-level key",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/surprise",
+        "value": 1
+      }
+    ]
+  },
   {
     "name": "item id is not a slug",
-    "patch": [{ "op": "replace", "path": "/items/0/id", "value": "Not A Slug" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/id",
+        "value": "Not A Slug"
+      }
+    ]
   },
   {
     "name": "unknown confidence",
-    "patch": [{ "op": "replace", "path": "/items/0/confidence", "value": "certain" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/confidence",
+        "value": "certain"
+      }
+    ]
   },
   {
     "name": "non-http source url",
-    "patch": [{ "op": "replace", "path": "/items/0/sources/0/url", "value": "javascript:alert(1)" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/sources/0/url",
+        "value": "javascript:alert(1)"
+      }
+    ]
   },
   {
     "name": "impact out of range",
-    "patch": [{ "op": "replace", "path": "/items/0/impact", "value": 9 }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/impact",
+        "value": 9
+      }
+    ]
   },
   {
     "name": "unknown visual kind",
-    "patch": [{ "op": "replace", "path": "/items/0/visuals/0/kind", "value": "pie" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/visuals/0/kind",
+        "value": "pie"
+      }
+    ]
   },
   {
     "name": "bad date",
-    "patch": [{ "op": "replace", "path": "/meta/date", "value": "yesterday" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/meta/date",
+        "value": "yesterday"
+      }
+    ]
   },
   {
     "name": "date-time with a lowercase z",
-    "patch": [{ "op": "replace", "path": "/meta/window/end", "value": "2026-10-11T14:00:00z" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/meta/window/end",
+        "value": "2026-10-11T14:00:00z"
+      }
+    ]
   },
   {
     "name": "date-time with a lowercase t",
-    "patch": [{ "op": "replace", "path": "/meta/window/start", "value": "2026-10-10t14:00:00Z" }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/meta/window/start",
+        "value": "2026-10-10t14:00:00Z"
+      }
+    ]
   },
   {
     "name": "source fetched_at with a lowercase z",
     "patch": [
-      { "op": "add", "path": "/items/0/sources/0/fetched_at", "value": "2026-10-11T14:00:00z" }
+      {
+        "op": "add",
+        "path": "/items/0/sources/0/fetched_at",
+        "value": "2026-10-11T14:00:00z"
+      }
     ]
   },
   {
     "name": "item without sources",
-    "patch": [{ "op": "replace", "path": "/items/0/sources", "value": [] }]
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/sources",
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "dashboard without tiles",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Empty board",
+          "source_note": "Report",
+          "columns": 2,
+          "tiles": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "dashboard with five columns",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 5,
+          "tiles": [
+            {
+              "tile": "stat",
+              "label": "Items",
+              "value": 3
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "dashboard tile of unknown kind",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 2,
+          "tiles": [
+            {
+              "tile": "chart",
+              "label": "Items",
+              "value": 3
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "dashboard nested in a dashboard",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "outer",
+          "title": "Outer",
+          "alt": "Outer",
+          "source_note": "Report",
+          "columns": 2,
+          "tiles": [
+            {
+              "tile": "visual",
+              "visual": {
+                "kind": "dashboard",
+                "id": "inner",
+                "title": "Inner",
+                "alt": "Inner",
+                "source_note": "Report",
+                "columns": 1,
+                "tiles": [
+                  {
+                    "tile": "stat",
+                    "label": "Items",
+                    "value": 3
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "visual block is not an id",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/0/block",
+        "value": "Not An Id"
+      }
+    ]
   }
 ]

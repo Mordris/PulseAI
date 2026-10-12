@@ -1,47 +1,100 @@
 [
   {
     "name": "unknown section",
-    "patch": [{ "op": "replace", "path": "/items/0/section", "value": "weather" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/section",
+        "value": "weather"
+      }
+    ],
     "expect": "unknown section 'weather'"
   },
   {
     "name": "unknown item type",
-    "patch": [{ "op": "replace", "path": "/items/0/type", "value": "poem" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/type",
+        "value": "poem"
+      }
+    ],
     "expect": "unknown item type 'poem'"
   },
   {
     "name": "detail fails type schema",
-    "patch": [{ "op": "remove", "path": "/items/0/detail/who" }],
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/items/0/detail/who"
+      }
+    ],
     "expect": "items/0/detail"
   },
   {
     "name": "duplicate item id",
-    "patch": [{ "op": "replace", "path": "/items/1/id", "value": "example-co-launch" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/1/id",
+        "value": "example-co-launch"
+      }
+    ],
     "expect": "duplicate item id 'example-co-launch'"
   },
   {
     "name": "dangling tldr reference",
-    "patch": [{ "op": "replace", "path": "/tldr/0/item_id", "value": "missing-item" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/tldr/0/item_id",
+        "value": "missing-item"
+      }
+    ],
     "expect": "unknown item 'missing-item'"
   },
   {
     "name": "confirmed without primary source",
-    "patch": [{ "op": "replace", "path": "/items/0/sources/0/kind", "value": "secondary" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/sources/0/kind",
+        "value": "secondary"
+      }
+    ],
     "expect": "primary"
   },
   {
     "name": "fact points past sources",
-    "patch": [{ "op": "replace", "path": "/items/0/facts/0/source_ref", "value": 5 }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/facts/0/source_ref",
+        "value": 5
+      }
+    ],
     "expect": "source_ref"
   },
   {
     "name": "rumor in items",
-    "patch": [{ "op": "replace", "path": "/items/0/confidence", "value": "rumor" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/confidence",
+        "value": "rumor"
+      }
+    ],
     "expect": "rumors never go in items"
   },
   {
     "name": "reported in items while routed to signals",
-    "patch": [{ "op": "replace", "path": "/items/0/confidence", "value": "reported" }],
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/items/0/confidence",
+        "value": "reported"
+      }
+    ],
     "expect": "reported items go in signals"
   },
   {
@@ -57,7 +110,14 @@
           "alt": "Remote data chart",
           "source_note": "Example",
           "spec": {
-            "layer": [{ "mark": "bar", "data": { "url": "https://example.org/data.csv" } }]
+            "layer": [
+              {
+                "mark": "bar",
+                "data": {
+                  "url": "https://example.org/data.csv"
+                }
+              }
+            ]
           }
         }
       }
@@ -66,18 +126,34 @@
   },
   {
     "name": "table row width",
-    "patch": [{ "op": "add", "path": "/items/0/visuals/0/rows/-", "value": ["EU", "extra"] }],
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/0/rows/-",
+        "value": ["EU", "extra"]
+      }
+    ],
     "expect": "2 cells"
   },
   {
     "name": "undeclared featured slot",
-    "patch": [{ "op": "add", "path": "/featured/editor_pick", "value": "example-co-launch" }],
+    "patch": [
+      {
+        "op": "add",
+        "path": "/featured/editor_pick",
+        "value": "example-co-launch"
+      }
+    ],
     "expect": "no section group declares"
   },
   {
     "name": "featured item of the wrong type",
     "patch": [
-      { "op": "replace", "path": "/featured/paper_of_the_day", "value": "example-co-launch" }
+      {
+        "op": "replace",
+        "path": "/featured/paper_of_the_day",
+        "value": "example-co-launch"
+      }
     ],
     "expect": "has type 'industry'"
   },
@@ -99,5 +175,195 @@
       }
     ],
     "expect": "duplicate visual id 'regions-table'"
+  },
+  {
+    "name": "visual block is not one of the item type's blocks",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/0/block",
+        "value": "benchmarks"
+      }
+    ],
+    "expect": "block 'benchmarks' is not one of the 'industry' blocks"
+  },
+  {
+    "name": "front-page visual names a block",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "table",
+          "id": "front-table",
+          "title": "Front",
+          "alt": "Front table",
+          "source_note": "Report",
+          "block": "timeline",
+          "columns": ["A"],
+          "rows": [["x"]]
+        }
+      }
+    ],
+    "expect": "front-page visuals are not in an item"
+  },
+  {
+    "name": "dashboard tile wider than the dashboard",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 2,
+          "tiles": [
+            {
+              "tile": "stat",
+              "span": 3,
+              "label": "Items",
+              "value": 3
+            }
+          ]
+        }
+      }
+    ],
+    "expect": "span 3 is wider than the dashboard's 2 columns"
+  },
+  {
+    "name": "duplicate visual id inside a dashboard",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 1,
+          "tiles": [
+            {
+              "tile": "visual",
+              "visual": {
+                "kind": "table",
+                "id": "regions-table",
+                "title": "Again",
+                "alt": "Again",
+                "source_note": "Report",
+                "columns": ["A"],
+                "rows": [["x"]]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expect": "duplicate visual id 'regions-table'"
+  },
+  {
+    "name": "table row width inside a dashboard",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 1,
+          "tiles": [
+            {
+              "tile": "visual",
+              "visual": {
+                "kind": "table",
+                "id": "tile-table",
+                "title": "T",
+                "alt": "T",
+                "source_note": "Report",
+                "columns": ["A"],
+                "rows": [["x", "y"]]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expect": "2 cells, expected 1"
+  },
+  {
+    "name": "remote chart data inside a dashboard",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 1,
+          "tiles": [
+            {
+              "tile": "visual",
+              "visual": {
+                "kind": "vega-lite",
+                "id": "tile-chart",
+                "title": "C",
+                "alt": "C",
+                "source_note": "Report",
+                "spec": {
+                  "data": {
+                    "url": "https://example.org/data.json"
+                  },
+                  "mark": "bar"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expect": "remote chart data"
+  },
+  {
+    "name": "visual inside a dashboard names a block",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/front_page/-",
+        "value": {
+          "kind": "dashboard",
+          "id": "board",
+          "title": "Board",
+          "alt": "Board",
+          "source_note": "Report",
+          "columns": 1,
+          "tiles": [
+            {
+              "tile": "visual",
+              "visual": {
+                "kind": "table",
+                "id": "tile-table",
+                "title": "T",
+                "alt": "T",
+                "source_note": "Report",
+                "block": "timeline",
+                "columns": ["A"],
+                "rows": [["x"]]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expect": "visuals inside a dashboard cannot name a block"
   }
 ]

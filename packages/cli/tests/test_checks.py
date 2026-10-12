@@ -384,3 +384,17 @@ def test_an_instance_can_add_a_language_end_to_end(tmp_path: Path) -> None:
     assert registries.exit_code == 0, registries.output
     assert "Registries are consistent." in registries.stdout
     assert "not translated to 'de'" in registries.stdout
+
+
+def test_block_and_brief_field_labels_must_exist(engine_copy: Path) -> None:
+    for name in ("en", "tr"):
+        path = engine_copy / "locales" / f"{name}.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        del doc["strings"]["blocks.timeline"]
+        del doc["strings"]["fields.who"]
+        path.write_text(json.dumps(doc), encoding="utf-8")
+    messages = [f"{i.where}: {i.message}" for i in check_registries() if i.level == "error"]
+    assert any("missing locale string 'blocks.timeline'" in m for m in messages), messages
+    assert any("missing locale string 'fields.who'" in m for m in messages), messages
+    assert any("/blocks/" in m for m in messages)
+    assert any("/brief_fields/" in m for m in messages)

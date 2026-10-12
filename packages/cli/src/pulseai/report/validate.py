@@ -28,6 +28,8 @@ from pulseai.schemas import (
 REPORT_SCHEMA = "report.schema.json"
 VEGA_LITE_KIND = "vega-lite"
 TABLE_KIND = "table"
+DASHBOARD_KIND = "dashboard"
+VISUAL_TILE = "visual"
 
 
 @dataclass(frozen=True)
@@ -49,12 +51,21 @@ def _items(report: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
             yield f"{key}/{index}", item
 
 
+def _with_nested(where: str, visual: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
+    """A visual followed by the leaf visuals in its dashboard tiles, if it is a dashboard."""
+    yield where, visual
+    if visual["kind"] == DASHBOARD_KIND:
+        for index, tile in enumerate(visual["tiles"]):
+            if tile["tile"] == VISUAL_TILE:
+                yield f"{where}/tiles/{index}/visual", tile["visual"]
+
+
 def _visuals(report: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
     for index, visual in enumerate(report["front_page"]):
-        yield f"front_page/{index}", visual
+        yield from _with_nested(f"front_page/{index}", visual)
     for where, item in _items(report):
         for index, visual in enumerate(item["visuals"]):
-            yield f"{where}/visuals/{index}", visual
+            yield from _with_nested(f"{where}/visuals/{index}", visual)
 
 
 def _remote_data(node: Any, path: str) -> str | None:
@@ -197,6 +208,47 @@ def _check_visuals(report: dict[str, Any]) -> Iterator[Issue]:
                     yield _error(f"{where}/rows/{index}", f"{len(row)} cells, expected {width}")
 
 
+def _check_dashboard(where: str, visual: dict[str, Any]) -> Iterator[Issue]:
+    for index, tile in enumerate(visual["tiles"]):
+        span = tile.get("span", 1)
+        if span > visual["columns"]:
+            yield _error(
+                f"{where}/tiles/{index}/span",
+                f"span {span} is wider than the dashboard's {visual['columns']} columns",
+            )
+        if tile["tile"] == VISUAL_TILE and "block" in tile["visual"]:
+            yield _error(
+                f"{where}/tiles/{index}/visual/block",
+                "visuals inside a dashboard cannot name a block",
+            )
+
+
+def _check_visual_placement(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
+    for index, visual in enumerate(report["front_page"]):
+        where = f"front_page/{index}"
+        if "block" in visual:
+            yield _error(
+                f"{where}/block",
+                "front-page visuals are not in an item, so they cannot name a block",
+            )
+        if visual["kind"] == DASHBOARD_KIND:
+            yield from _check_dashboard(where, visual)
+    for item_where, item in _items(report):
+        item_type = ctx.item_types.get(item["type"])
+        for index, visual in enumerate(item["visuals"]):
+            where = f"{item_where}/visuals/{index}"
+            block = visual.get("block")
+            # An unknown item type is reported by _check_registry_refs already.
+            if block is not None and item_type is not None and block not in item_type["blocks"]:
+                yield _error(
+                    f"{where}/block",
+                    f"block {block!r} is not one of the {item['type']!r} blocks: "
+                    f"{', '.join(item_type['blocks'])}",
+                )
+            if visual["kind"] == DASHBOARD_KIND:
+                yield from _check_dashboard(where, visual)
+
+
 def _count(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
@@ -268,6 +320,7 @@ def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
         *_check_confidence_routing(report, ctx),
         *_check_featured(report, ctx),
         *_check_visuals(report),
+        *_check_visual_placement(report, ctx),
         *_check_section_config(report, ctx),
     ]
     return sorted(issues)
