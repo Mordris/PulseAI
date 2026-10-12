@@ -1,0 +1,92 @@
+---
+import type { Section } from "../../lib/context.ts";
+import type { RenderContext } from "../../lib/render.ts";
+import { groupItems } from "../../lib/report.ts";
+import type { Item, Report, SectionNote } from "../../lib/types.ts";
+import ItemShell from "../items/ItemShell.astro";
+import SectionNotes from "./SectionNotes.astro";
+
+interface Props {
+  ctx: RenderContext;
+  section: Section;
+  items: readonly Item[];
+  featured: Report["featured"];
+  notes: readonly SectionNote[];
+}
+
+const { ctx, section, items, featured, notes } = Astro.props;
+const { t } = ctx;
+const groups = groupItems(section, items, featured, ctx.minImpact);
+// A section without registry groups lists its items directly; one with groups names the rest.
+const hasGroups = section.groups.length > 0;
+const groupNotes = (id: string | undefined) => notes.filter((note) => note.group === id);
+---
+
+{(items.length > 0 || notes.length > 0) && (
+  <section
+    class="report-section"
+    id={`section-${section.id}`}
+    aria-labelledby={`section-${section.id}-title`}
+    data-filter-group
+    style={`--section-color: ${ctx.cssVar(section.color_token)}`}
+  >
+    <h2 class="report-section__title" id={`section-${section.id}-title`}>{t(section.label)}</h2>
+    {groups.map(({ group, items: groupItemsList }) => (
+      <div class="report-section__group" data-filter-group>
+        {hasGroups && (
+          <h3 class="report-section__group-title">{group ? t(group.label) : t("ui.section.other")}</h3>
+        )}
+        <div class="report-section__items">
+          {groupItemsList.map((item) => <ItemShell ctx={ctx} item={item} />)}
+        </div>
+        {group && <SectionNotes ctx={ctx} notes={groupNotes(group.id)} />}
+      </div>
+    ))}
+    <SectionNotes ctx={ctx} notes={groupNotes(undefined)} />
+  </section>
+)}
+
+<style>
+  .report-section {
+    display: grid;
+    gap: var(--pulse-space-5);
+    margin-block: var(--pulse-space-8);
+  }
+
+  .report-section__title {
+    display: flex;
+    align-items: center;
+    gap: var(--pulse-space-3);
+    padding-block-end: var(--pulse-space-2);
+    border-block-end: var(--pulse-border-width-thin) solid var(--pulse-color-border-strong);
+    font-size: var(--pulse-font-size-2xl);
+  }
+
+  .report-section__title::before {
+    content: "";
+    flex: none;
+    width: var(--pulse-space-4);
+    height: var(--pulse-space-4);
+    border-radius: var(--pulse-radius-sm);
+    background: var(--section-color);
+  }
+
+  .report-section__group {
+    display: grid;
+    gap: var(--pulse-space-3);
+  }
+
+  .report-section__group-title {
+    color: var(--pulse-color-text-secondary);
+    font-family: var(--pulse-font-family-body);
+    font-size: var(--pulse-font-size-sm);
+    font-weight: var(--pulse-font-weight-semibold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .report-section__items {
+    display: grid;
+    gap: var(--pulse-space-3);
+  }
+</style>

@@ -1,22 +1,19 @@
 ---
 import EmptyState from "../components/frame/EmptyState.astro";
+import ReportView from "../components/frame/ReportView.astro";
 import Base from "../layouts/Base.astro";
+import { reportPath } from "../lib/report.ts";
 import { allReports } from "../lib/reports.ts";
 import { getSite } from "../lib/site-data.ts";
 
-// A placeholder front page that lists the editions; Task 13 replaces it with the latest edition.
 const { ctx } = getSite();
-const reports = await allReports();
+const [latest] = await allReports();
 ---
 
-<Base title={ctx.t("ui.site.title")}>
-  {reports.length === 0 ? (
-    <EmptyState ctx={ctx} />
-  ) : (
-    <ol>
-      {reports.map((report) => (
-        <li><a href={ctx.url(`${report.meta.date.replaceAll("-", "/")}/`)}>{report.headline}</a></li>
-      ))}
-    </ol>
-  )}
+<Base
+  title={latest ? `${latest.headline} · ${ctx.t("ui.site.title")}` : ctx.t("ui.site.title")}
+  description={latest?.headline}
+  canonical={latest ? reportPath(latest.meta.date) : undefined}
+>
+  {latest ? <ReportView ctx={ctx} report={latest} searchable={false} /> : <EmptyState ctx={ctx} />}
 </Base>

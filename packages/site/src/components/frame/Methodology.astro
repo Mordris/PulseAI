@@ -1,0 +1,124 @@
+---
+import { researchFunnel } from "../../lib/frame-charts.ts";
+import type { RenderContext } from "../../lib/render.ts";
+import type { Report } from "../../lib/types.ts";
+import DataTable from "../visuals/DataTable.astro";
+import VegaLite from "../visuals/VegaLite.astro";
+import Badge from "./Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  report: Report;
+}
+
+const { ctx, report } = Astro.props;
+const { t, fmt } = ctx;
+const { meta, methodology } = report;
+const models = Object.entries(meta.models).map(([role, model]) => `${role}: ${model}`);
+---
+
+<section class="region methodology" aria-labelledby="methodology-title">
+  <h2 class="region__title" id="methodology-title">{t("ui.methodology.title")}</h2>
+  <div class="methodology__grid">
+    <div class="flow">
+      {methodology.notes.length > 0 && (
+        <ul class="methodology__notes">{methodology.notes.map((note) => <li>{note}</li>)}</ul>
+      )}
+      <dl class="methodology__run">
+        <div><dt>{t("ui.run.engine")}</dt><dd>{meta.engine_version}</dd></div>
+        <div><dt>{t("ui.run.host")}</dt><dd>{t(`hosts.${meta.host}`)}</dd></div>
+        <div><dt>{t("ui.run.cost")}</dt><dd>{meta.cost_usd === null ? t("ui.run.cost_unknown") : t("ui.format.usd", { value: fmt.number(meta.cost_usd, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</dd></div>
+        {models.length > 0 && <div><dt>{t("ui.run.models")}</dt><dd>{models.join(", ")}</dd></div>}
+      </dl>
+    </div>
+    <VegaLite ctx={ctx} visual={researchFunnel(meta.stats, ctx)} />
+  </div>
+  {meta.source_health.length > 0 && (
+    <section class="flow" aria-labelledby="health-title">
+      <h3 class="methodology__subtitle" id="health-title">{t("ui.health.title")}</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{t("ui.health.source")}</th>
+              <th scope="col">{t("ui.health.status")}</th>
+              <th scope="col" class="num">{t("ui.health.items")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {meta.source_health.map((source) => (
+              <tr>
+                <td><code>{source.source_id}</code></td>
+                <td>
+                  <Badge ctx={ctx} tone={source.ok ? "color.status.good" : "color.status.critical"}>
+                    {t(source.ok ? "ui.health.ok" : "ui.health.failed")}
+                  </Badge>
+                  {source.error && <span class="muted"> {source.error}</span>}
+                </td>
+                <td class="num">{fmt.number(source.items)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+  {methodology.rejected.length > 0 && (
+    <section class="flow" aria-labelledby="rejected-title">
+      <h3 class="methodology__subtitle" id="rejected-title">{t("ui.methodology.rejected")}</h3>
+      <DataTable
+        ctx={ctx}
+        caption={t("ui.methodology.rejected")}
+        hideCaption
+        columns={[t("ui.methodology.item"), t("ui.methodology.reason")]}
+        rows={methodology.rejected.map((entry) => [entry.title, entry.reason])}
+      />
+    </section>
+  )}
+</section>
+
+<style>
+  .methodology {
+    display: grid;
+    gap: var(--pulse-space-5);
+    padding-block-start: var(--pulse-space-5);
+    border-block-start: var(--pulse-border-width-thick) solid var(--pulse-color-text-primary);
+  }
+
+  .methodology__grid {
+    display: grid;
+    gap: var(--pulse-space-5);
+  }
+
+  @media (min-width: 56rem) {
+    .methodology__grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+
+  .methodology__notes {
+    display: grid;
+    gap: var(--pulse-space-2);
+    padding-inline-start: var(--pulse-space-5);
+  }
+
+  .methodology__run {
+    display: grid;
+    gap: var(--pulse-space-2);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .methodology__run dt {
+    color: var(--pulse-color-text-secondary);
+  }
+
+  .methodology__run dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .methodology__subtitle {
+    font-size: var(--pulse-font-size-lg);
+  }
+</style>
