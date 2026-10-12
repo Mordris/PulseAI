@@ -50,7 +50,7 @@ ruleset:
   require_code_owner_review: false
   require_last_push_approval: false
   strict_required_status_checks_policy: true
-  # Job names as GitHub reports them. Add the OSV-Scanner check after its first run shows the name.
+  # Job names exactly as GitHub reports them (confirmed from the first CI run on PR #1).
   required_checks:
     - python (3.12)
     - python (3.15)
@@ -62,4 +62,5 @@ ruleset:
     - gitleaks
     - trufflehog
     - zizmor
+    - scan-pr / osv-scan
     - PR title

@@ -58,7 +58,21 @@ def test_generated_model_parses_defaults(repo_root: Path) -> None:
     assert cfg.models_by_role["editor"] == "claude-opus-5-5"
 
 
+def _generator_runs_on_this_python() -> bool:
+    """datamodel-code-generator derives a default target from the running interpreter at import
+    time and fails on Python releases it does not know yet."""
+    try:
+        import datamodel_code_generator.model  # noqa: F401
+    except ValueError:
+        return False
+    return True
+
+
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not _generator_runs_on_this_python(),
+    reason="datamodel-code-generator cannot run on this Python; CI checks drift on the floor",
+)
 def test_generated_models_are_up_to_date(repo_root: Path) -> None:
     result = subprocess.run(
         [sys.executable, str(repo_root / "scripts/generate_models.py"), "--check"],

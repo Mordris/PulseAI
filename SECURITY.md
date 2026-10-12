@@ -36,6 +36,6 @@ Also allow only SHA-pinned actions and set the default `GITHUB_TOKEN` permission
 Settings → Actions → General, and keep CodeQL default setup off (the workflow is the source of
 truth).
 
-Checks that come from reusable workflows (the OSV-Scanner jobs in `vulnerability-scan.yml`) report
-as `<job> / <inner job>`. Confirm their exact names from the first CI run, then add them to
-`ruleset.required_checks` in `.github/repository.yml`.
+Checks that come from reusable workflows report as `<job> / <inner job>`; the OSV-Scanner pull
+request check is `scan-pr / osv-scan`. When you add or rename a job, confirm the reported name in a
+CI run before adding it to `ruleset.required_checks` in `.github/repository.yml`.

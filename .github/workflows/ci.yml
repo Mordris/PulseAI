@@ -21,6 +21,11 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.12", "3.15"]
+        # The model generator runs on the floor version only: datamodel-code-generator
+        # cannot import on Python releases newer than the ones it knows about.
+        include:
+          - python: "3.12"
+            check_models: true
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -36,7 +41,8 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
-      - run: uv run python scripts/generate_models.py --check
+      - if: matrix.check_models
+        run: uv run python scripts/generate_models.py --check
       - run: uv run check-jsonschema --check-metaschema schema/*.schema.json schema/item-types/*.schema.json
       - run: uv run pytest --cov=pulseai --cov-report=term-missing
 
