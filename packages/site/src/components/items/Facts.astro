@@ -1,0 +1,77 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+}
+
+const { ctx, item } = Astro.props;
+const { t, fmt } = ctx;
+---
+
+<section class="facts" aria-labelledby={`${item.id}-facts`}>
+  <h4 class="item-heading" id={`${item.id}-facts`}>{t("ui.item.facts")}</h4>
+  <dl class="facts__list">
+    {item.facts.map((fact) => (
+      <div class="facts__fact">
+        <dt>{fact.label}</dt>
+        <dd>
+          <span class="facts__value">{typeof fact.value === "number" ? fmt.number(fact.value) : fact.value}</span>
+          {fact.unit && <span class="facts__unit">{fact.unit}</span>}
+          <a class="facts__source" href={`#${item.id}-source-${fact.source_ref}`} aria-label={t("ui.item.fact_source", { n: fact.source_ref + 1 })}>[{fact.source_ref + 1}]</a>
+          <q class="facts__quote">{fact.quote}</q>
+        </dd>
+      </div>
+    ))}
+  </dl>
+</section>
+
+<style>
+  .facts__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+    gap: var(--pulse-space-3);
+  }
+
+  .facts__fact {
+    padding: var(--pulse-space-3);
+    border-inline-start: var(--pulse-border-width-thick) solid var(--section-color, var(--pulse-color-accent-default));
+    background: var(--pulse-color-surface-sunken);
+    border-radius: var(--pulse-radius-sm);
+  }
+
+  dt {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .facts__value {
+    font-size: var(--pulse-font-size-lg);
+    font-weight: var(--pulse-font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .facts__unit {
+    margin-inline-start: var(--pulse-space-1);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .facts__source {
+    margin-inline-start: var(--pulse-space-1);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  .facts__quote {
+    display: block;
+    margin-block-start: var(--pulse-space-1);
+    color: var(--pulse-color-text-muted);
+    font-size: var(--pulse-font-size-xs);
+  }
+</style>

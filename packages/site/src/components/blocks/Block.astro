@@ -1,0 +1,48 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import { blockVisuals } from "../../lib/report.ts";
+import type { Item } from "../../lib/types.ts";
+import Visual from "../visuals/Visual.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  /** A block id of the item's type; its title is the locale string blocks.<id>. */
+  id: string;
+}
+
+// A deep-dive block: its own content (the slot) plus the visuals the report placed in it.
+// A block with neither renders nothing.
+const { ctx, item, id } = Astro.props;
+const visuals = blockVisuals(item, id);
+const body = Astro.slots.has("default") ? (await Astro.slots.render("default")).trim() : "";
+const titleId = `${item.id}-block-${id}`;
+---
+
+{(body !== "" || visuals.length > 0) && (
+  <section class="block" data-block={id} aria-labelledby={titleId}>
+    <h4 class="item-heading" id={titleId}>{ctx.t(`blocks.${id}`)}</h4>
+    {body !== "" && <div class="block__body"><Fragment set:html={body} /></div>}
+    {visuals.map((visual) => <Visual ctx={ctx} visual={visual} />)}
+  </section>
+)}
+
+<style>
+  .block {
+    display: grid;
+    gap: var(--pulse-space-3);
+  }
+
+  .block__body {
+    display: grid;
+    gap: var(--pulse-space-2);
+    max-width: var(--pulse-layout-reading-width);
+  }
+
+  .block__body :global(ul),
+  .block__body :global(ol) {
+    display: grid;
+    gap: var(--pulse-space-1);
+    padding-inline-start: var(--pulse-space-5);
+  }
+</style>

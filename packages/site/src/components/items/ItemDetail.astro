@@ -1,0 +1,29 @@
+---
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+import type { ItemType } from "../../lib/context.ts";
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+import GenericDetail from "./GenericDetail.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+// The registry names each type's component; files in ./types/ are the components. A type
+// without one (an instance's new type, say) still renders through GenericDetail.
+const modules = import.meta.glob<{ default: AstroComponentFactory }>("./types/*.astro", {
+  eager: true,
+});
+const components = new Map(
+  Object.entries(modules).map(([path, module]) => [
+    path.slice(path.lastIndexOf("/") + 1, -".astro".length),
+    module.default,
+  ]),
+);
+const { ctx, item, itemType } = Astro.props;
+const Component = components.get(itemType.component) ?? GenericDetail;
+---
+
+<Component ctx={ctx} item={item} itemType={itemType} />

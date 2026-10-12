@@ -1,0 +1,217 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import { itemDepth, looseVisuals, reportPath } from "../../lib/report.ts";
+import type { Item } from "../../lib/types.ts";
+import Badge from "../frame/Badge.astro";
+import Figure from "../visuals/Figure.astro";
+import Visual from "../visuals/Visual.astro";
+import BriefFields from "./BriefFields.astro";
+import Facts from "./Facts.astro";
+import ItemDetail from "./ItemDetail.astro";
+import Scores from "./Scores.astro";
+import Sources from "./Sources.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+}
+
+const { ctx, item } = Astro.props;
+const { t, fmt } = ctx;
+// The report loader rejects unknown sections and item types, so both exist.
+const section = ctx.section(item.section);
+const itemType = ctx.itemType(item.type);
+if (section === undefined || itemType === undefined) {
+  throw new Error(`item ${item.id}: unknown section or item type`);
+}
+const depth = itemDepth(item, ctx.minImpact);
+const [updateDate, updateItem] = item.update_of?.split("#") ?? [];
+// The schema lists the default confidence (confirmed) first; other values earn a badge.
+const plainConfidence = ctx.enums.confidence[0];
+---
+
+<details
+  class="item"
+  id={item.id}
+  data-item
+  data-section={item.section}
+  data-type={item.type}
+  data-impact={item.impact}
+  data-confidence={item.confidence}
+  data-update={String(item.update_of !== undefined)}
+  data-depth={depth}
+  style={`--section-color: ${ctx.cssVar(section.color_token)}`}
+>
+  <summary class="item__summary">
+    <span class="item__kicker">
+      <span class="item__section">{t(section.label)}</span>
+      <span aria-hidden="true">·</span>
+      <span>{t(itemType.label)}</span>
+      {updateDate && <Badge ctx={ctx}>{t("ui.item.update")}</Badge>}
+      {item.confidence !== plainConfidence && (
+        <Badge ctx={ctx} tone={`color.confidence.${item.confidence}`}>{t(`confidence.${item.confidence}`)}</Badge>
+      )}
+    </span>
+    <h3 class="item__title">{item.title}</h3>
+    <p class="item__line">{item.summary}</p>
+    <Scores ctx={ctx} item={item} />
+  </summary>
+  <div class="item__body">
+    <p class="item__note item__note--why"><strong>{t("ui.item.why")}</strong> {item.why_it_matters}</p>
+    {item.what_to_do && (
+      <p class="item__note item__note--todo"><strong>{t("ui.item.what_to_do")}</strong> {item.what_to_do}</p>
+    )}
+    {depth === "deep" ? (
+      <ItemDetail ctx={ctx} item={item} itemType={itemType} />
+    ) : (
+      <BriefFields ctx={ctx} item={item} itemType={itemType} />
+    )}
+    {depth === "deep" && looseVisuals(item, itemType.blocks).map((visual) => <Visual ctx={ctx} visual={visual} />)}
+    {item.facts.length > 0 && <Facts ctx={ctx} item={item} />}
+    {item.images.length > 0 && (
+      <div class="item__images">{item.images.map((image) => <Figure ctx={ctx} image={image} />)}</div>
+    )}
+    {item.caveats && (
+      <p class="item__note item__note--caveat"><strong>{t("ui.item.caveats")}</strong> {item.caveats}</p>
+    )}
+    <Sources ctx={ctx} item={item} />
+    <p class="item__footer">
+      {updateDate && updateItem && (
+        <a href={`${ctx.url(reportPath(updateDate))}#${updateItem}`}>{t("ui.item.update_of", { date: fmt.date(updateDate) })}</a>
+      )}
+      <a class="item__permalink" href={`#${item.id}`}>{t("ui.item.permalink")}</a>
+    </p>
+  </div>
+</details>
+
+<style>
+  .item {
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-inline-start: var(--pulse-border-width-thick) solid var(--section-color);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .item[open] {
+    border-color: var(--pulse-color-border-strong);
+    border-inline-start-color: var(--section-color);
+  }
+
+  .item__summary {
+    display: grid;
+    gap: var(--pulse-space-2);
+    padding: var(--pulse-space-4) var(--pulse-space-5);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .item__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .item__summary::after {
+    content: "";
+    justify-self: end;
+    width: var(--pulse-space-2);
+    height: var(--pulse-space-2);
+    margin-block-start: calc(-1 * var(--pulse-space-5));
+    border-inline-end: var(--pulse-border-width-thick) solid var(--pulse-color-text-muted);
+    border-block-end: var(--pulse-border-width-thick) solid var(--pulse-color-text-muted);
+    transform: rotate(45deg);
+    transition: transform 120ms ease;
+  }
+
+  .item[open] > .item__summary::after {
+    transform: rotate(-135deg);
+  }
+
+  .item__kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pulse-space-2);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+    font-weight: var(--pulse-font-weight-medium);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .item__section {
+    color: var(--pulse-color-text-primary);
+  }
+
+  .item__title {
+    font-size: var(--pulse-font-size-xl);
+  }
+
+  .item[data-depth="brief"] .item__title {
+    font-size: var(--pulse-font-size-lg);
+  }
+
+  .item__line {
+    max-width: var(--pulse-layout-reading-width);
+    color: var(--pulse-color-text-secondary);
+  }
+
+  .item__body {
+    display: grid;
+    gap: var(--pulse-space-5);
+    padding: 0 var(--pulse-space-5) var(--pulse-space-5);
+  }
+
+  .item__note {
+    max-width: var(--pulse-layout-reading-width);
+  }
+
+  .item__note--why {
+    padding-block-start: var(--pulse-space-4);
+    border-block-start: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    font-size: var(--pulse-font-size-lg);
+  }
+
+  .item__note--todo,
+  .item__note--caveat {
+    padding: var(--pulse-space-3) var(--pulse-space-4);
+    border-radius: var(--pulse-radius-md);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  .item__images {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    gap: var(--pulse-space-4);
+  }
+
+  .item__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--pulse-space-3);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .item__permalink {
+    margin-inline-start: auto;
+  }
+
+  .item :global(.item-heading) {
+    margin-block-end: var(--pulse-space-2);
+    color: var(--pulse-color-text-secondary);
+    font-family: var(--pulse-font-family-body);
+    font-size: var(--pulse-font-size-xs);
+    font-weight: var(--pulse-font-weight-semibold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  @media print {
+    .item {
+      break-inside: avoid-page;
+    }
+
+    .item__summary::after {
+      display: none;
+    }
+  }
+</style>

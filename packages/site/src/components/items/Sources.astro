@@ -1,0 +1,49 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+import Badge from "../frame/Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+}
+
+const { ctx, item } = Astro.props;
+const { t } = ctx;
+---
+
+<section class="sources" aria-labelledby={`${item.id}-sources`}>
+  <h4 class="item-heading" id={`${item.id}-sources`}>{t("ui.item.sources")}</h4>
+  <ol class="sources__list">
+    {item.sources.map((source, index) => (
+      <li id={`${item.id}-source-${index}`}>
+        <a href={source.url} rel="noopener noreferrer">{source.title}</a>
+        <span class="sources__badges">
+          <Badge ctx={ctx}>{t(`tiers.${source.tier.toLowerCase()}`)}</Badge>
+          <Badge ctx={ctx}>{t(`kinds.${source.kind}`)}</Badge>
+        </span>
+      </li>
+    ))}
+  </ol>
+</section>
+
+<style>
+  .sources__list {
+    display: grid;
+    gap: var(--pulse-space-2);
+    padding-inline-start: var(--pulse-space-5);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .sources__list a {
+    overflow-wrap: anywhere;
+  }
+
+  .sources__badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--pulse-space-1);
+    margin-inline-start: var(--pulse-space-2);
+    vertical-align: middle;
+  }
+</style>

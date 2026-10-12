@@ -1,0 +1,22 @@
+---
+import type { ItemType } from "../../lib/context.ts";
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+import KeyValues from "../blocks/KeyValues.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+// A brief shows the registry's brief_fields; `pulse registry check` guarantees their labels.
+const { ctx, item, itemType } = Astro.props;
+const detail = item.detail as { [field: string]: unknown };
+const entries = itemType.brief_fields.map((field) => ({
+  label: ctx.t(`fields.${field}`),
+  value: detail[field] === undefined ? undefined : ctx.fmt.value(detail[field], ctx.t),
+}));
+---
+
+<KeyValues entries={entries} />
