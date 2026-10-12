@@ -1,0 +1,22 @@
+---
+import EmptyState from "../components/frame/EmptyState.astro";
+import Base from "../layouts/Base.astro";
+import { allReports } from "../lib/reports.ts";
+import { getSite } from "../lib/site-data.ts";
+
+// A placeholder front page that lists the editions; Task 13 replaces it with the latest edition.
+const { ctx } = getSite();
+const reports = await allReports();
+---
+
+<Base title={ctx.t("ui.site.title")}>
+  {reports.length === 0 ? (
+    <EmptyState ctx={ctx} />
+  ) : (
+    <ol>
+      {reports.map((report) => (
+        <li><a href={ctx.url(`${report.meta.date.replaceAll("-", "/")}/`)}>{report.headline}</a></li>
+      ))}
+    </ol>
+  )}
+</Base>

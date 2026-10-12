@@ -1,2 +1,6 @@
 packages:
   - "packages/*"
+# Astro's optional image optimizer (sharp, with LGPL libvips) is not used: the site hotlinks
+# images instead of copying them (docs/adr/0002-site-rendering.md).
+ignoredOptionalDependencies:
+  - sharp

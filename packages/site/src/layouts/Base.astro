@@ -1,0 +1,63 @@
+---
+import "@pulse-generated/tokens/tokens.css";
+import "@pulse-generated/tokens/fonts.css";
+import "../styles/global.css";
+import { MODES } from "@pulseai/tokens";
+import SiteFooter from "../components/frame/SiteFooter.astro";
+import SiteHeader from "../components/frame/SiteHeader.astro";
+import { getSite } from "../lib/site-data.ts";
+import { jsonForScript, THEME_DATA_ID, THEME_STORAGE_KEY } from "../lib/theme.ts";
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+  /** Path below the base of the page this one duplicates (the front page repeats an edition). */
+  canonical?: string | undefined;
+}
+
+const { title, description, canonical } = Astro.props;
+const { ctx, theme, location } = getSite();
+const { t } = ctx;
+const themeChoices = ctx.enums.theme;
+const defaultChoice = ctx.config.theme.default;
+const modes = [...MODES];
+const feed = location.site === undefined ? undefined : ctx.url("rss.xml");
+---
+
+<!doctype html>
+<html lang={ctx.lang} data-theme-choice={defaultChoice}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+    <meta name="description" content={description ?? t("ui.site.description")} />
+    <meta name="generator" content={Astro.generator} />
+    {canonical !== undefined && <link rel="canonical" href={location.site === undefined ? ctx.url(canonical) : new URL(ctx.url(canonical), location.site).href} />}
+    {feed && <link rel="alternate" type="application/rss+xml" title={t("ui.feed.title")} href={feed} />}
+    <script is:inline define:vars={{ themeChoices, defaultChoice, modes, storageKey: THEME_STORAGE_KEY }}>
+      // Runs before first paint so the page never flashes the wrong theme.
+      let choice = defaultChoice;
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (themeChoices.includes(stored)) choice = stored;
+      } catch {
+        // Storage is blocked; keep the configured default.
+      }
+      const query = new URLSearchParams(location.search).get("theme");
+      if (themeChoices.includes(query)) choice = query;
+      const root = document.documentElement;
+      root.dataset.themeChoice = choice;
+      if (modes.includes(choice)) root.dataset.theme = choice;
+    </script>
+    <script type="application/json" id={THEME_DATA_ID} set:html={jsonForScript(theme)}></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t("ui.nav.skip")}</a>
+    <SiteHeader ctx={ctx} feed={feed} />
+    <main id="main" class="page">
+      <slot />
+    </main>
+    <SiteFooter ctx={ctx} />
+  </body>
+</html>

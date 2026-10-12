@@ -11,7 +11,12 @@
     "format": "biome format --write .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "tokens:check": "uv run pulse site context --out .pulse/site-context.json && node packages/tokens/scripts/check-presets.ts --context .pulse/site-context.json --out .pulse/presets"
+    "tokens:check": "uv run pulse site context --out .pulse/site-context.json && node packages/tokens/scripts/check-presets.ts --context .pulse/site-context.json --out .pulse/presets",
+    "demo:context": "uv run pulse site context --instance examples",
+    "demo:build": "pnpm demo:context && pnpm --filter @pulseai/site build:demo",
+    "demo:dev": "pnpm demo:context && pnpm --filter @pulseai/site dev:demo",
+    "demo:preview": "pnpm --filter @pulseai/site preview:demo",
+    "demo:check": "pnpm --filter @pulseai/site check:demo"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

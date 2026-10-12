@@ -1,0 +1,18 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+  /** Token path of the badge's tone (a semantic color), if it has one. */
+  tone?: string | undefined;
+  class?: string | undefined;
+}
+
+const { ctx, tone, class: className } = Astro.props;
+---
+
+<span
+  class:list={["badge", className]}
+  data-tone={tone === undefined ? undefined : tone}
+  style={tone === undefined ? undefined : `--tone: ${ctx.cssVar(tone)}`}
+><slot /></span>
