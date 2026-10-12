@@ -1,0 +1,67 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { DashboardVisual } from "../../lib/types.ts";
+import StatTile from "./StatTile.astro";
+import VisualFrame from "./VisualFrame.astro";
+import VisualLeaf from "./VisualLeaf.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: DashboardVisual;
+}
+
+const { ctx, visual } = Astro.props;
+---
+
+<VisualFrame ctx={ctx} id={visual.id} kind={visual.kind} title={visual.title} sourceNote={visual.source_note}>
+  <div class="dashboard" role="group" aria-label={visual.alt} style={`--columns: ${visual.columns}`}>
+    {visual.tiles.map((tile) => (
+      <div class:list={["dashboard__tile", `dashboard__tile--${tile.tile}`]} style={`--span: ${tile.span ?? 1}`}>
+        {tile.tile === "stat" ? (
+          <StatTile ctx={ctx} label={tile.label} value={tile.value} unit={tile.unit} delta={tile.delta} series={tile.series} />
+        ) : (
+          <VisualLeaf ctx={ctx} visual={tile.visual} nested />
+        )}
+      </div>
+    ))}
+  </div>
+</VisualFrame>
+
+<style>
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--pulse-space-3);
+  }
+
+  .dashboard__tile {
+    min-width: 0;
+  }
+
+  .dashboard__tile--stat {
+    padding: var(--pulse-space-3);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-md);
+    background: var(--pulse-color-surface-page);
+  }
+
+  @media (min-width: 40rem) {
+    .dashboard {
+      grid-template-columns: repeat(min(var(--columns), 2), minmax(0, 1fr));
+    }
+
+    .dashboard__tile {
+      grid-column: span min(var(--span), 2);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .dashboard {
+      grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+    }
+
+    .dashboard__tile {
+      grid-column: span var(--span);
+    }
+  }
+</style>

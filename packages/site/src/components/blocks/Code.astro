@@ -1,0 +1,10 @@
+---
+interface Props {
+  code: string;
+}
+
+// Code scrolls sideways on narrow screens, so keyboard users must be able to focus it.
+const { code } = Astro.props;
+---
+
+<pre tabindex="0"><code>{code}</code></pre>

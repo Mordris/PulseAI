@@ -1,0 +1,69 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+  id: string;
+  kind: string;
+  title: string;
+  sourceNote: string;
+  /** Inside a dashboard tile the title is smaller and the source note is the dashboard's. */
+  nested?: boolean;
+}
+
+const { ctx, id, kind, title, sourceNote, nested = false } = Astro.props;
+---
+
+<figure class:list={["visual", { "visual--nested": nested }]} id={`visual-${id}`} data-visual={kind}>
+  <figcaption class="visual__title">{title}</figcaption>
+  <slot />
+  {!nested && <p class="visual__source">{ctx.t("ui.visual.source", { source: sourceNote })}</p>}
+</figure>
+
+<style>
+  .visual {
+    display: grid;
+    gap: var(--pulse-space-2);
+    min-width: 0;
+    padding: var(--pulse-space-4);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .visual--nested {
+    height: 100%;
+    padding: var(--pulse-space-3);
+    border-radius: var(--pulse-radius-md);
+  }
+
+  .visual__title {
+    font-family: var(--pulse-font-family-body);
+    font-size: var(--pulse-font-size-md);
+    font-weight: var(--pulse-font-weight-semibold);
+  }
+
+  .visual--nested .visual__title {
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .visual__source {
+    color: var(--pulse-color-text-muted);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  .visual :global(.visual__data summary) {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    cursor: pointer;
+  }
+
+  .visual :global(.visual__data[open] summary) {
+    margin-block-end: var(--pulse-space-2);
+  }
+
+  .visual :global(.visual__alt) {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+</style>

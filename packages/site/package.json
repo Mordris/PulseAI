@@ -24,6 +24,10 @@
     "@pulseai/tokens": "workspace:*",
     "astro": "^7.3.8",
     "astro-pagefind": "^2.0.1",
+    "mermaid": "^12.1.0",
+    "vega": "^6.4.0",
+    "vega-embed": "^7.3.0",
+    "vega-lite": "^6.5.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {

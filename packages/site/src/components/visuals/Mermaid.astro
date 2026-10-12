@@ -1,0 +1,46 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { MermaidVisual } from "../../lib/types.ts";
+import Code from "../blocks/Code.astro";
+import VisualFrame from "./VisualFrame.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: MermaidVisual;
+  nested?: boolean;
+}
+
+const { ctx, visual, nested = false } = Astro.props;
+const { t } = ctx;
+---
+
+<VisualFrame ctx={ctx} id={visual.id} kind={visual.kind} title={visual.title} sourceNote={visual.source_note} nested={nested}>
+  <pulse-mermaid class="diagram" role="img" aria-label={visual.alt}>
+    <div class="diagram__canvas" data-diagram hidden></div>
+    <p class="visual__alt" data-diagram-fallback>{visual.alt}</p>
+  </pulse-mermaid>
+  <details class="visual__data" data-diagram-source>
+    <summary>{t("ui.visual.diagram_source")}</summary>
+    <Code code={visual.code} />
+  </details>
+</VisualFrame>
+
+<script>
+  import "../../client/mermaid-diagram.ts";
+</script>
+
+<style>
+  .diagram {
+    display: block;
+    min-width: 0;
+  }
+
+  .diagram__canvas {
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  .diagram__canvas :global(svg) {
+    height: auto;
+  }
+</style>

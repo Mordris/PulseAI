@@ -30,6 +30,10 @@ jobs:
           #   typing-extensions: PSF-2.0 (detected as "... AND GPL-1.0-or-later ...")
           #   rfc3987-syntax:    MIT     (detected as "Apache-2.0 AND GPL-1.0-or-later AND MIT")
           #   pulseai:           MIT     (this repository's own package; not detected)
+          #   khroma:            MIT     (license file; package.json declares none)
+          # Packages outside the allow list, accepted on purpose:
+          #   elkjs:             EPL-2.0 (Mermaid's layout engine, used unmodified as a library)
           # OFL-1.1 above covers the Fontsource font packages the site bundles.
           allow-dependencies-licenses: >-
-            pkg:pypi/typing-extensions, pkg:pypi/rfc3987-syntax, pkg:pypi/pulseai
+            pkg:pypi/typing-extensions, pkg:pypi/rfc3987-syntax, pkg:pypi/pulseai,
+            pkg:npm/khroma, pkg:npm/elkjs

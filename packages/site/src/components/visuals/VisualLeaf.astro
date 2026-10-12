@@ -1,0 +1,21 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { LeafVisual } from "../../lib/types.ts";
+import ImageRef from "./ImageRef.astro";
+import Mermaid from "./Mermaid.astro";
+import TableVisual from "./TableVisual.astro";
+import VegaLite from "./VegaLite.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: LeafVisual;
+  nested?: boolean;
+}
+
+const { ctx, visual, nested = false } = Astro.props;
+---
+
+{visual.kind === "vega-lite" && <VegaLite ctx={ctx} visual={visual} nested={nested} />}
+{visual.kind === "mermaid" && <Mermaid ctx={ctx} visual={visual} nested={nested} />}
+{visual.kind === "table" && <TableVisual ctx={ctx} visual={visual} nested={nested} />}
+{visual.kind === "image-ref" && <ImageRef ctx={ctx} visual={visual} nested={nested} />}
