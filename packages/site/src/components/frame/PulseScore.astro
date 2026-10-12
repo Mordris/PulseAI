@@ -1,0 +1,85 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Report } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  score: Report["pulse_score"];
+}
+
+const { ctx, score } = Astro.props;
+const { t, fmt } = ctx;
+const average = score.avg_7d;
+// The gauge spans a quarter more than the larger of today and the average.
+const scale = Math.max(score.value, average ?? 0, 1) * 1.25;
+const width = (value: number) => `${Math.round((value / scale) * 1000) / 10}%`;
+const comparison =
+  average === null
+    ? t("ui.score.no_avg")
+    : t("ui.score.vs_avg", {
+        delta: fmt.signed(Math.round((score.value - average) * 10) / 10),
+        average: fmt.number(average),
+      });
+---
+
+<div class="score">
+  <p class="score__label">{t("ui.score.label")}</p>
+  <p class="score__value">{fmt.number(score.value)}</p>
+  <div class="score__gauge" aria-hidden="true">
+    <span class="score__bar" style={`inline-size: ${width(score.value)}`}></span>
+    {average !== null && <span class="score__marker" style={`inset-inline-start: ${width(average)}`}></span>}
+  </div>
+  <p class="score__comparison">{comparison}</p>
+</div>
+
+<style>
+  .score {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--pulse-space-1) var(--pulse-space-4);
+    max-width: var(--pulse-layout-reading-width);
+  }
+
+  .score__label {
+    grid-column: 1 / -1;
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .score__value {
+    font-family: var(--pulse-font-family-display);
+    font-size: var(--pulse-font-size-3xl);
+    font-weight: var(--pulse-font-weight-bold);
+    line-height: var(--pulse-font-line-height-tight);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .score__gauge {
+    position: relative;
+    block-size: var(--pulse-space-3);
+    border-radius: var(--pulse-radius-pill);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  .score__bar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-radius: var(--pulse-radius-pill);
+    background: var(--pulse-color-accent-default);
+  }
+
+  .score__marker {
+    position: absolute;
+    inset-block: calc(-1 * var(--pulse-space-1));
+    inline-size: var(--pulse-border-width-thick);
+    background: var(--pulse-color-text-primary);
+  }
+
+  .score__comparison {
+    grid-column: 1 / -1;
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+</style>

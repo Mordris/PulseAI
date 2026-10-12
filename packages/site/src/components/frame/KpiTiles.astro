@@ -1,0 +1,46 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Kpi } from "../../lib/types.ts";
+import StatTile from "../visuals/StatTile.astro";
+
+interface Props {
+  ctx: RenderContext;
+  kpis: readonly Kpi[];
+}
+
+const { ctx, kpis } = Astro.props;
+---
+
+{kpis.length > 0 && (
+  <section class="kpis" aria-labelledby="kpis-title">
+    <h2 class="visually-hidden" id="kpis-title">{ctx.t("ui.kpis.title")}</h2>
+    <ul class="kpis__list">
+      {kpis.map((kpi) => (
+        <li class="kpis__tile">
+          <StatTile ctx={ctx} label={kpi.label} value={kpi.value} delta={kpi.delta} series={kpi.series} />
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .kpis {
+    margin-block: var(--pulse-space-5);
+  }
+
+  .kpis__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+    gap: var(--pulse-space-3);
+    padding: 0;
+    list-style: none;
+  }
+
+  .kpis__tile {
+    padding: var(--pulse-space-4);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-raised);
+  }
+</style>

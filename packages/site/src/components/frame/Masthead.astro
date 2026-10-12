@@ -1,0 +1,77 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Report } from "../../lib/types.ts";
+import Badge from "./Badge.astro";
+import PulseScore from "./PulseScore.astro";
+
+interface Props {
+  ctx: RenderContext;
+  report: Report;
+}
+
+const { ctx, report } = Astro.props;
+const { t, fmt } = ctx;
+const { meta } = report;
+const window = {
+  start: fmt.dateTime(meta.window.start, meta.window.tz),
+  end: fmt.dateTime(meta.window.end, meta.window.tz),
+  tz: meta.window.tz,
+};
+// Only an unusual edition says what kind it is; the schema lists the regular edition first.
+const regular = ctx.enums.edition[0];
+---
+
+<header class="masthead">
+  <div class="masthead__meta">
+    <p class="masthead__edition">
+      {t("ui.masthead.edition", { edition: meta.edition })} · <time datetime={meta.date}>{fmt.date(meta.date)}</time>
+    </p>
+    <div class="masthead__badges">
+      {meta.sample && <Badge ctx={ctx} tone="color.status.warning">{t("ui.masthead.sample")}</Badge>}
+      {meta.mode !== regular && <Badge ctx={ctx} tone="color.status.serious">{t(`modes.${meta.mode}`)}</Badge>}
+    </div>
+  </div>
+  <h1 class="masthead__headline">{report.headline}</h1>
+  <p class="masthead__window">{t("ui.masthead.window", window)}</p>
+  <PulseScore ctx={ctx} score={report.pulse_score} />
+</header>
+
+<style>
+  .masthead {
+    display: grid;
+    gap: var(--pulse-space-3);
+    padding-block: var(--pulse-space-7) var(--pulse-space-5);
+    border-block-end: var(--pulse-border-width-thick) solid var(--pulse-color-text-primary);
+  }
+
+  .masthead__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pulse-space-2);
+  }
+
+  .masthead__edition {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    font-weight: var(--pulse-font-weight-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .masthead__badges {
+    display: flex;
+    gap: var(--pulse-space-2);
+  }
+
+  .masthead__headline {
+    max-width: 22ch;
+    font-size: clamp(var(--pulse-font-size-2xl), 6vw, var(--pulse-font-size-3xl));
+  }
+
+  .masthead__window {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+</style>
