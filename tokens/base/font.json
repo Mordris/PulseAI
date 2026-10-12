@@ -1,0 +1,55 @@
+{
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "body": {
+        "$value": ["Inter Variable", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        "$extensions": {
+          "org.pulseai": { "override": "font_body", "fontsource": "@fontsource-variable/inter" }
+        }
+      },
+      "display": {
+        "$value": ["Newsreader Variable", "Georgia", "Cambria", "serif"],
+        "$extensions": {
+          "org.pulseai": {
+            "override": "font_display",
+            "fontsource": "@fontsource-variable/newsreader"
+          }
+        }
+      },
+      "mono": {
+        "$value": [
+          "JetBrains Mono Variable",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace"
+        ],
+        "$extensions": { "org.pulseai": { "fontsource": "@fontsource-variable/jetbrains-mono" } }
+      }
+    },
+    "size": {
+      "$type": "dimension",
+      "xs": { "$value": { "value": 0.75, "unit": "rem" } },
+      "sm": { "$value": { "value": 0.875, "unit": "rem" } },
+      "md": { "$value": { "value": 1, "unit": "rem" } },
+      "lg": { "$value": { "value": 1.125, "unit": "rem" } },
+      "xl": { "$value": { "value": 1.375, "unit": "rem" } },
+      "2xl": { "$value": { "value": 1.75, "unit": "rem" } },
+      "3xl": { "$value": { "value": 2.5, "unit": "rem" } }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "regular": { "$value": 400 },
+      "medium": { "$value": 500 },
+      "semibold": { "$value": 600 },
+      "bold": { "$value": 700 }
+    },
+    "line_height": {
+      "$type": "number",
+      "tight": { "$value": 1.2 },
+      "normal": { "$value": 1.5 },
+      "relaxed": { "$value": 1.7 }
+    }
+  }
+}

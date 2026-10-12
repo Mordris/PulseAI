@@ -18,3 +18,4 @@ export type * as RolesSchema from "./roles.ts";
 export type * as SectionsSchema from "./sections.ts";
 export type * as SiteContextSchema from "./site-context.ts";
 export type * as SourcesSchema from "./sources.ts";
+export type * as TokensResolvedSchema from "./tokens-resolved.ts";

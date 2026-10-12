@@ -1,0 +1,15 @@
+{
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "body": {
+        "$value": ["Source Serif 4 Variable", "Georgia", "Cambria", "serif"],
+        "$extensions": {
+          "org.pulseai": {
+            "fontsource": "@fontsource-variable/source-serif-4"
+          }
+        }
+      }
+    }
+  }
+}

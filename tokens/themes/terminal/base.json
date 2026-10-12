@@ -1,0 +1,56 @@
+{
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "body": {
+        "$value": [
+          "JetBrains Mono Variable",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace"
+        ],
+        "$extensions": {
+          "org.pulseai": {
+            "fontsource": "@fontsource-variable/jetbrains-mono"
+          }
+        }
+      },
+      "display": {
+        "$value": [
+          "JetBrains Mono Variable",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace"
+        ],
+        "$extensions": {
+          "org.pulseai": {
+            "fontsource": "@fontsource-variable/jetbrains-mono"
+          }
+        }
+      }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "sm": {
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      }
+    }
+  }
+}
