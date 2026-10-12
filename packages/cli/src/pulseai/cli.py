@@ -22,6 +22,7 @@ from pulseai.registry.checks import check_registries
 from pulseai.registry.loader import RegistryError, registry_spec
 from pulseai.report.validate import validate_report_file
 from pulseai.schedule import HOSTS, render_host
+from pulseai.site.context import SiteContextError, default_context_path, write_site_context
 
 # Exit codes: 0 fine; 1 validation issues in input that loaded (doctor: any failing check);
 # 2 unusable input (engine data, catalog, config, registries or locales that fail to load,
@@ -210,3 +211,36 @@ def schedule_print(
     require_time_zone(cfg.schedule.tz)
     require_time_zone(zone)
     typer.echo(render_host(cfg.schedule, host, date.today(), zone), nl=False)
+
+
+site_app = typer.Typer(help="Prepare site builds.", no_args_is_help=True)
+app.add_typer(site_app, name="site")
+
+OutOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--out",
+        "-o",
+        help="Where to write the context. Defaults to <instance>/.pulse/site-context.json.",
+        dir_okay=False,
+        resolve_path=True,
+    ),
+]
+
+
+@site_app.command("context")
+@unusable_input_exits
+def site_context(instance: InstanceOption = None, out: OutOption = None) -> None:
+    """Write the site build context: effective config, registries, strings, and schemas."""
+    instance_dir = resolve_instance(instance)
+    exit_for(check_registries(instance_dir))
+    target = out or default_context_path(instance_dir)
+    try:
+        path = write_site_context(instance_dir, target)
+    except SiteContextError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(EXIT_UNUSABLE) from None
+    except OSError as exc:
+        typer.echo(f"cannot write {target} ({exc.strerror or type(exc).__name__})", err=True)
+        raise typer.Exit(EXIT_UNUSABLE) from None
+    typer.echo(f"Wrote {path}")

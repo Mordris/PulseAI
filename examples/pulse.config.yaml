@@ -1,0 +1,6 @@
+# Demo instance: the engine's site build, tests, and the public demo (M6) read examples/ as an
+# instance directory. Reports live in examples/reports/YYYY/MM/DD/report.json.
+language: en
+site:
+  url: https://mordris.github.io/PulseAI/
+  search: true

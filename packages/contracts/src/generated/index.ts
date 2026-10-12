@@ -16,4 +16,5 @@ export type * as RegistriesSchema from "./registries.ts";
 export type * as ReportSchema from "./report.ts";
 export type * as RolesSchema from "./roles.ts";
 export type * as SectionsSchema from "./sections.ts";
+export type * as SiteContextSchema from "./site-context.ts";
 export type * as SourcesSchema from "./sources.ts";

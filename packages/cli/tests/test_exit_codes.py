@@ -154,6 +154,18 @@ COMMANDS: dict[str, tuple[Callable[[Setup], list[str]], dict[str, Expect]]] = {
             BROKEN_REPORT: Expect(2, "stderr", "error file: "),
         },
     ),
+    "site context": (
+        _args("site", "context"),
+        {
+            VALID: Expect(0, "stdout", "Wrote "),
+            ISSUE: Expect(1, "stderr", "unknown role 'intern'"),
+            BROKEN_CONFIG: Expect(2, "stderr", "schedule/time"),
+            NO_ENGINE_DATA: Expect(2, "stderr", ENGINE_DATA_ENV),
+            BROKEN_CATALOG: Expect(2, "stderr", "registries.yaml"),
+            BROKEN_LOCALE: Expect(2, "stderr", "locales/en.json"),
+            BROKEN_SECTIONS: Expect(2, "stderr", "taxonomy/sections.yaml"),
+        },
+    ),
     # The doctor is a report: any failing check is exit 1 and everything goes to stdout.
     "doctor": (
         _args("doctor"),
