@@ -1,0 +1,111 @@
+---
+import VegaLite from "../../components/visuals/VegaLite.astro";
+import Base from "../../layouts/Base.astro";
+import { archiveHeatmap } from "../../lib/frame-charts.ts";
+import { reportPath } from "../../lib/report.ts";
+import { allReports } from "../../lib/reports.ts";
+import { getSite } from "../../lib/site-data.ts";
+
+const { ctx } = getSite();
+const { t, fmt } = ctx;
+const reports = await allReports();
+const days = reports.map((report) => ({ date: report.meta.date, score: report.pulse_score.value }));
+// Group by month (YYYY-MM), newest first.
+const months = new Map<string, typeof reports>();
+for (const report of reports) {
+  const month = report.meta.date.slice(0, 7);
+  months.set(month, [...(months.get(month) ?? []), report]);
+}
+const monthTitle = (month: string) =>
+  new Intl.DateTimeFormat(ctx.lang, { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+---
+
+<Base title={`${t("ui.archive.title")} · ${t("ui.site.title")}`}>
+  <header class="archive-header">
+    <h1>{t("ui.archive.title")}</h1>
+    <p class="muted">{t("ui.archive.count", { count: fmt.number(reports.length) })}</p>
+  </header>
+  {days.length > 0 && <VegaLite ctx={ctx} visual={archiveHeatmap(days, ctx)} />}
+  {[...months].map(([month, monthReports]) => (
+    <section class="archive-month" aria-labelledby={`month-${month}`}>
+      <h2 id={`month-${month}`}>{monthTitle(month)}</h2>
+      <ol class="archive-list">
+        {monthReports.map((report) => (
+          <li>
+            <a href={ctx.url(reportPath(report.meta.date))}>
+              <time datetime={report.meta.date}>{fmt.date(report.meta.date)}</time>
+              <span class="archive-list__headline">{report.headline}</span>
+            </a>
+            <span class="archive-list__score">{t("ui.archive.score", { score: fmt.number(report.pulse_score.value) })}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .archive-header {
+    display: grid;
+    gap: var(--pulse-space-2);
+    padding-block: var(--pulse-space-7) var(--pulse-space-5);
+  }
+
+  .archive-header h1 {
+    font-size: var(--pulse-font-size-3xl);
+  }
+
+  .archive-month {
+    margin-block: var(--pulse-space-6);
+  }
+
+  .archive-month h2 {
+    margin-block-end: var(--pulse-space-3);
+    font-size: var(--pulse-font-size-xl);
+  }
+
+  .archive-list {
+    display: grid;
+    gap: var(--pulse-space-2);
+    padding: 0;
+    list-style: none;
+  }
+
+  .archive-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--pulse-space-2) var(--pulse-space-4);
+    padding: var(--pulse-space-3) var(--pulse-space-4);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-md);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .archive-list a {
+    display: grid;
+    gap: var(--pulse-space-1);
+    text-decoration: none;
+  }
+
+  .archive-list time {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .archive-list__headline {
+    color: var(--pulse-color-text-primary);
+    font-family: var(--pulse-font-family-display);
+    font-size: var(--pulse-font-size-lg);
+    font-weight: var(--pulse-font-weight-semibold);
+  }
+
+  .archive-list__score {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
