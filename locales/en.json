@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "language": "en",
+  "fallback": null,
+  "strings": {
+    "sections.models": "Models and labs",
+    "sections.tooling": "Agentic dev tooling",
+    "sections.research": "Research desk",
+    "sections.oss": "Software and OSS",
+    "groups.paper_of_the_day": "Paper of the day",
+    "groups.top_papers": "Top papers",
+    "groups.also_notable": "Also notable",
+    "groups.long_reads": "Long reads",
+    "item_types.model_release": "Model release",
+    "item_types.tool_release": "Release",
+    "item_types.framework_release": "Framework release",
+    "item_types.paper": "Paper",
+    "item_types.article": "Article",
+    "item_types.repo": "Repository",
+    "item_types.security_advisory": "Security advisory",
+    "item_types.industry": "Industry",
+    "item_types.leaderboard_shift": "Leaderboard shift"
+  }
+}

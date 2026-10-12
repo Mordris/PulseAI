@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:sources",
+  "title": "SourcesRegistry",
+  "description": "Research sources (sources/registry/*.yaml). Each source is read by the generic collector, an MCP tool, or web search.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "sources"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "text": { "type": "string", "minLength": 1 },
+    "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "urlTemplate": { "type": "string", "pattern": "^https://\\S+$" },
+    "jmespath": { "type": "string", "minLength": 1 },
+    "envName": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "tier": { "enum": ["T1", "T1-data", "T2", "T3"] },
+    "trust": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "sectionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "source": {
+      "oneOf": [
+        { "$ref": "#/$defs/collectorSource" },
+        { "$ref": "#/$defs/mcpSource" },
+        { "$ref": "#/$defs/searchSource" }
+      ]
+    },
+    "collectorSource": {
+      "title": "CollectorSource",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "tier", "sections", "trust", "enabled", "via", "collector"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "homepage": { "$ref": "#/$defs/url" },
+        "tier": { "$ref": "#/$defs/tier" },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "trust": { "$ref": "#/$defs/trust" },
+        "enabled": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "via": { "const": "collector" },
+        "collector": { "$ref": "#/$defs/collector" }
+      }
+    },
+    "mcpSource": {
+      "title": "McpSource",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "tier", "sections", "trust", "enabled", "via", "mcp"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "homepage": { "$ref": "#/$defs/url" },
+        "tier": { "$ref": "#/$defs/tier" },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "trust": { "$ref": "#/$defs/trust" },
+        "enabled": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "via": { "const": "mcp" },
+        "mcp": {
+          "title": "McpCall",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["server", "tool"],
+          "properties": {
+            "server": { "$ref": "#/$defs/id" },
+            "tool": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
+            "args": { "type": "object" }
+          }
+        }
+      }
+    },
+    "searchSource": {
+      "title": "SearchSource",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "tier", "sections", "trust", "enabled", "via", "search"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "homepage": { "$ref": "#/$defs/url" },
+        "tier": { "$ref": "#/$defs/tier" },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "trust": { "$ref": "#/$defs/trust" },
+        "enabled": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "via": { "const": "search" },
+        "search": {
+          "title": "SearchSpec",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["queries"],
+          "properties": {
+            "queries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } },
+            "domains": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$" }
+            }
+          }
+        }
+      }
+    },
+    "collector": {
+      "oneOf": [
+        { "$ref": "#/$defs/feedCollector" },
+        { "$ref": "#/$defs/jsonCollector" },
+        { "$ref": "#/$defs/snapshotCollector" }
+      ]
+    },
+    "http": {
+      "title": "HttpOptions",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auth_header": { "type": "string", "minLength": 1 },
+        "auth_env": { "$ref": "#/$defs/envName" },
+        "auth_prefix": { "type": "string" },
+        "timeout_seconds": { "type": "number", "exclusiveMinimum": 0, "maximum": 300 },
+        "rate_limit_per_minute": { "type": "integer", "minimum": 1 },
+        "retries": { "type": "integer", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "fieldMap": {
+      "title": "FieldMap",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url"],
+      "properties": {
+        "id": { "$ref": "#/$defs/jmespath" },
+        "title": { "$ref": "#/$defs/jmespath" },
+        "url": { "$ref": "#/$defs/jmespath" },
+        "published": { "$ref": "#/$defs/jmespath" },
+        "summary": { "$ref": "#/$defs/jmespath" },
+        "signal": { "$ref": "#/$defs/jmespath" }
+      }
+    },
+    "feedCollector": {
+      "title": "FeedCollector",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url"],
+      "properties": {
+        "kind": { "enum": ["rss", "atom"] },
+        "url": { "$ref": "#/$defs/urlTemplate" },
+        "http": { "$ref": "#/$defs/http" }
+      }
+    },
+    "jsonCollector": {
+      "title": "JsonCollector",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url", "items", "fields"],
+      "properties": {
+        "kind": { "const": "json" },
+        "url": { "$ref": "#/$defs/urlTemplate" },
+        "items": { "$ref": "#/$defs/jmespath" },
+        "fields": { "$ref": "#/$defs/fieldMap" },
+        "http": { "$ref": "#/$defs/http" }
+      }
+    },
+    "snapshotCollector": {
+      "title": "SnapshotCollector",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url", "items", "key", "fields"],
+      "properties": {
+        "kind": { "const": "json-snapshot-diff" },
+        "url": { "$ref": "#/$defs/urlTemplate" },
+        "items": { "$ref": "#/$defs/jmespath" },
+        "key": { "$ref": "#/$defs/jmespath" },
+        "track": { "type": "array", "items": { "$ref": "#/$defs/jmespath" } },
+        "fields": { "$ref": "#/$defs/fieldMap" },
+        "http": { "$ref": "#/$defs/http" }
+      }
+    }
+  }
+}

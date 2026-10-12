@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:engine",
+  "title": "EngineRegistry",
+  "description": "Engine requirements checked by pulse doctor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tool_timeout_seconds", "tools"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "tool_timeout_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "description": "How long pulse doctor waits for each tool's version command."
+    },
+    "tools": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/tool" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "tool": {
+      "title": "Tool",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "command", "version_regex", "specifier", "required", "hint"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Prints the version. The token {python} means the running interpreter."
+        },
+        "version_regex": {
+          "type": "string",
+          "minLength": 1,
+          "description": "First capture group is the version."
+        },
+        "specifier": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PEP 440 specifier, e.g. >=3.12."
+        },
+        "required": { "type": "boolean" },
+        "hint": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

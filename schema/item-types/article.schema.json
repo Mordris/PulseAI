@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:item-types:article",
+  "title": "ArticleDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "author",
+    "publication",
+    "key_points",
+    "reading_minutes",
+    "worth_full_read",
+    "worth_reason"
+  ],
+  "properties": {
+    "author": { "type": "string", "minLength": 1 },
+    "publication": { "type": "string", "minLength": 1 },
+    "key_points": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "reading_minutes": { "type": "integer", "minimum": 1 },
+    "worth_full_read": { "type": "boolean" },
+    "worth_reason": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,66 @@
+# Applied with: uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME [--dry-run]
+description: >-
+  Your daily, verified, beautifully visualized AI and software research briefing:
+  an open-source Claude Code routine with primary-source verification, deep-dives,
+  and a research desk.
+homepage: null
+topics:
+  - claude-code
+  - claude
+  - anthropic
+  - ai
+  - llm
+  - ai-agents
+  - mcp
+  - research
+  - daily-digest
+  - news-aggregator
+  - arxiv
+  - papers
+  - automation
+  - github-actions
+  - astro
+  - python
+  - typescript
+  - data-visualization
+features:
+  issues: true
+  discussions: true
+  wiki: false
+  projects: false
+merge:
+  squash: true
+  merge_commit: false
+  rebase: false
+  squash_title: PR_TITLE
+  squash_message: PR_BODY
+  delete_branch_on_merge: true
+  auto_merge: true
+security:
+  secret_scanning: true
+  push_protection: true
+  private_vulnerability_reporting: true
+  dependabot_alerts: true
+ruleset:
+  name: main
+  required_approvals: 0
+  linear_history: true
+  dismiss_stale_reviews_on_push: true
+  required_review_thread_resolution: true
+  require_code_owner_review: false
+  require_last_push_approval: false
+  strict_required_status_checks_policy: true
+  # Job names exactly as GitHub reports them (confirmed from the first CI run on PR #1).
+  required_checks:
+    - python (3.12)
+    - python (3.15)
+    - node
+    - analyze (python)
+    - analyze (javascript-typescript)
+    - analyze (actions)
+    - review
+    - gitleaks
+    - trufflehog
+    - zizmor
+    - scan-pr / osv-scan
+    - PR title

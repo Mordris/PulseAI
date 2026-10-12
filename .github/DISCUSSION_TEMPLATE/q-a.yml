@@ -1,0 +1,23 @@
+title: "[Q] "
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PulseAI version
+      placeholder: pulse 0.1.0
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Local timer
+        - GitHub Actions
+        - Claude Code cloud routine
+        - Development checkout

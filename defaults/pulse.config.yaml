@@ -1,0 +1,65 @@
+# Engine defaults. An instance's pulse.config.yaml overrides any key; PULSE__A__B env vars override both.
+engine:
+  version: "0.1.0"
+schedule:
+  time: "17:00"
+  tz: Europe/Istanbul
+  cloud_offset_minutes_when_on_hour: 7
+language: en
+interests:
+  high: [claude code, agentic coding, mcp, skills, plugins, agent frameworks, llm reasoning, evals]
+  normal: [frontier models, open-weights models, inference, ai security]
+sections:
+  models: { enabled: true, max_items: 8 }
+  tooling: { enabled: true, max_items: 10 }
+  research: { enabled: true, max_items: 20, options: { max_papers_deep: 6, max_long_reads: 4 } }
+  oss: { enabled: true, max_items: 8 }
+deep_dive:
+  min_impact: 3
+confidence:
+  reported: signals_box
+  rumor: exclude
+window:
+  max_hours: 72
+models_by_role:
+  editor: claude-opus-5-5
+  paper-analyst: claude-opus-5-5
+  verifier: claude-opus-5-5
+  section-researcher: claude-sonnet-5-5
+  paper-triage: claude-haiku-5-5
+  design-reviewer: claude-sonnet-5-5
+limits:
+  run_minutes: 45
+  max_budget_usd: 15
+  design_fix_rounds: 2
+  agent_max_turns: 60
+quality:
+  text_contrast_min: 4.5
+  section_delta_e_min: 12
+  section_cvd_fail: 6
+  section_cvd_target: 8
+  design_review_min_score: 7
+  primary_tiers: [T1, T1-data]
+theme:
+  default: auto
+  switcher: true
+  preset: pulse
+  overrides: {}
+visuals:
+  min_per_deep_dive: 1
+  motion: true
+  notify_media: png
+mcp:
+  enabled: [github, huggingface, arxiv, fetch, playwright]
+  optional: [exa, brave]
+site:
+  url: null
+  search: true
+publish:
+  repo: null
+  branch: main
+notify:
+  urls_env: PULSE_NOTIFY_URLS
+  on_failure: true
+telemetry:
+  otel_endpoint_env: OTEL_EXPORTER_OTLP_ENDPOINT

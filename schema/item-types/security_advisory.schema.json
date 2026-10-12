@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:item-types:security_advisory",
+  "title": "SecurityAdvisoryDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["advisory_id", "severity", "affected", "exploited_in_wild"],
+  "properties": {
+    "advisory_id": { "type": "string", "minLength": 1 },
+    "cvss": { "type": "number", "minimum": 0, "maximum": 10 },
+    "severity": { "enum": ["low", "medium", "high", "critical"] },
+    "affected": { "type": "string", "minLength": 1 },
+    "fixed_in": { "type": "string", "minLength": 1 },
+    "exploited_in_wild": { "type": "boolean" },
+    "fix_command": { "type": "string", "minLength": 1 }
+  }
+}

@@ -231,6 +231,7 @@ quality:                        # thresholds (no thresholds in code)
   section_cvd_fail: 6
   section_cvd_target: 8
   design_review_min_score: 7
+  primary_tiers: [T1, T1-data]   # source tiers that count as primary evidence for confirmed items
 theme: { default: auto, switcher: true, preset: pulse, overrides: {} }
 visuals: { min_per_deep_dive: 1, motion: true, notify_media: png }
 mcp:                            # which catalog servers to enable; keys via env/secrets

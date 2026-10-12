@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:item-types:industry",
+  "title": "IndustryDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["who", "what", "builder_impact"],
+  "properties": {
+    "who": { "type": "string", "minLength": 1 },
+    "what": { "type": "string", "minLength": 1 },
+    "amount": { "type": "string", "minLength": 1 },
+    "builder_impact": { "type": "string", "minLength": 1 }
+  }
+}

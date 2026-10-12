@@ -1,0 +1,31 @@
+export default {
+  extends: ["@commitlint/config-conventional"],
+  rules: {
+    "scope-enum": [
+      1,
+      "always",
+      [
+        "cli",
+        "contracts",
+        "schema",
+        "registry",
+        "config",
+        "report",
+        "schedule",
+        "doctor",
+        "site",
+        "plugin",
+        "ci",
+        "deps",
+        "docs",
+        "security",
+        "release",
+        "plan",
+        "spec",
+        "main",
+      ],
+    ],
+    "body-max-line-length": [0],
+    "footer-max-line-length": [0],
+  },
+};

@@ -1,0 +1,14 @@
+schema_version: 1
+roles:
+  - id: editor
+    description: Main session. Plans the run, writes report.json, runs the gates, publishes, and notifies.
+  - id: section-researcher
+    description: Researches one section from its registry sources and returns verified candidates.
+  - id: paper-triage
+    description: Scores hundreds of new papers by title and abstract and shortlists the best.
+  - id: paper-analyst
+    description: Reads shortlisted papers in full and writes reviewer-grade paper briefs.
+  - id: verifier
+    description: Checks sources, dates, quotes, and numbers for every candidate before publishing.
+  - id: design-reviewer
+    description: Reviews rendered screenshots against the design rubric and requests fixes.

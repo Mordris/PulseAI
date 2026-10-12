@@ -1,0 +1,12 @@
+# Your PulseAI instance configuration. Every key is optional; anything you leave out uses the
+# engine defaults (defaults/pulse.config.yaml in the engine). Override any value at runtime with
+# environment variables such as PULSE__SCHEDULE__TIME=18:00.
+schedule:
+  time: "17:00"
+  tz: Europe/Istanbul
+language: en
+publish:
+  repo: your-github-user/pulse-instance
+  branch: main
+site:
+  url: null

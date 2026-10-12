@@ -1,0 +1,31 @@
+schema_version: 1
+template_variables: [date, since, until]
+registries:
+  - id: config
+    schema: config.schema.json
+    paths: [defaults/pulse.config.yaml]
+    instance_paths: [pulse.config.yaml]
+  - id: engine
+    schema: engine.schema.json
+    paths: [defaults/engine.yaml]
+    list_key: tools
+    instance_overridable: false
+  - id: sections
+    schema: sections.schema.json
+    paths: [taxonomy/sections.yaml]
+    list_key: sections
+  - id: item-types
+    schema: item-types.schema.json
+    paths: [taxonomy/item-types.yaml]
+    list_key: item_types
+  - id: roles
+    schema: roles.schema.json
+    paths: [taxonomy/roles.yaml]
+    list_key: roles
+  - id: sources
+    schema: sources.schema.json
+    paths: ["sources/registry/*.yaml"]
+    list_key: sources
+  - id: locale
+    schema: locale.schema.json
+    paths: ["locales/{language}.json"]

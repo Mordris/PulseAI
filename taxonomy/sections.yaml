@@ -1,0 +1,77 @@
+schema_version: 1
+sections:
+  - id: models
+    label: sections.models
+    color_token: color.section.models
+    order: 10
+    rubric:
+      - Minor update, docs-only change, or niche model.
+      - Notable release from a known lab, or a useful open-weights model with small gains.
+      - Solid release with clear capability, price, or context gains, or a strong open-weights model.
+      - Major release, a new frontier-class model, or a large price or capability shift.
+      - Landmark launch that sets a new state of the art or changes the industry.
+    default_item_types: [model_release, industry, leaderboard_shift]
+    researcher_brief: |
+      Cover new and updated models from frontier and open-weights labs: capabilities, benchmarks,
+      pricing, context, availability, and licenses. Prefer official announcements, model cards,
+      and API changelogs. Use the OpenRouter model diff to catch quiet launches and price changes.
+    groups: []
+  - id: tooling
+    label: sections.tooling
+    color_token: color.section.tooling
+    order: 20
+    rubric:
+      - Patch release with small fixes.
+      - Minor release with a few useful additions.
+      - Release that changes how builders work day to day.
+      - Major release or new capability worth adopting this week.
+      - Category-defining launch for agentic development.
+    default_item_types: [tool_release, framework_release, repo]
+    researcher_brief: |
+      Cover agentic development tools (Claude Code, Codex, Cursor, Gemini CLI, opencode and similar),
+      skills, plugins, MCP servers, and agent frameworks and SDKs. Read release notes in full and give
+      every tool an adoption verdict with a concrete next step.
+    groups: []
+  - id: research
+    label: sections.research
+    color_token: color.section.research
+    order: 30
+    rubric:
+      - Incremental result of narrow interest.
+      - Solid paper with limited practical impact.
+      - Strong paper with results builders can apply.
+      - Important paper likely to change practice in its area.
+      - Breakthrough result with broad impact.
+    default_item_types: [paper, article]
+    researcher_brief: |
+      Triage new papers from preprint servers, peer-reviewed venues, and lab research pages; read the
+      top candidates in full and write reviewer-grade briefs. Add long-form technical articles from
+      expert writers and engineering blogs.
+    groups:
+      - id: paper_of_the_day
+        label: groups.paper_of_the_day
+        match: { featured: paper_of_the_day, types: [paper] }
+      - id: top_papers
+        label: groups.top_papers
+        match: { types: [paper], depth: deep }
+      - id: also_notable
+        label: groups.also_notable
+        match: { types: [paper], depth: brief }
+      - id: long_reads
+        label: groups.long_reads
+        match: { types: [article] }
+  - id: oss
+    label: sections.oss
+    color_token: color.section.oss
+    order: 40
+    rubric:
+      - Small project or minor release.
+      - Useful project gaining attention.
+      - Project or release many builders should know about.
+      - Major release of core infrastructure, or a high-severity advisory.
+      - Critical advisory under active exploitation, or an ecosystem-changing release.
+    default_item_types: [repo, security_advisory, framework_release]
+    researcher_brief: |
+      Cover rising open-source repositories, major releases of languages, frameworks, and
+      infrastructure, and security advisories affecting the AI and developer toolchain.
+    groups: []

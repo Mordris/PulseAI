@@ -1,0 +1,12 @@
+{
+  "name": "pulseai",
+  "description": "Daily AI and software research routine for Claude Code",
+  "owner": { "name": "PulseAI contributors" },
+  "plugins": [
+    {
+      "name": "pulse",
+      "source": "./plugins/pulse",
+      "description": "Research, verify, design, and publish one daily AI and software report"
+    }
+  ]
+}

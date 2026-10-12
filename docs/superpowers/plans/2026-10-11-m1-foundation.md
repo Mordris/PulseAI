@@ -77,6 +77,8 @@ templates/instance/pulse.config.yaml        # Task 6
 packages/contracts/                         # Task 9  TS Zod contracts
 .github/workflows/{ci,codeql,dependency-review,release-please}.yml  # Task 12
 .github/workflows/{secret-scan,vulnerability-scan,workflow-security,scorecard}.yml, .gitleaks.toml  # Task 13
+.github/{ISSUE_TEMPLATE,DISCUSSION_TEMPLATE}/, pull_request_template.md, labels.yml, labeler.yml, release.yml, repository.yml  # Task 14
+scripts/github/apply_repo_settings.py, CODE_OF_CONDUCT.md, SUPPORT.md, CITATION.cff, docs/assets/  # Task 14
 renovate.json, release-please-config.json, .release-please-manifest.json, .github/CODEOWNERS  # Task 12
 docs/adr/0001-oss-first-registry-driven-stack.md  # Task 12
 ```
@@ -5859,6 +5861,1380 @@ Expected: pre-commit passes; zizmor reports no findings at `--persona=regular` (
 ```bash
 git add .github .gitleaks.toml .pre-commit-config.yaml SECURITY.md CONTRIBUTING.md
 git commit -m "ci: add secret-leak, vulnerability, workflow-security, and Scorecard scanning
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 14: GitHub repository features, templates, and README
+
+**Files:**
+- Create: `.gitmessage`, `commitlint.config.mjs`, `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/bug_report.yml`, `.github/ISSUE_TEMPLATE/feature_request.yml`, `.github/ISSUE_TEMPLATE/source_request.yml`, `.github/ISSUE_TEMPLATE/config.yml`, `.github/DISCUSSION_TEMPLATE/ideas.yml`, `.github/DISCUSSION_TEMPLATE/q-a.yml`, `.github/release.yml`, `.github/labels.yml`, `.github/labeler.yml`, `.github/repository.yml`, `.github/repository.schema.json`, `.github/workflows/pr-title.yml`, `.github/workflows/labels.yml`, `.github/workflows/labeler.yml`, `.github/workflows/stale.yml`, `scripts/github/apply_repo_settings.py`, `packages/cli/tests/test_repo_settings.py`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`, `CITATION.cff`, `docs/assets/logo-light.svg`, `docs/assets/logo-dark.svg`
+- Modify: `README.md` (replace), `.pre-commit-config.yaml`, `package.json` (commitlint dev deps), `release-please-config.json`, `.claude-plugin/marketplace.json`, `CONTRIBUTING.md`, `SECURITY.md`
+
+**Interfaces:**
+- Consumes: workflows and job names from Tasks 12–13 (required checks), release-please config from Task 12.
+- Produces: `scripts/github/apply_repo_settings.py` with `load_settings(path: Path) -> dict[str, Any]`, `build_calls(settings: dict[str, Any], repo: str) -> list[Call]`, `ruleset_body(settings: dict[str, Any]) -> dict[str, Any]`, `Call(method, endpoint, fields, body)` with `.argv() -> list[str]`; `main(argv: list[str] | None = None) -> int` supporting `--repo OWNER/NAME` and `--dry-run`. Applying settings to GitHub is outward-facing: it runs only after the user approves pushing the repository.
+
+Action pins (latest releases on 2026-10-11):
+- `amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1`
+- `crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0`
+- `actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0`
+- `actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0`
+
+- [ ] **Step 1: Write the failing tests for the repository-settings script**
+
+`packages/cli/tests/test_repo_settings.py`:
+```python
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+import pytest
+
+
+def _load_script(repo_root: Path) -> ModuleType:
+    path = repo_root / "scripts/github/apply_repo_settings.py"
+    spec = importlib.util.spec_from_file_location("apply_repo_settings", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["apply_repo_settings"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture
+def script(repo_root: Path) -> ModuleType:
+    return _load_script(repo_root)
+
+
+@pytest.fixture
+def settings(script: ModuleType) -> dict[str, Any]:
+    return script.load_settings(script.SETTINGS_FILE)
+
+
+def test_settings_file_is_valid(settings: dict[str, Any]) -> None:
+    assert settings["topics"]
+    assert len(settings["description"]) <= 350
+
+
+def test_invalid_settings_are_rejected(script: ModuleType, tmp_path: Path) -> None:
+    bad = tmp_path / "repository.yml"
+    bad.write_text("description: x\ntopics: [Not Valid]\n", encoding="utf-8")
+    with pytest.raises(script.SettingsError, match="topics"):
+        script.load_settings(bad)
+
+
+def test_booleans_use_typed_fields(script: ModuleType, settings: dict[str, Any]) -> None:
+    patch = script.build_calls(settings, "owner/name")[0]
+    argv = patch.argv()
+    assert argv[:5] == ["gh", "api", "-X", "PATCH", "repos/owner/name"]
+    assert "-F" in argv and "has_discussions=true" in argv
+    assert "-f" in argv and any(a.startswith("description=") for a in argv)
+
+
+def test_topics_call_lists_every_topic(script: ModuleType, settings: dict[str, Any]) -> None:
+    topics = next(c for c in script.build_calls(settings, "o/n") if c.endpoint.endswith("/topics"))
+    names = [value for key, value in topics.fields if key == "names[]"]
+    assert names == settings["topics"]
+
+
+def test_ruleset_requires_checks_and_pull_requests(
+    script: ModuleType, settings: dict[str, Any]
+) -> None:
+    body = script.ruleset_body(settings)
+    types = {rule["type"] for rule in body["rules"]}
+    assert {"pull_request", "required_status_checks", "deletion", "non_fast_forward"} <= types
+    checks = next(r for r in body["rules"] if r["type"] == "required_status_checks")
+    contexts = [c["context"] for c in checks["parameters"]["required_status_checks"]]
+    assert contexts == settings["ruleset"]["required_checks"]
+    json.dumps(body)
+
+
+def test_dry_run_never_calls_github(
+    script: ModuleType, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def forbidden(*_: object, **__: object) -> None:
+        raise AssertionError("dry run must not execute commands")
+
+    monkeypatch.setattr(script.subprocess, "run", forbidden)
+    assert script.main(["--repo", "owner/name", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "repos/owner/name/topics" in out
+    assert "rulesets" in out
+
+
+def test_repo_argument_is_validated(script: ModuleType) -> None:
+    with pytest.raises(SystemExit):
+        script.main(["--repo", "not-a-repo", "--dry-run"])
+```
+
+Run: `uv run pytest packages/cli/tests/test_repo_settings.py -v`
+Expected: FAIL — `FileNotFoundError` for `scripts/github/apply_repo_settings.py`.
+
+- [ ] **Step 2: Write the repository settings data and schema**
+
+`.github/repository.schema.json`:
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:github:repository",
+  "title": "RepositorySettings",
+  "description": "GitHub repository settings applied by scripts/github/apply_repo_settings.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["description", "homepage", "topics", "features", "merge", "security", "ruleset"],
+  "properties": {
+    "description": { "type": "string", "minLength": 1, "maxLength": 350 },
+    "homepage": { "type": ["string", "null"], "format": "uri", "pattern": "^https://" },
+    "topics": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,49}$" }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issues", "discussions", "wiki", "projects"],
+      "properties": {
+        "issues": { "type": "boolean" },
+        "discussions": { "type": "boolean" },
+        "wiki": { "type": "boolean" },
+        "projects": { "type": "boolean" }
+      }
+    },
+    "merge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["squash", "merge_commit", "rebase", "squash_title", "squash_message", "delete_branch_on_merge", "auto_merge"],
+      "properties": {
+        "squash": { "type": "boolean" },
+        "merge_commit": { "type": "boolean" },
+        "rebase": { "type": "boolean" },
+        "squash_title": { "enum": ["PR_TITLE", "COMMIT_OR_PR_TITLE"] },
+        "squash_message": { "enum": ["PR_BODY", "COMMIT_MESSAGES", "BLANK"] },
+        "delete_branch_on_merge": { "type": "boolean" },
+        "auto_merge": { "type": "boolean" }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["secret_scanning", "push_protection", "private_vulnerability_reporting", "dependabot_alerts"],
+      "properties": {
+        "secret_scanning": { "type": "boolean" },
+        "push_protection": { "type": "boolean" },
+        "private_vulnerability_reporting": { "type": "boolean" },
+        "dependabot_alerts": { "type": "boolean" }
+      }
+    },
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "required_approvals", "required_checks", "linear_history"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "required_approvals": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "required_checks": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "linear_history": { "type": "boolean" }
+      }
+    }
+  }
+}
+```
+
+`.github/repository.yml`:
+```yaml
+# Applied with: uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME [--dry-run]
+description: >-
+  Your daily, verified, beautifully visualized AI and software research briefing:
+  an open-source Claude Code routine with primary-source verification, deep-dives,
+  and a research desk.
+homepage: null
+topics:
+  - claude-code
+  - claude
+  - anthropic
+  - ai
+  - llm
+  - ai-agents
+  - mcp
+  - research
+  - daily-digest
+  - news-aggregator
+  - arxiv
+  - papers
+  - automation
+  - github-actions
+  - astro
+  - python
+  - typescript
+  - data-visualization
+features:
+  issues: true
+  discussions: true
+  wiki: false
+  projects: false
+merge:
+  squash: true
+  merge_commit: false
+  rebase: false
+  squash_title: PR_TITLE
+  squash_message: PR_BODY
+  delete_branch_on_merge: true
+  auto_merge: true
+security:
+  secret_scanning: true
+  push_protection: true
+  private_vulnerability_reporting: true
+  dependabot_alerts: true
+ruleset:
+  name: main
+  required_approvals: 0
+  linear_history: true
+  # Job names as GitHub reports them. Add the OSV-Scanner check after its first run shows the name.
+  required_checks:
+    - python (3.12)
+    - python (3.15)
+    - node
+    - analyze (python)
+    - analyze (javascript-typescript)
+    - analyze (actions)
+    - review
+    - gitleaks
+    - trufflehog
+    - zizmor
+    - PR title
+```
+
+- [ ] **Step 3: Implement the settings script**
+
+`scripts/github/apply_repo_settings.py`:
+```python
+"""Apply GitHub repository settings from .github/repository.yml with the GitHub CLI.
+
+Usage:
+    uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME --dry-run
+    uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import shlex
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+from jsonschema import Draft202012Validator
+
+ROOT = Path(__file__).resolve().parents[2]
+SETTINGS_FILE = ROOT / ".github" / "repository.yml"
+SCHEMA_FILE = ROOT / ".github" / "repository.schema.json"
+REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+API_HEADER = "Accept: application/vnd.github+json"
+FieldValue = str | bool | int
+
+
+class SettingsError(Exception):
+    """repository.yml is missing or invalid."""
+
+
+@dataclass(frozen=True)
+class Call:
+    method: str
+    endpoint: str
+    fields: tuple[tuple[str, FieldValue], ...] = ()
+    body: dict[str, Any] | None = None
+
+    def argv(self) -> list[str]:
+        cmd = ["gh", "api", "-X", self.method, self.endpoint, "-H", API_HEADER]
+        for key, value in self.fields:
+            if isinstance(value, bool):
+                cmd += ["-F", f"{key}={str(value).lower()}"]
+            elif isinstance(value, int):
+                cmd += ["-F", f"{key}={value}"]
+            else:
+                cmd += ["-f", f"{key}={value}"]
+        if self.body is not None:
+            cmd += ["--input", "-"]
+        return cmd
+
+
+def load_settings(path: Path) -> dict[str, Any]:
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        msg = f"{path}: {exc}"
+        raise SettingsError(msg) from None
+    schema = json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+    errors = sorted(
+        f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}: {e.message}"
+        for e in validator.iter_errors(data)
+    )
+    if errors:
+        msg = f"{path}: invalid settings\n" + "\n".join(f"  - {e}" for e in errors)
+        raise SettingsError(msg)
+    settings: dict[str, Any] = data
+    return settings
+
+
+def _status(enabled: bool) -> str:
+    return "enabled" if enabled else "disabled"
+
+
+def build_calls(settings: dict[str, Any], repo: str) -> list[Call]:
+    features, merge, security = settings["features"], settings["merge"], settings["security"]
+    fields: list[tuple[str, FieldValue]] = [
+        ("description", settings["description"].strip()),
+        ("has_issues", features["issues"]),
+        ("has_discussions", features["discussions"]),
+        ("has_wiki", features["wiki"]),
+        ("has_projects", features["projects"]),
+        ("allow_squash_merge", merge["squash"]),
+        ("allow_merge_commit", merge["merge_commit"]),
+        ("allow_rebase_merge", merge["rebase"]),
+        ("squash_merge_commit_title", merge["squash_title"]),
+        ("squash_merge_commit_message", merge["squash_message"]),
+        ("delete_branch_on_merge", merge["delete_branch_on_merge"]),
+        ("allow_auto_merge", merge["auto_merge"]),
+        ("security_and_analysis[secret_scanning][status]", _status(security["secret_scanning"])),
+        (
+            "security_and_analysis[secret_scanning_push_protection][status]",
+            _status(security["push_protection"]),
+        ),
+    ]
+    if settings["homepage"]:
+        fields.append(("homepage", settings["homepage"]))
+    calls = [
+        Call("PATCH", f"repos/{repo}", tuple(fields)),
+        Call("PUT", f"repos/{repo}/topics", tuple(("names[]", t) for t in settings["topics"])),
+        Call(
+            "PUT" if security["private_vulnerability_reporting"] else "DELETE",
+            f"repos/{repo}/private-vulnerability-reporting",
+        ),
+        Call(
+            "PUT" if security["dependabot_alerts"] else "DELETE",
+            f"repos/{repo}/vulnerability-alerts",
+        ),
+    ]
+    return calls
+
+
+def ruleset_body(settings: dict[str, Any]) -> dict[str, Any]:
+    ruleset = settings["ruleset"]
+    rules: list[dict[str, Any]] = [
+        {"type": "deletion"},
+        {"type": "non_fast_forward"},
+        {
+            "type": "pull_request",
+            "parameters": {
+                "required_approving_review_count": ruleset["required_approvals"],
+                "dismiss_stale_reviews_on_push": True,
+                "require_code_owner_review": False,
+                "require_last_push_approval": False,
+                "required_review_thread_resolution": True,
+            },
+        },
+        {
+            "type": "required_status_checks",
+            "parameters": {
+                "strict_required_status_checks_policy": True,
+                "required_status_checks": [{"context": c} for c in ruleset["required_checks"]],
+            },
+        },
+    ]
+    if ruleset["linear_history"]:
+        rules.append({"type": "required_linear_history"})
+    return {
+        "name": ruleset["name"],
+        "target": "branch",
+        "enforcement": "active",
+        "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+        "rules": rules,
+    }
+
+
+def _run(call: Call) -> str:
+    stdin = json.dumps(call.body) if call.body is not None else None
+    result = subprocess.run(call.argv(), input=stdin, capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def _ruleset_call(repo: str, body: dict[str, Any]) -> Call:
+    existing = json.loads(_run(Call("GET", f"repos/{repo}/rulesets")) or "[]")
+    match = next((r for r in existing if r.get("name") == body["name"]), None)
+    if match is None:
+        return Call("POST", f"repos/{repo}/rulesets", body=body)
+    return Call("PUT", f"repos/{repo}/rulesets/{match['id']}", body=body)
+
+
+def _repo(value: str) -> str:
+    if not REPO_PATTERN.match(value):
+        msg = f"{value!r} is not OWNER/NAME"
+        raise argparse.ArgumentTypeError(msg)
+    return value
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", required=True, type=_repo, help="OWNER/NAME")
+    parser.add_argument("--dry-run", action="store_true", help="print the gh commands only")
+    args = parser.parse_args(argv)
+
+    try:
+        settings = load_settings(SETTINGS_FILE)
+    except SettingsError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    calls = build_calls(settings, args.repo)
+    body = ruleset_body(settings)
+
+    if args.dry_run:
+        for call in calls:
+            print(shlex.join(call.argv()))
+        print(f"# then create or update ruleset {body['name']!r} via repos/{args.repo}/rulesets:")
+        print(json.dumps(body, indent=2))
+        return 0
+
+    for call in [*calls, _ruleset_call(args.repo, body)]:
+        _run(call)
+        print(f"applied {call.method} {call.endpoint}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+Run: `uv run pytest packages/cli/tests/test_repo_settings.py -v`
+Expected: 7 passed.
+
+- [ ] **Step 4: Add commit conventions (template, commitlint, PR-title check)**
+
+`.gitmessage`:
+```text
+# <type>(<scope>): <summary in imperative mood, no trailing period>
+#
+# Types:  feat fix perf refactor docs test build ci chore revert
+# Scopes: cli contracts schema registry config report schedule doctor site plugin
+#         ci deps docs security release plan spec main
+#
+# Body: what changed and why, wrapped at 72 columns.
+# Footer: "BREAKING CHANGE: <description>" and/or "Refs #<issue>".
+```
+
+`commitlint.config.mjs`:
+```js
+export default {
+  extends: ["@commitlint/config-conventional"],
+  rules: {
+    "scope-enum": [
+      1,
+      "always",
+      [
+        "cli", "contracts", "schema", "registry", "config", "report", "schedule", "doctor",
+        "site", "plugin", "ci", "deps", "docs", "security", "release", "plan", "spec", "main",
+      ],
+    ],
+    "body-max-line-length": [0],
+    "footer-max-line-length": [0],
+  },
+};
+```
+
+Run: `pnpm add -D -w @commitlint/cli @commitlint/config-conventional` (reference: 21.2.3), then `pnpm exec commitlint --from HEAD~3 --to HEAD --verbose`.
+Expected: the recent commits pass (warnings for unknown scopes are acceptable).
+
+In `.pre-commit-config.yaml`, add at the top of the file:
+```yaml
+default_install_hook_types: [pre-commit, commit-msg]
+```
+and append the hook:
+```yaml
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.27.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ["@commitlint/config-conventional@21.2.3"]
+```
+Then run `uv run pre-commit autoupdate` and keep `additional_dependencies` equal to the installed `@commitlint/config-conventional` version.
+
+`.github/workflows/pr-title.yml`:
+```yaml
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  pr-title:
+    name: PR title
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+- [ ] **Step 5: Add the pull request, issue, and discussion templates**
+
+`.github/pull_request_template.md`:
+```markdown
+## What and why
+
+<!-- What does this change, and why is it needed? Link issues with "Closes #123". -->
+
+## Type of change
+
+- [ ] Feature
+- [ ] Fix
+- [ ] Registry or data only (sections, item types, sources, locales, defaults)
+- [ ] Docs
+- [ ] CI, security, or tooling
+- [ ] Breaking change (explain the migration below)
+
+## Checklist
+
+- [ ] The PR title follows Conventional Commits (`feat(scope): ...`)
+- [ ] Tests cover the change (`uv run pytest`, `pnpm test`)
+- [ ] `uv run pulse registry check` passes if registries or config changed
+- [ ] Models are regenerated if `schema/*.schema.json` changed
+- [ ] No secrets, tokens, notification URLs, or private data are included
+- [ ] Docs and README are updated if behavior changed
+
+## Migration notes
+
+<!-- Only for breaking changes. -->
+```
+
+`.github/ISSUE_TEMPLATE/config.yml`:
+```yaml
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/Mordris/PulseAI/discussions
+    about: Ask questions and share ideas in GitHub Discussions.
+  - name: Report a security vulnerability
+    url: https://github.com/Mordris/PulseAI/security/advisories/new
+    about: Report vulnerabilities privately. Never open a public issue for security problems.
+```
+
+`.github/ISSUE_TEMPLATE/bug_report.yml`:
+```yaml
+name: Bug report
+description: Something in PulseAI is broken or behaves unexpectedly.
+title: "bug: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Search existing issues first. For security problems, use the private
+        vulnerability report form instead of this template.
+  - type: input
+    id: version
+    attributes:
+      label: PulseAI version
+      description: Output of `pulse --version`.
+      placeholder: pulse 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Where does it run?
+      options:
+        - Local timer (systemd or launchd)
+        - GitHub Actions
+        - Claude Code cloud routine
+        - Development checkout
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `pulse ...`
+        2. See error
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `pulse doctor`
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed secrets, tokens, notification URLs, and private data from everything above.
+          required: true
+```
+
+`.github/ISSUE_TEMPLATE/feature_request.yml`:
+```yaml
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: "feat: "
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the need, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include any open-source project that already solves this.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Report and site
+        - Research and sources
+        - Agents and skills
+        - CLI and configuration
+        - Hosts and scheduling
+        - Notifications
+        - Docs
+    validations:
+      required: true
+```
+
+`.github/ISSUE_TEMPLATE/source_request.yml`:
+```yaml
+name: Source request
+description: Propose a high-signal source for the default registry.
+title: "source: "
+labels: [source-request, needs-triage]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Source name
+      placeholder: Example Lab research blog
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Homepage or feed URL
+      placeholder: https://example.org/feed.xml
+    validations:
+      required: true
+  - type: dropdown
+    id: access
+    attributes:
+      label: How can PulseAI read it?
+      options:
+        - RSS or Atom feed
+        - JSON API
+        - MCP server
+        - Web page only
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      description: T1 = official primary source or hard data; T2 = expert curator (signal only).
+      options:
+        - T1 (primary)
+        - T1-data
+        - T2 (curator)
+    validations:
+      required: true
+  - type: dropdown
+    id: sections
+    attributes:
+      label: Sections it would feed
+      multiple: true
+      options:
+        - Models and labs
+        - Agentic dev tooling
+        - Research desk
+        - Software and OSS
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it high-signal?
+      description: Examples of recent items it broke first or covered best.
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Terms
+      options:
+        - label: Its terms of use allow automated reading for personal research digests.
+          required: true
+```
+
+`.github/DISCUSSION_TEMPLATE/ideas.yml`:
+```yaml
+title: "[Idea] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What would make your daily report more useful?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: How do you run PulseAI and what do you read it for?
+```
+
+`.github/DISCUSSION_TEMPLATE/q-a.yml`:
+```yaml
+title: "[Q] "
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PulseAI version
+      placeholder: pulse 0.1.0
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Local timer
+        - GitHub Actions
+        - Claude Code cloud routine
+        - Development checkout
+```
+
+- [ ] **Step 6: Add labels as code, path-based PR labeling, release-note categories, and stale handling**
+
+`.github/labels.yml`:
+```yaml
+- { name: bug, color: d73a4a, description: Something is not working }
+- { name: enhancement, color: a2eeef, description: New feature or improvement }
+- { name: documentation, color: 0075ca, description: Documentation changes }
+- { name: security, color: b60205, description: Security-related change or report }
+- { name: dependencies, color: 0366d6, description: Dependency updates }
+- { name: breaking-change, color: e11d21, description: Requires a migration }
+- { name: performance, color: fbca04, description: Faster or lighter }
+- { name: question, color: d876e3, description: Further information is requested }
+- { name: needs-triage, color: ededed, description: Waiting for a maintainer to triage }
+- { name: good first issue, color: 7057ff, description: Good for newcomers }
+- { name: help wanted, color: "008672", description: Extra attention is wanted }
+- { name: duplicate, color: cfd3d7, description: This issue or PR already exists }
+- { name: wontfix, color: ffffff, description: This will not be worked on }
+- { name: stale, color: c5def5, description: No recent activity }
+- { name: pinned, color: 5319e7, description: Exempt from stale handling }
+- { name: major-update, color: e99695, description: Major dependency update (manual review) }
+- { name: ignore-for-release, color: eeeeee, description: Excluded from release notes }
+- { name: source-request, color: 1d76db, description: Proposed source for the registry }
+- { name: area/cli, color: c2e0c6, description: pulse CLI }
+- { name: area/contracts, color: c2e0c6, description: TypeScript contracts }
+- { name: area/schema, color: c2e0c6, description: JSON Schemas }
+- { name: area/registry, color: c2e0c6, description: Sections, item types, sources, locales, defaults }
+- { name: area/plugin, color: c2e0c6, description: Claude Code plugin }
+- { name: area/ci, color: c2e0c6, description: Workflows and automation }
+```
+
+`.github/workflows/labels.yml`:
+```yaml
+name: Labels
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/labels.yml, .github/workflows/labels.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yml
+          skip-delete: false
+```
+
+`.github/labeler.yml`:
+```yaml
+area/cli:
+  - changed-files:
+      - any-glob-to-any-file: ["packages/cli/**", "scripts/**"]
+area/contracts:
+  - changed-files:
+      - any-glob-to-any-file: ["packages/contracts/**"]
+area/schema:
+  - changed-files:
+      - any-glob-to-any-file: ["schema/**"]
+area/registry:
+  - changed-files:
+      - any-glob-to-any-file: ["taxonomy/**", "sources/**", "locales/**", "defaults/**"]
+area/plugin:
+  - changed-files:
+      - any-glob-to-any-file: ["plugins/**", ".claude-plugin/**"]
+area/ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/**", ".pre-commit-config.yaml", "renovate.json"]
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ["**/*.md", "docs/**"]
+```
+
+`.github/workflows/labeler.yml`:
+```yaml
+name: Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  label:
+    # Fork PRs get a read-only token; label only same-repository PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+```
+
+`.github/workflows/stale.yml`:
+```yaml
+name: Stale
+
+on:
+  schedule:
+    - cron: "11 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          days-before-stale: 60
+          days-before-close: 14
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: pinned,security,needs-triage
+          exempt-pr-labels: pinned,security,major-update
+          stale-issue-message: >-
+            This issue has had no activity for 60 days and will close in 14 days unless there is
+            new activity. Comment to keep it open.
+          stale-pr-message: >-
+            This pull request has had no activity for 60 days and will close in 14 days unless
+            there is new activity.
+```
+
+`.github/release.yml`:
+```yaml
+changelog:
+  exclude:
+    labels: [ignore-for-release]
+  categories:
+    - title: Breaking changes
+      labels: [breaking-change]
+    - title: Features
+      labels: [enhancement]
+    - title: Fixes
+      labels: [bug]
+    - title: Security
+      labels: [security]
+    - title: Documentation
+      labels: [documentation]
+    - title: Dependencies
+      labels: [dependencies]
+    - title: Other changes
+      labels: ["*"]
+```
+
+In `release-please-config.json`, add these top-level keys (tags stay `cli-vX.Y.Z` / `contracts-vX.Y.Z` with linked versions):
+```json
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "revert", "section": "Reverts" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "build", "section": "Build system" },
+    { "type": "ci", "section": "CI", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true },
+    { "type": "chore", "section": "Miscellaneous", "hidden": true }
+  ],
+```
+and add to the `packages/cli` entry's `extra-files`:
+```json
+        { "type": "yaml", "path": "/CITATION.cff", "jsonpath": "$.version" }
+```
+
+- [ ] **Step 7: Add the community files**
+
+Fetch the Contributor Covenant from GitHub's API and fill in its contact placeholder:
+```bash
+gh api /codes_of_conduct/contributor_covenant --jq .body > CODE_OF_CONDUCT.md
+python3 - <<'EOF'
+from pathlib import Path
+path = Path("CODE_OF_CONDUCT.md")
+text = path.read_text(encoding="utf-8")
+contact = "a private report to the maintainers via https://github.com/Mordris/PulseAI/security/advisories/new"
+assert "[INSERT CONTACT METHOD]" in text
+path.write_text(text.replace("[INSERT CONTACT METHOD]", contact), encoding="utf-8")
+EOF
+grep -c "INSERT CONTACT" CODE_OF_CONDUCT.md || true
+```
+Expected: the final `grep` prints `0`.
+
+`SUPPORT.md`:
+```markdown
+# Getting help
+
+- **Questions, setup help, and ideas:** [GitHub Discussions](https://github.com/Mordris/PulseAI/discussions)
+  (use the Q&A and Ideas categories).
+- **Bugs and feature requests:** [open an issue](https://github.com/Mordris/PulseAI/issues/new/choose)
+  with the matching template. Include `pulse doctor` output.
+- **New sources:** use the source request template.
+- **Security problems:** report privately as described in [SECURITY.md](SECURITY.md).
+
+Before asking, run `pulse doctor` and `pulse registry check`; most setup problems show up there.
+```
+
+`CITATION.cff`:
+```yaml
+cff-version: 1.2.0
+message: If you use PulseAI in research or publications, please cite it using these metadata.
+title: "PulseAI: a daily, verified AI and software research routine for Claude Code"
+type: software
+authors:
+  - name: PulseAI contributors
+repository-code: https://github.com/Mordris/PulseAI
+license: MIT
+version: 0.1.0
+keywords:
+  - claude-code
+  - research-automation
+  - ai
+  - llm
+  - daily-digest
+  - mcp
+abstract: >-
+  PulseAI researches what changed in AI and software every day, verifies each item against primary
+  sources, compares it with earlier coverage, and publishes one consistently designed,
+  chart-rich report.
+```
+
+`docs/assets/logo-light.svg`:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="96" viewBox="0 0 420 96" role="img" aria-labelledby="title">
+  <title id="title">PulseAI</title>
+  <rect x="4" y="8" width="80" height="80" rx="20" fill="#2a78d6"/>
+  <polyline points="16,52 30,52 38,34 48,70 56,44 62,52 72,52" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="104" y="64" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="46" font-weight="600" fill="#0b0b0b">Pulse<tspan fill="#2a78d6">AI</tspan></text>
+</svg>
+```
+
+`docs/assets/logo-dark.svg`:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="96" viewBox="0 0 420 96" role="img" aria-labelledby="title">
+  <title id="title">PulseAI</title>
+  <rect x="4" y="8" width="80" height="80" rx="20" fill="#3987e5"/>
+  <polyline points="16,52 30,52 38,34 48,70 56,44 62,52 72,52" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="104" y="64" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="46" font-weight="600" fill="#f0efec">Pulse<tspan fill="#6aa7f0">AI</tspan></text>
+</svg>
+```
+
+In `.claude-plugin/marketplace.json`, add a top-level `"description": "Daily AI and software research routine for Claude Code"`; run `claude plugin validate .` and, if the warning about a missing description remains, move the field to `"metadata": { "description": ... }` instead.
+
+Append to `CONTRIBUTING.md`:
+```markdown
+## Commit messages
+
+Use the commit template once per clone: `git config commit.template .gitmessage`.
+The pre-commit `commit-msg` hook runs commitlint (Conventional Commits). Pull requests are
+squash-merged, so the PR title becomes the commit: CI checks it with the same rules.
+```
+
+In `SECURITY.md`, replace the "One-time repository settings (owner)" section with:
+```markdown
+## Repository settings
+
+Repository settings (features, merge rules, security features, topics, and the `main` ruleset with
+required checks) live in `.github/repository.yml` and are applied with
+`uv run python scripts/github/apply_repo_settings.py --repo OWNER/NAME` (use `--dry-run` first).
+Also allow only SHA-pinned actions and set the default `GITHUB_TOKEN` permission to read-only under
+Settings → Actions → General.
+```
+
+- [ ] **Step 8: Replace the README**
+
+`README.md`:
+````markdown
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <img alt="PulseAI" src="docs/assets/logo-light.svg" width="420">
+</picture>
+
+### Your daily, verified, beautifully visualized AI and software briefing
+
+An open-source [Claude Code](https://code.claude.com) routine that researches what changed in AI
+and software every day, checks every claim against primary sources, and publishes one
+consistently designed, chart-rich report.
+
+[![CI](https://github.com/Mordris/PulseAI/actions/workflows/ci.yml/badge.svg)](https://github.com/Mordris/PulseAI/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Mordris/PulseAI/actions/workflows/codeql.yml/badge.svg)](https://github.com/Mordris/PulseAI/actions/workflows/codeql.yml)
+[![Secret scan](https://github.com/Mordris/PulseAI/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/Mordris/PulseAI/actions/workflows/secret-scan.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Mordris/PulseAI/badge)](https://scorecard.dev/viewer/?uri=github.com/Mordris/PulseAI)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Conventional Commits](https://img.shields.io/badge/commits-conventional-FE5196.svg?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-1A1F6C.svg?logo=renovatebot&logoColor=white)](renovate.json)
+
+[How it works](#how-it-works) · [Quick start](#quick-start) · [Configuration](#configuration) · [Extending](#extending-pulseai) · [Roadmap](#roadmap) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+> [!IMPORTANT]
+> PulseAI is under active development. Milestone **M1 (foundation)** is being built now: schemas,
+> registries, configuration, validation, CI, and security automation. The daily routine itself
+> arrives in later milestones; see the [roadmap](#roadmap).
+
+## Why PulseAI
+
+AI models, agent tooling, and research change every day. Newsletters summarize; PulseAI verifies.
+Every item in a report links to a primary source fetched during the run, every number in a chart
+traces to a quoted span, and nothing is repeated from earlier reports unless something changed.
+
+## Highlights
+
+- **One report a day, on your schedule.** Runs as a Claude Code cloud routine, a GitHub Actions
+  workflow, or a local systemd or launchd timer, all from the same configuration.
+- **Verified, not summarized.** Primary-source requirement, date-window checks, quote-backed
+  numbers, confidence labels (Confirmed, Reported, Rumor), and a recall check against expert
+  curators.
+- **Remembers what it told you.** Coverage memory links follow-ups to earlier items and drops
+  repeats.
+- **Deep-dives, not headlines.** Each item expands into a type-specific deep-dive: model releases,
+  tool releases, papers, articles, repositories, security advisories, industry news, and
+  leaderboard shifts.
+- **A research desk.** Papers from arXiv, OpenReview, and lab research pages, read in full and
+  briefed the way a reviewer would.
+- **Designed, then checked.** A fixed visual frame with generative charts and diagrams, validated
+  for accessibility and colorblind safety in light and dark themes.
+- **Nothing hardcoded.** Sections, item types, sources, languages, themes, models, and thresholds
+  are schema-validated registries you can override without touching code.
+- **Open source first.** Built on Astro, Vega-Lite, Mermaid, Playwright, Apprise, MCP servers, and
+  more; custom code is thin glue.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Load memory<br/>config, registries, coverage"] --> B["Research in parallel<br/>section researchers, research desk"]
+    B --> C["History check<br/>drop, update, or upgrade"]
+    C --> D["Verify<br/>sources, dates, quotes, numbers"]
+    D --> E["Write report.json<br/>schema-validated"]
+    E --> F["Build and review<br/>site, accessibility, design rubric"]
+    F --> G["Publish<br/>private instance repository"]
+    G --> H["Notify<br/>Telegram, email, Slack, Discord, ntfy"]
+```
+
+PulseAI ships as two pieces:
+
+| Piece | What it is |
+|---|---|
+| **This repository (the engine)** | The Claude Code plugin (skills, agents, hooks), the `pulse` CLI, JSON Schemas, default registries, the report site, and host adapters |
+| **Your `pulse-instance` (private)** | Your configuration and overrides, plus your daily reports, coverage state, and site |
+
+### What a report contains
+
+- A masthead with the **Pulse score**: how big the day was compared with your 7-day average
+- KPI tiles, a TL;DR, a generative front-page dashboard, and an adoption radar (adopt, trial,
+  assess, hold)
+- Default sections: Models and labs, Agentic dev tooling, Research desk, Software and OSS
+- Expandable deep-dives with charts, diagrams, and real figures, plus signals, corrections,
+  methodology, and source health
+
+## Quick start
+
+> [!NOTE]
+> Running a complete daily instance arrives with milestone M6. Today you can develop on the
+> engine and validate configuration, registries, and reports.
+
+**Requirements:** Python 3.12+, [uv](https://docs.astral.sh/uv/), Node.js LTS, pnpm,
+Claude Code 2.1.259+, and Git. `pulse doctor` checks all of them.
+
+### Develop on the engine
+
+```bash
+git clone https://github.com/Mordris/PulseAI.git
+cd PulseAI
+uv sync
+pnpm install
+uv run pulse doctor
+uv run pytest && pnpm test
+```
+
+### Try the CLI
+
+```bash
+uv run pulse config show                                         # effective configuration
+uv run pulse registry check                                      # registries and config agree
+uv run pulse validate schema/examples/report/valid/minimal.json  # check a report
+uv run pulse schedule print --host actions                       # scheduler settings per host
+```
+
+<details>
+<summary><b>Install the Claude Code plugin</b></summary>
+
+```text
+/plugin marketplace add Mordris/PulseAI
+/plugin install pulse@pulseai
+```
+
+The plugin's skills and agents arrive in milestone M4.
+
+</details>
+
+## Configuration
+
+Your instance's `pulse.config.yaml` is merged over the [engine defaults](defaults/pulse.config.yaml),
+and any value can be overridden at runtime with environment variables.
+
+```yaml
+schedule:
+  time: "17:00"
+  tz: Europe/Istanbul
+language: en
+sections:
+  research: { enabled: true, max_items: 20 }
+models_by_role:
+  editor: claude-opus-5-5
+```
+
+```bash
+PULSE__SCHEDULE__TIME=18:30 uv run pulse config show
+```
+
+| Registry | File | Purpose |
+|---|---|---|
+| Sections | [`taxonomy/sections.yaml`](taxonomy/sections.yaml) | Report sections, scoring rubrics, and sub-groups |
+| Item types | [`taxonomy/item-types.yaml`](taxonomy/item-types.yaml) | Deep-dive types and their detail schemas |
+| Roles | [`taxonomy/roles.yaml`](taxonomy/roles.yaml) | Agent roles that `models_by_role` assigns models to |
+| Sources | [`sources/registry/`](sources/registry/) | Feeds, APIs, MCP tools, and searches |
+| Locales | [`locales/`](locales/) | Interface text for each language |
+| Engine | [`defaults/engine.yaml`](defaults/engine.yaml) | Tool requirements checked by `pulse doctor` |
+
+Every contract lives in [`schema/`](schema/) as JSON Schema. Python models are generated from it,
+and TypeScript validators are built from the same files.
+
+## Extending PulseAI
+
+Instances override registries by `id`, so you can add, change, or remove entries without writing
+code:
+
+```yaml
+# pulse-instance/sources/registry/mine.yaml
+schema_version: 1
+sources:
+  - id: my-team-blog
+    name: My team's engineering blog
+    tier: T2
+    sections: [tooling]
+    trust: 3
+    enabled: true
+    via: collector
+    collector: { kind: rss, url: "https://example.org/feed.xml" }
+  - id: simon-willison
+    _remove: true
+```
+
+Then run `pulse registry check` to confirm everything still fits together.
+
+## Architecture
+
+<details>
+<summary><b>Repository layout</b></summary>
+
+```text
+.claude-plugin/        plugin marketplace
+plugins/pulse/         Claude Code plugin (skills, agents, hooks)
+schema/                JSON Schemas: the single source of truth
+defaults/              engine defaults and the registry catalog
+taxonomy/              sections, item types, roles
+sources/registry/      default research sources
+locales/               interface text
+packages/cli/          the pulse CLI (Python, uv)
+packages/contracts/    Zod validators built from the schemas (TypeScript)
+scripts/               maintainer tooling
+docs/                  spec, plans, and architecture decisions
+```
+
+</details>
+
+| Concern | Built on |
+|---|---|
+| Report site | Astro, Pagefind, Style Dictionary |
+| Charts and diagrams | Vega-Lite, Mermaid |
+| Browser automation and QA | Playwright, axe-core |
+| Data access | MCP servers (GitHub, Hugging Face, arXiv, fetch, Exa, Brave), feedparser, httpx |
+| Contracts | JSON Schema, generated Pydantic models, Zod |
+| Notifications | Apprise |
+| Quality and supply chain | Ruff, Pyright, Biome, pytest, Vitest, CodeQL, OSV-Scanner, gitleaks, TruffleHog, zizmor, OpenSSF Scorecard, Renovate, release-please |
+
+## Security
+
+PulseAI treats fetched web content as untrusted data, keeps secrets out of git with pre-commit and
+CI secret scanning, pins every GitHub Action by commit SHA, and audits CI network egress. To report
+a vulnerability, see [SECURITY.md](SECURITY.md).
+
+## Roadmap
+
+| Milestone | Scope | Status |
+|---|---|---|
+| M0 | Cloud routine spikes | Planned |
+| M1 | Foundation: schemas, registries, config, validation, CI, security | In progress |
+| M2 | Site and visual system | Planned |
+| M3 | Data access: collector, MCP catalog, sources, coverage history | Planned |
+| M4 | Agents and skills: daily orchestrator, verifier, design review | Planned |
+| M5 | Research desk | Planned |
+| M6 | Publish, notify, hosts, onboarding | Planned |
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md); commits and pull request titles
+follow [Conventional Commits](https://www.conventionalcommits.org). Want PulseAI to read a new
+source? Open a [source request](https://github.com/Mordris/PulseAI/issues/new?template=source_request.yml).
+
+## Community and support
+
+- Questions and ideas: [GitHub Discussions](https://github.com/Mordris/PulseAI/discussions)
+- Bugs and feature requests: [issues](https://github.com/Mordris/PulseAI/issues/new/choose)
+- [Support](SUPPORT.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
+
+## Citation
+
+If you use PulseAI in research, cite it with the metadata in [CITATION.cff](CITATION.cff); GitHub
+shows a "Cite this repository" button for it.
+
+## License
+
+[MIT](LICENSE) © PulseAI contributors
+````
+
+- [ ] **Step 9: Validate everything locally**
+
+Run:
+```bash
+uv run pytest packages/cli/tests/test_repo_settings.py -v
+uv run python scripts/github/apply_repo_settings.py --repo Mordris/PulseAI --dry-run
+uv run check-jsonschema --builtin-schema vendor.github-issue-forms .github/ISSUE_TEMPLATE/bug_report.yml .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/source_request.yml
+uv run check-jsonschema --builtin-schema vendor.github-issue-config .github/ISSUE_TEMPLATE/config.yml
+uv run check-jsonschema --builtin-schema vendor.citation-file-format CITATION.cff
+uv run check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/*.yml
+uv run pre-commit run --all-files
+uvx zizmor .github/workflows
+claude plugin validate .
+```
+Expected: 7 tests pass; the dry run prints `gh api` commands and the ruleset JSON without contacting GitHub; every schema check passes; pre-commit, zizmor (no findings), and the plugin validator pass. If a `check-jsonschema` builtin name is not recognized, list them with `uv run check-jsonschema --help` and use the matching `vendor.*` name.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add .gitmessage commitlint.config.mjs .github scripts/github packages/cli/tests/test_repo_settings.py CODE_OF_CONDUCT.md SUPPORT.md CITATION.cff docs/assets README.md .pre-commit-config.yaml package.json pnpm-lock.yaml release-please-config.json .claude-plugin/marketplace.json CONTRIBUTING.md SECURITY.md
+git commit -m "docs: add community health files, templates, labels, repo settings, and README
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```

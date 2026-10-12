@@ -1,0 +1,46 @@
+[
+  { "name": "missing headline", "patch": [{ "op": "remove", "path": "/headline" }] },
+  { "name": "unknown top-level key", "patch": [{ "op": "add", "path": "/surprise", "value": 1 }] },
+  {
+    "name": "item id is not a slug",
+    "patch": [{ "op": "replace", "path": "/items/0/id", "value": "Not A Slug" }]
+  },
+  {
+    "name": "unknown confidence",
+    "patch": [{ "op": "replace", "path": "/items/0/confidence", "value": "certain" }]
+  },
+  {
+    "name": "non-http source url",
+    "patch": [{ "op": "replace", "path": "/items/0/sources/0/url", "value": "javascript:alert(1)" }]
+  },
+  {
+    "name": "impact out of range",
+    "patch": [{ "op": "replace", "path": "/items/0/impact", "value": 9 }]
+  },
+  {
+    "name": "unknown visual kind",
+    "patch": [{ "op": "replace", "path": "/items/0/visuals/0/kind", "value": "pie" }]
+  },
+  {
+    "name": "bad date",
+    "patch": [{ "op": "replace", "path": "/meta/date", "value": "yesterday" }]
+  },
+  {
+    "name": "date-time with a lowercase z",
+    "patch": [{ "op": "replace", "path": "/meta/window/end", "value": "2026-10-11T14:00:00z" }]
+  },
+  {
+    "name": "date-time with a lowercase t",
+    "patch": [{ "op": "replace", "path": "/meta/window/start", "value": "2026-10-10t14:00:00Z" }]
+  },
+  {
+    "name": "source fetched_at with a lowercase z",
+    "patch": [
+      { "op": "add", "path": "/items/0/sources/0/fetched_at", "value": "2026-10-11T14:00:00z" }
+    ]
+  },
+  {
+    "name": "item without sources",
+    "patch": [{ "op": "replace", "path": "/items/0/sources", "value": [] }]
+  }
+]

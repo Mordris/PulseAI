@@ -1,0 +1,65 @@
+schema_version: 1
+item_types:
+  - id: model_release
+    label: item_types.model_release
+    schema: model_release.schema.json
+    component: ModelRelease
+    blocks: [key_facts, benchmarks, price_comparison, try_it, archive_history]
+    brief_fields: [org, model]
+    markdown_fields: [org, model, context_tokens, price_in_per_mtok, price_out_per_mtok, weights]
+  - id: tool_release
+    label: item_types.tool_release
+    schema: release.schema.json
+    component: Release
+    blocks: [changelog, cadence, verdict, snippet, migration_notes]
+    brief_fields: [product, version]
+    markdown_fields: [product, version, previous_version, verdict]
+  - id: framework_release
+    label: item_types.framework_release
+    schema: release.schema.json
+    component: Release
+    blocks: [changelog, cadence, verdict, snippet, migration_notes]
+    brief_fields: [product, version]
+    markdown_fields: [product, version, previous_version, verdict]
+  - id: paper
+    label: item_types.paper
+    schema: paper.schema.json
+    component: Paper
+    blocks: [tldr, plain_explanation, problem_and_idea, method, results, critical_review, reproducibility, takeaway, reading_guide, figures, related]
+    brief_fields: [tldr]
+    markdown_fields: [tldr, method_steps, takeaway]
+  - id: article
+    label: item_types.article
+    schema: article.schema.json
+    component: Article
+    blocks: [key_points, reading_time, verdict]
+    brief_fields: [publication, reading_minutes]
+    markdown_fields: [author, publication, key_points, worth_full_read]
+  - id: repo
+    label: item_types.repo
+    schema: repo.schema.json
+    component: Repo
+    blocks: [stars_trend, facts, alternatives, quickstart]
+    brief_fields: [full_name, stars]
+    markdown_fields: [full_name, language, license, stars, stars_delta_7d]
+  - id: security_advisory
+    label: item_types.security_advisory
+    schema: security_advisory.schema.json
+    component: SecurityAdvisory
+    blocks: [severity, versions, exploitation, fix]
+    brief_fields: [advisory_id, severity]
+    markdown_fields: [advisory_id, severity, cvss, affected, fixed_in, exploited_in_wild]
+  - id: industry
+    label: item_types.industry
+    schema: industry.schema.json
+    component: Industry
+    blocks: [summary_facts, timeline, builder_impact]
+    brief_fields: [who]
+    markdown_fields: [who, what, amount]
+  - id: leaderboard_shift
+    label: item_types.leaderboard_shift
+    schema: leaderboard_shift.schema.json
+    component: LeaderboardShift
+    blocks: [rank_changes, reliability]
+    brief_fields: [board]
+    markdown_fields: [board, reliability_note]

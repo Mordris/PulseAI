@@ -1,0 +1,67 @@
+name: Source request
+description: Propose a high-signal source for the default registry.
+title: "source: "
+labels: [source-request, needs-triage]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Source name
+      placeholder: Example Lab research blog
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Homepage or feed URL
+      placeholder: https://example.org/feed.xml
+    validations:
+      required: true
+  - type: dropdown
+    id: access
+    attributes:
+      label: How can PulseAI read it?
+      options:
+        - RSS or Atom feed
+        - JSON API
+        - MCP server
+        - Web page only
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      description: T1 = official primary source or hard data; T2 = expert curator (signal only).
+      options:
+        - T1 (primary)
+        - T1-data
+        - T2 (curator)
+    validations:
+      required: true
+  - type: dropdown
+    id: sections
+    attributes:
+      label: Sections it would feed
+      multiple: true
+      options:
+        - Models and labs
+        - Agentic dev tooling
+        - Research desk
+        - Software and OSS
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it high-signal?
+      description: Examples of recent items it broke first or covered best.
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Terms
+      options:
+        - label: Its terms of use allow automated reading for personal research digests.
+          required: true
