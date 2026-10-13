@@ -1,4 +1,5 @@
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
+import { HtmlValidate } from "html-validate";
 import { beforeAll, describe, expect, it } from "vitest";
 import Corrections from "../src/components/frame/Corrections.astro";
 import ReportView from "../src/components/frame/ReportView.astro";
@@ -63,6 +64,20 @@ describe("report view", () => {
     const research = html.slice(html.indexOf('id="section-research"'));
     expect(research.indexOf("In its group")).toBeLessThan(research.indexOf("Also notable"));
     expect(research.indexOf("Quiet group")).toBeGreaterThan(research.indexOf("Also notable"));
+  });
+
+  it("renders valid HTML for every edition", async () => {
+    const validator = new HtmlValidate({ extends: ["html-validate:standard"] });
+    for (const date of ["2026-10-09", "2026-10-10", "2026-10-11"]) {
+      const html = await container.renderToString(ReportView, {
+        props: { ctx, report: sampleReport(date) },
+      });
+      const result = await validator.validateString(html);
+      const messages = result.results.flatMap((file) =>
+        file.messages.map((message) => `${date} ${message.ruleId}: ${message.message}`),
+      );
+      expect(messages).toEqual([]);
+    }
   });
 
   it("keeps the front page out of the search index", async () => {

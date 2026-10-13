@@ -229,7 +229,8 @@
       "required": ["default", "switcher", "preset", "overrides"],
       "properties": {
         "default": {
-          "enum": ["auto", "light", "dark"]
+          "enum": ["auto", "light", "dark"],
+          "x-pulse-label": "ui.theme"
         },
         "switcher": {
           "type": "boolean"
@@ -301,7 +302,7 @@
       "title": "SiteConfig",
       "type": "object",
       "additionalProperties": false,
-      "required": ["url", "search"],
+      "required": ["url", "search", "feed_items"],
       "properties": {
         "url": {
           "type": ["string", "null"],
@@ -310,6 +311,11 @@
         },
         "search": {
           "type": "boolean"
+        },
+        "feed_items": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many of the newest editions the RSS feed lists."
         }
       }
     },

@@ -1,10 +1,14 @@
-import { MODES, type Mode, type ResolvedTokens, token } from "@pulseai/tokens";
+import { MODES, type Mode, OS_DARK, type ResolvedTokens, token } from "@pulseai/tokens";
 
 /** Prefix of the categorical chart palette; slots are numbered from 1 in token order. */
 const CATEGORY_PREFIX = "color.chart.category.";
 
 /** Chart and diagram themes for both modes, built from resolved tokens and inlined in each page. */
 export interface ThemeData {
+  /** Every mode, the default first (token order). */
+  modes: Mode[];
+  /** The mode the OS dark setting selects while the reader follows the OS. */
+  osDark: Mode;
   vega: Record<Mode, VegaConfig>;
   mermaid: Record<Mode, MermaidVariables>;
 }
@@ -47,7 +51,7 @@ export function vegaConfig(tokens: ResolvedTokens): VegaConfig {
   return {
     background: "transparent",
     font,
-    padding: 4,
+    padding: num(tokens, "chart.padding"),
     view: { stroke: "transparent", continuousHeight: num(tokens, "chart.height") },
     axis: {
       domainColor: axis,
@@ -120,5 +124,5 @@ export function themeData(tokens: Record<Mode, ResolvedTokens>): ThemeData {
     vega[mode] = vegaConfig(tokens[mode]);
     mermaid[mode] = mermaidVariables(tokens[mode]);
   }
-  return { vega, mermaid };
+  return { modes: [...MODES], osDark: OS_DARK, vega, mermaid };
 }

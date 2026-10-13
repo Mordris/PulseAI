@@ -7,6 +7,7 @@ import {
   buildTokens,
   CSS_FILE,
   ENGINE_TOKENS_DIR,
+  MEDIA_FILE,
   MODES,
   mergeTokens,
   readResolved,
@@ -67,8 +68,22 @@ describe("buildTokens", () => {
     expect(dark).toMatch(/^:root\[data-theme="dark"\] \{/);
     expect(dark).toContain("--pulse-color-surface-page: #0d0d0d;");
     expect(dark).not.toContain("--pulse-space-4");
-    expect(media).toContain(':root:not([data-theme="light"])');
+    expect(media).toContain(":root:not([data-theme])");
     expect(media).toContain("--pulse-color-surface-page: #0d0d0d;");
+  });
+
+  it("turns breakpoint tokens into custom media queries", async () => {
+    const build = await buildTokens({ preset: "pulse", sections: SECTIONS });
+    expect(build.media).toContain("@custom-media --pulse-breakpoint-sm (min-width: 40rem);");
+    expect(build.media).toContain("@custom-media --pulse-breakpoint-xl (min-width: 64rem);");
+    const instanceDir = instanceWith({
+      "base/size.json": { breakpoint: { sm: { $value: { value: 36, unit: "rem" } } } },
+    });
+    const custom = await buildTokens({ preset: "pulse", instanceDir, sections: SECTIONS });
+    expect(custom.media).toContain("@custom-media --pulse-breakpoint-sm (min-width: 36rem);");
+    const out = mkdtempSync(join(tmpdir(), "pulse-tokens-out-"));
+    writeTokenBuild(build, out);
+    expect(readFileSync(join(out, MEDIA_FILE), "utf8")).toBe(build.media);
   });
 
   it("lists the Fontsource packages of the preset's fonts", async () => {

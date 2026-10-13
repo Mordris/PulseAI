@@ -18,10 +18,20 @@ function value(form: HTMLFormElement, name: string, fallback: string): string {
   return field instanceof HTMLSelectElement ? field.value : fallback;
 }
 
+/** The id a URL fragment names; a malformed escape (a hand-edited link) is taken as written. */
+function fragmentId(hash: string): string {
+  const raw = hash.slice(1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 /** Open the item a URL fragment names (and the details around it), then scroll to it. */
 function openTarget(hash: string): void {
   if (hash.length < 2) return;
-  const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+  const target = document.getElementById(fragmentId(hash));
   if (target === null) return;
   for (let node: HTMLElement | null = target; node !== null; node = node.parentElement) {
     if (node instanceof HTMLDetailsElement) node.open = true;

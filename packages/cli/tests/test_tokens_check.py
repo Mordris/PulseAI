@@ -67,6 +67,16 @@ def test_a_section_without_a_color_token_is_an_error(tmp_path: Path) -> None:
     )
 
 
+def test_a_toned_enum_value_without_a_token_is_an_error(tmp_path: Path) -> None:
+    doc = passing("light")
+    del doc["tokens"]["color.severity.critical"]
+    messages = _messages(check_tokens(write(tmp_path, {"light": doc})))
+    assert messages == [
+        "light/item-types/security_advisory.schema.json#/properties/severity: "
+        "value 'critical' has no token 'color.severity.critical'"
+    ]
+
+
 def test_colors_that_collapse_under_a_cvd_simulation_are_an_error(tmp_path: Path) -> None:
     doc = _with("light", color__chart__category__1="#d03b3b", color__chart__category__2="#5f8f00")
     messages = _messages(check_tokens(write(tmp_path, {"light": doc})))

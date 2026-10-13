@@ -19,7 +19,12 @@ test.describe("print", () => {
   test("expands every item", async ({ page }) => {
     await page.goto("./");
     await page.emulateMedia({ media: "print" });
-    await expect(page.locator("details#northwind-atlas-3 .item__note--why")).toBeVisible();
+    const items = page.locator("details[data-item]");
+    const count = await items.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) {
+      await expect(items.nth(index).locator(".item__note--why")).toBeVisible();
+    }
     await expect(page.locator("pulse-report-controls")).toBeHidden();
   });
 });

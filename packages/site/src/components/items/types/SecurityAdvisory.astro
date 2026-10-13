@@ -66,7 +66,7 @@ const tone = `color.severity.${d.severity}`;
   }
 
   .severity__meter {
-    inline-size: min(16rem, 100%);
+    inline-size: min(var(--pulse-layout-meter-width), 100%);
     block-size: var(--pulse-space-3);
     accent-color: var(--tone);
   }

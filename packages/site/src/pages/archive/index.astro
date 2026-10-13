@@ -22,7 +22,7 @@ const monthTitle = (month: string) =>
   );
 ---
 
-<Base title={`${t("ui.archive.title")} · ${t("ui.site.title")}`}>
+<Base title={ctx.pageTitle(t("ui.archive.title"))}>
   <header class="archive-header">
     <h1>{t("ui.archive.title")}</h1>
     <p class="muted">{t("ui.archive.count", { count: fmt.number(reports.length) })}</p>

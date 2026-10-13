@@ -20,6 +20,7 @@
     "@astrojs/check": "^0.9.10",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
+    "@csstools/postcss-global-data": "^4.0.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
@@ -30,20 +31,22 @@
     "astro-pagefind": "^2.0.1",
     "dompurify": "^3.4.17",
     "mermaid": "^12.1.0",
+    "postcss-custom-media": "^12.0.3",
     "vega": "^6.4.0",
     "vega-embed": "^7.3.0",
     "vega-lite": "^6.5.0",
-    "zod": "^4.6.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
+    "html-validate": "^11.16.2",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3",
     "yaml": "^2.9.1"
   },
   "config": {
-    "playwrightImage": "mcr.microsoft.com/playwright:v1.64.0-noble"
+    "playwrightImage": "mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f"
   }
 }

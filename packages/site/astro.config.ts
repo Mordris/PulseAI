@@ -1,9 +1,12 @@
 import { createRequire } from "node:module";
-import { sep } from "node:path";
+import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import sitemap from "@astrojs/sitemap";
+import postcssGlobalData from "@csstools/postcss-global-data";
+import { MEDIA_FILE } from "@pulseai/tokens";
 import { defineConfig, passthroughImageService } from "astro/config";
 import pagefind from "astro-pagefind";
+import postcssCustomMedia from "postcss-custom-media";
 import { loadSiteContext } from "./src/lib/context.ts";
 import { instanceDirFromEnv, siteLocation, sitePaths } from "./src/lib/setup.ts";
 
@@ -40,6 +43,15 @@ export default defineConfig({
       : {
           resolve: { alias: { "@pulse-generated": paths.workDir } },
           server: { fs: { allow: [siteDir, paths.instanceDir, modulesRoot()] } },
+          // Breakpoints come from tokens as @custom-media; every stylesheet can use them.
+          css: {
+            postcss: {
+              plugins: [
+                postcssGlobalData({ files: [join(paths.tokensDir, MEDIA_FILE)] }),
+                postcssCustomMedia(),
+              ],
+            },
+          },
         }),
   },
 });

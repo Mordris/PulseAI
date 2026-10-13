@@ -70,6 +70,8 @@
     "fields.who": "Kim",
     "fields.board": "Sıralama tablosu",
     "ui.site.title": "PulseAI",
+    "ui.page.title": "{page} · {site}",
+    "ui.separator": "·",
     "ui.site.description": "Yapay zekâ ve yazılım üzerine kaynakları doğrulanmış günlük rapor.",
     "ui.nav.label": "Site",
     "ui.nav.skip": "İçeriğe geç",

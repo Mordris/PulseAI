@@ -29,7 +29,7 @@
       "description": "The Playwright image the site's browser tests run in (packages/site/package.json config.playwrightImage)",
       "managerFilePatterns": ["/^packages/site/package\\.json$/"],
       "matchStrings": [
-        "\"playwrightImage\": \"(?<depName>mcr\\.microsoft\\.com/playwright):(?<currentValue>v[^\"]+)\""
+        "\"playwrightImage\": \"(?<depName>mcr\\.microsoft\\.com/playwright):(?<currentValue>v[^\"@]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
       ],
       "datasourceTemplate": "docker"
     }

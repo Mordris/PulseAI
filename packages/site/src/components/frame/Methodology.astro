@@ -28,7 +28,7 @@ const models = Object.entries(meta.models).map(([role, model]) => `${role}: ${mo
         <div><dt>{t("ui.run.engine")}</dt><dd>{meta.engine_version}</dd></div>
         <div><dt>{t("ui.run.host")}</dt><dd>{t(`hosts.${meta.host}`)}</dd></div>
         <div><dt>{t("ui.run.cost")}</dt><dd>{meta.cost_usd === null ? t("ui.run.cost_unknown") : t("ui.format.usd", { value: fmt.number(meta.cost_usd, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</dd></div>
-        {models.length > 0 && <div><dt>{t("ui.run.models")}</dt><dd>{models.join(", ")}</dd></div>}
+        {models.length > 0 && <div><dt>{t("ui.run.models")}</dt><dd>{fmt.list(models)}</dd></div>}
       </dl>
     </div>
     <VegaLite ctx={ctx} visual={researchFunnel(meta.stats, ctx)} />
@@ -90,7 +90,7 @@ const models = Object.entries(meta.models).map(([role, model]) => `${role}: ${mo
     gap: var(--pulse-space-5);
   }
 
-  @media (min-width: 56rem) {
+  @media (--pulse-breakpoint-lg) {
     .methodology__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: start;

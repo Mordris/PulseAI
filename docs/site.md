@@ -34,7 +34,8 @@ pnpm demo:e2e        # Playwright, axe, and screenshots in the Playwright contai
 ```
 
 `config.site.url` sets the base path (a GitHub Pages project site serves from `/PulseAI/`). Without
-it the site is served from `/` and has no feed or sitemap, because both need absolute links.
+it the site is served from `/` and has no feed or sitemap, because both need absolute links. The
+feed lists the newest `config.site.feed_items` editions (30 by default).
 
 ## What a page shows
 
@@ -67,6 +68,11 @@ the OS), Light, and Dark; the choice is remembered, and `?theme=dark` overrides 
 Charts and diagrams get their colors, fonts, and sizes from the same tokens, so a report never sets
 a color.
 
+Sizes are tokens too: spacing, layout widths, chart and sparkline geometry, and letter spacing.
+`@media` cannot read custom properties, so the `breakpoint.*` tokens become `@custom-media
+--pulse-breakpoint-<name>` rules in `.pulse/tokens/media.css`, which postcss-custom-media compiles
+into every stylesheet. Write `@media (--pulse-breakpoint-md)`, never a width.
+
 A new preset is a folder with full `light.json` and `dark.json` themes. Copy an engine preset and
 change what differs, then run `pulse tokens check`. The check enforces three things:
 
@@ -76,12 +82,18 @@ change what differs, then run `pulse tokens check`. The check enforces three thi
   apart
 - under each `quality.cvd_simulations` filter, colors stay above `section_cvd_fail` (an error) and
   `section_cvd_target` (a warning)
+- every value of a toned enum (below) has its color token
 
 ## Adding an item type
 
 1. Add the detail schema in `schema/item-types/` and the entry in `taxonomy/item-types.yaml`.
 2. Add `fields.<name>` labels for its brief fields and `blocks.<id>` labels for its blocks to
    every locale. `pulse registry check` reports any that are missing.
+   An enum whose values readers see declares its labels in the schema:
+   `"x-pulse-label": "severity"` means value `high` reads the locale string `severity.high`, and
+   `"x-pulse-tone": "color.severity"` gives each value the color token `color.severity.high`.
+   `pulse registry check` reports a value without a string, and `pulse tokens check` a value
+   without a color, in engine and instance schemas alike.
 3. Optionally add `packages/site/src/components/items/types/<Component>.astro`, named as the
    registry's `component`. Without it, the type renders through `GenericDetail`: every field as a
    labelled value, plus the visuals placed in its blocks.
@@ -105,8 +117,12 @@ embed options. `pulse validate` reports the same specs before they reach the sit
 ## Tests
 
 - `pnpm --filter @pulseai/site test`: Vitest unit tests and component tests through Astro's
-  Container API. They need no build and no Python.
-- `pnpm demo:e2e`: Playwright against the built demo in `mcr.microsoft.com/playwright`. It covers
+  Container API, plus one full build of the demo reports with the engine defaults (no site URL:
+  root-relative links, no feed or sitemap). They need no Python.
+- `pnpm demo:e2e`: Playwright against the built demo in `mcr.microsoft.com/playwright`, pinned by
+  tag and digest in `packages/site/package.json` (`config.playwrightImage`); Renovate moves the
+  image, its digest, and `@playwright/test` together. The container runs the installed Playwright
+  and never fetches one. It covers
   behavior, the no-JavaScript and print views, axe-core audits (no serious or critical
   violations), and screenshots (desktop light, desktop dark, mobile).
 - Screenshots live in `packages/site/e2e/__screenshots__/`. After an intended visual change, run

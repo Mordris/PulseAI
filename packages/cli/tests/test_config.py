@@ -118,3 +118,15 @@ def test_invalid_primary_tiers_are_rejected(tmp_path: Path, value: str) -> None:
     )
     with pytest.raises(ConfigError, match="primary_tiers"):
         load_config(tmp_path)
+
+
+def test_feed_items_default_and_override(tmp_path: Path) -> None:
+    assert load_config().site.feed_items == 30
+    (tmp_path / "pulse.config.yaml").write_text("site:\n  feed_items: 7\n", encoding="utf-8")
+    assert load_config(tmp_path).site.feed_items == 7
+
+
+def test_feed_items_must_be_positive(tmp_path: Path) -> None:
+    (tmp_path / "pulse.config.yaml").write_text("site:\n  feed_items: 0\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match=r"feed_items.*less than the minimum"):
+        load_config(tmp_path)

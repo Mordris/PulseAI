@@ -107,10 +107,59 @@
         "value": 44,
         "unit": "rem"
       }
+    },
+    "tile_min": {
+      "$description": "Narrowest key-number tile or key-value cell before the grid wraps.",
+      "$value": { "value": 12, "unit": "rem" }
+    },
+    "card_min": {
+      "$description": "Narrowest fact card or radar ring before the grid wraps.",
+      "$value": { "value": 14, "unit": "rem" }
+    },
+    "search_min": {
+      "$description": "Narrowest search field in the header.",
+      "$value": { "value": 18, "unit": "rem" }
+    },
+    "control_min": {
+      "$description": "Narrowest filter control.",
+      "$value": { "value": 8, "unit": "rem" }
+    },
+    "meter_width": {
+      "$description": "Width of a severity meter.",
+      "$value": { "value": 16, "unit": "rem" }
+    },
+    "label_column": {
+      "$description": "Label column of a changelog list.",
+      "$value": { "value": 7, "unit": "rem" }
+    },
+    "image_min": {
+      "$description": "Narrowest image in an item's image grid before it wraps.",
+      "$value": { "value": 16, "unit": "rem" }
+    },
+    "figure_max_height": {
+      "$description": "Tallest an image figure is drawn.",
+      "$value": { "value": 28, "unit": "rem" }
     }
+  },
+  "breakpoint": {
+    "$type": "dimension",
+    "$description": "Viewport widths where layouts change; the site uses them as @custom-media --pulse-breakpoint-*.",
+    "sm": { "$value": { "value": 40, "unit": "rem" } },
+    "md": { "$value": { "value": 48, "unit": "rem" } },
+    "lg": { "$value": { "value": 56, "unit": "rem" } },
+    "xl": { "$value": { "value": 64, "unit": "rem" } }
   },
   "chart": {
     "$type": "number",
+    "padding": {
+      "$value": 4
+    },
+    "sparkline": {
+      "width": { "$value": 96 },
+      "height": { "$value": 28 },
+      "padding": { "$value": 3 },
+      "point_radius": { "$value": 2.5 }
+    },
     "height": {
       "$value": 240
     },

@@ -70,6 +70,8 @@
     "fields.who": "Who",
     "fields.board": "Leaderboard",
     "ui.site.title": "PulseAI",
+    "ui.page.title": "{page} · {site}",
+    "ui.separator": "·",
     "ui.site.description": "A daily, source-checked report on AI and software.",
     "ui.nav.label": "Site",
     "ui.nav.skip": "Skip to content",
