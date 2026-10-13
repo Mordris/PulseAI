@@ -28,6 +28,13 @@ export const NO_FILTERS: Filters = {
   status: ALL,
 };
 
+/** Whether any filter differs from its default. */
+export function isFiltering(filters: Filters): boolean {
+  return (Object.keys(NO_FILTERS) as (keyof Filters)[]).some(
+    (key) => filters[key] !== NO_FILTERS[key],
+  );
+}
+
 export function matchesFilters(facets: ItemFacets, filters: Filters): boolean {
   if (filters.section !== ALL && facets.section !== filters.section) return false;
   if (filters.type !== ALL && facets.type !== filters.type) return false;

@@ -54,6 +54,21 @@ test.describe("report page", () => {
     await expect(page.locator("details[data-item]:visible")).toHaveCount(14);
   });
 
+  test("keeps a section that holds only notes until a filter is set", async ({ page }) => {
+    await page.evaluate(() => {
+      const section = document.createElement("section");
+      section.id = "section-notes-only";
+      section.dataset.filterGroup = "";
+      section.innerHTML = `<h2>Notes only</h2><aside><p>A section with only a note.</p></aside>`;
+      document.querySelector("main")?.append(section);
+    });
+    const section = page.locator("#section-notes-only");
+    await filters(page).getByLabel("Section", { exact: true }).selectOption("oss");
+    await expect(section).toBeHidden();
+    await page.getByRole("button", { name: "Reset" }).click();
+    await expect(section).toBeVisible();
+  });
+
   test("says so when no item matches", async ({ page }) => {
     await filters(page).getByLabel("Section", { exact: true }).selectOption("oss");
     await filters(page).getByLabel("New or update", { exact: true }).selectOption("updates");
@@ -76,6 +91,25 @@ test.describe("report page", () => {
     await expect(page.locator("pulse-vega-chart[data-state=rendered]").first()).toBeVisible();
   });
 
+  test("a chart spec cannot reach the network", async ({ page }) => {
+    const requested: string[] = [];
+    page.on("request", (request) => requested.push(request.url()));
+    await page.evaluate(() => {
+      const spec = {
+        data: { url: "https://beacon.example.invalid/data.json" },
+        mark: "image",
+        encoding: { url: { value: "https://beacon.example.invalid/image.png" } },
+        usermeta: { embedOptions: { patch: "https://beacon.example.invalid/patch.json" } },
+      };
+      const figure = document.createElement("figure");
+      figure.id = "visual-remote";
+      figure.innerHTML = `<pulse-vega-chart><script type="application/json">${JSON.stringify(spec)}</script><div data-chart hidden></div></pulse-vega-chart><details data-chart-table open><summary>data</summary></details>`;
+      document.querySelector("main")?.append(figure);
+    });
+    await expect(page.locator("#visual-remote pulse-vega-chart")).toHaveAttribute("data-state");
+    expect(requested.filter((url) => url.includes("beacon.example.invalid"))).toEqual([]);
+  });
+
   test("a broken diagram keeps its alt text and source", async ({ page }) => {
     await page.evaluate(() => {
       const figure = document.createElement("figure");
@@ -88,6 +122,25 @@ test.describe("report page", () => {
       "error",
     );
     await expect(page.getByText("alt text")).toBeVisible();
+  });
+
+  test("a broken diagram leaves no error graphic behind, even after a theme switch", async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      const figure = document.createElement("figure");
+      figure.id = "visual-broken-diagram";
+      figure.innerHTML = `<pulse-mermaid><div data-diagram hidden></div><p data-diagram-fallback>alt text</p></pulse-mermaid><details data-diagram-source><summary>source</summary><pre><code>flowchart LR\n  A --></code></pre></details>`;
+      document.querySelector("main")?.append(figure);
+    });
+    const broken = page.locator("#visual-broken-diagram pulse-mermaid");
+    await expect(broken).toHaveAttribute("data-state", "error");
+    await broken.evaluate((element) => element.removeAttribute("data-state"));
+    await page.getByRole("radio", { name: "Dark" }).check();
+    await expect(broken).toHaveAttribute("data-state", "error");
+    // Mermaid draws into a temporary `d<id>` element on <body>; nothing of it may stay.
+    await expect(page.locator("[id^='dpulse-mermaid-']")).toHaveCount(0);
+    await expect(page.getByText("Syntax error in text")).toHaveCount(0);
   });
 });
 

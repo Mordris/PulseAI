@@ -98,6 +98,10 @@ change what differs, then run `pulse tokens check`. The check enforces three thi
 
 A chart or diagram that fails to render keeps its fallback and is marked `data-state="error"`.
 
+Charts carry their data inline. Every spec is read as Vega-Lite, never full Vega, and the page
+refuses every URL a spec names: no `url` outside `data.values` and `datasets`, no `usermeta`
+embed options. `pulse validate` reports the same specs before they reach the site.
+
 ## Tests
 
 - `pnpm --filter @pulseai/site test`: Vitest unit tests and component tests through Astro's

@@ -175,6 +175,22 @@ describe("report validation", () => {
     );
   });
 
+  it("rejects notes for an unknown section with the file and path", () => {
+    const report = sampleReport();
+    report.section_notes = { weather: [{ title: "Lost", text: "No section shows this." }] };
+    expect(() => validate(report, "r.json")).toThrow(
+      'r.json: section_notes/weather: unknown section "weather"',
+    );
+  });
+
+  it("rejects a window time zone that is not an IANA name, with the file and path", () => {
+    const report = sampleReport();
+    report.meta.window.tz = "UTC+3";
+    expect(() => validate(report, "r.json")).toThrow(
+      'r.json: meta/window/tz: unknown time zone "UTC+3"',
+    );
+  });
+
   it("checks each item's detail against its type's schema", () => {
     const report = sampleReport();
     const first = report.items[0];

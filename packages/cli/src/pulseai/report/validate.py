@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from jsonschema.exceptions import SchemaError
 
@@ -27,6 +28,11 @@ from pulseai.schemas import (
 
 REPORT_SCHEMA = "report.schema.json"
 VEGA_LITE_KIND = "vega-lite"
+# Charts carry their data inline: no key may name a URL to load, except inside the inline rows,
+# where a URL is just a value.
+URL_KEY = "url"
+INLINE_ROW_KEYS = frozenset({"values", "datasets"})
+VEGA_LITE_SCHEMA_MARK = "/schema/vega-lite/"
 TABLE_KIND = "table"
 DASHBOARD_KIND = "dashboard"
 VISUAL_TILE = "visual"
@@ -37,6 +43,7 @@ class _Context:
     cfg: PulseConfig
     instance_dir: Path | None
     section_ids: set[str]
+    section_groups: dict[str, set[str]]
     item_types: dict[str, dict[str, Any]]
     featured_slots: dict[str, dict[str, Any]]
 
@@ -69,12 +76,14 @@ def _visuals(report: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
 
 
 def _remote_data(node: Any, path: str) -> str | None:
+    """The first `url` a chart could load: data, images, anything outside the inline rows."""
     if isinstance(node, dict):
         mapping = cast("dict[str, Any]", node)
-        data = mapping.get("data")
-        if isinstance(data, dict) and "url" in data:
-            return f"{path}/data/url"
         for key, value in mapping.items():
+            if key == URL_KEY:
+                return f"{path}/{key}"
+            if key in INLINE_ROW_KEYS:
+                continue
             found = _remote_data(value, f"{path}/{key}")
             if found:
                 return found
@@ -196,7 +205,18 @@ def _check_featured(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
 def _check_visuals(report: dict[str, Any]) -> Iterator[Issue]:
     for where, visual in _visuals(report):
         if visual["kind"] == VEGA_LITE_KIND:
-            remote = _remote_data(visual["spec"], "spec")
+            spec = visual["spec"]
+            schema = spec.get("$schema")
+            if schema is not None and VEGA_LITE_SCHEMA_MARK not in str(schema):
+                yield _error(
+                    f"{where}/spec/$schema",
+                    f"{schema!r} is not a Vega-Lite schema; vega-lite visuals take Vega-Lite specs",
+                )
+            if "usermeta" in spec:
+                yield _error(
+                    f"{where}/spec/usermeta", "charts cannot carry embed options in usermeta"
+                )
+            remote = _remote_data(spec, "spec")
             if remote:
                 yield _error(
                     where, f"remote chart data ({remote}) is not allowed; embed data.values"
@@ -280,6 +300,29 @@ def _check_section_config(report: dict[str, Any], ctx: _Context) -> Iterator[Iss
             )
 
 
+def _check_window(report: dict[str, Any]) -> Iterator[Issue]:
+    tz = report["meta"]["window"]["tz"]
+    try:
+        ZoneInfo(tz)
+    except (ZoneInfoNotFoundError, ValueError):
+        yield _error("meta/window/tz", f"unknown time zone {tz!r}; use an IANA name")
+
+
+def _check_section_notes(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
+    for section_id, notes in report["section_notes"].items():
+        groups = ctx.section_groups.get(section_id)
+        if groups is None:
+            yield _error(f"section_notes/{section_id}", f"unknown section {section_id!r}")
+            continue
+        for index, note in enumerate(notes):
+            group = note.get("group")
+            if group is not None and group not in groups:
+                yield _error(
+                    f"section_notes/{section_id}/{index}/group",
+                    f"section {section_id!r} has no group {group!r}",
+                )
+
+
 def _context(instance_dir: Path | None) -> _Context:
     cfg = load_config(instance_dir)
     sections = load_registry("sections", instance_dir).data["sections"]
@@ -294,6 +337,7 @@ def _context(instance_dir: Path | None) -> _Context:
         cfg=cfg,
         instance_dir=instance_dir,
         section_ids={s["id"] for s in sections},
+        section_groups={s["id"]: {g["id"] for g in s["groups"]} for s in sections},
         item_types={t["id"]: t for t in item_types},
         featured_slots=slots,
     )
@@ -322,6 +366,8 @@ def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
         *_check_visuals(report),
         *_check_visual_placement(report, ctx),
         *_check_section_config(report, ctx),
+        *_check_section_notes(report, ctx),
+        *_check_window(report),
     ]
     return sorted(issues)
 

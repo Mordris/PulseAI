@@ -19,7 +19,10 @@ const { t } = ctx;
 const groups = groupItems(section, items, featured, ctx.minImpact);
 // A section without registry groups lists its items directly; one with groups names the rest.
 const hasGroups = section.groups.length > 0;
-const groupNotes = (id: string | undefined) => notes.filter((note) => note.group === id);
+// A note sits in its group when that group is shown today; every other note follows the groups.
+const shown = new Set(groups.flatMap(({ group }) => (group ? [group.id] : [])));
+const groupNotes = (id: string) => notes.filter((note) => note.group === id);
+const otherNotes = notes.filter((note) => note.group === undefined || !shown.has(note.group));
 ---
 
 {(items.length > 0 || notes.length > 0) && (
@@ -42,7 +45,7 @@ const groupNotes = (id: string | undefined) => notes.filter((note) => note.group
         {group && <SectionNotes ctx={ctx} notes={groupNotes(group.id)} />}
       </div>
     ))}
-    <SectionNotes ctx={ctx} notes={groupNotes(undefined)} />
+    <SectionNotes ctx={ctx} notes={otherNotes} />
   </section>
 )}
 

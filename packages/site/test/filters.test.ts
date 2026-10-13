@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { ALL, type ItemFacets, matchesFilters, NO_FILTERS } from "../src/lib/filters.ts";
+import {
+  ALL,
+  type ItemFacets,
+  isFiltering,
+  matchesFilters,
+  NO_FILTERS,
+} from "../src/lib/filters.ts";
+
+describe("isFiltering", () => {
+  it("is false only when every filter is at its default", () => {
+    expect(isFiltering(NO_FILTERS)).toBe(false);
+    expect(isFiltering({ ...NO_FILTERS, section: "oss" })).toBe(true);
+    expect(isFiltering({ ...NO_FILTERS, minImpact: 3 })).toBe(true);
+  });
+});
 
 describe("filters", () => {
   const item: ItemFacets = {

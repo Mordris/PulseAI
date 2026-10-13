@@ -34,7 +34,9 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"], colorScheme: "light" } },
   ],
   webServer: {
-    command: `node scripts/pulse-site.ts preview --instance "${INSTANCE}" -- --port ${PORT} --host 127.0.0.1`,
+    // Each run owns its server. A lock file left by an earlier container can name a PID that a
+    // process in the next container reuses, so Astro would refuse to start: skip the lock.
+    command: `node scripts/pulse-site.ts preview --instance "${INSTANCE}" -- --port ${PORT} --host 127.0.0.1 --ignore-lock`,
     url: `${ORIGIN}${base}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

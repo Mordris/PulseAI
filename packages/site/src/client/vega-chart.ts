@@ -1,4 +1,4 @@
-import type { VisualizationSpec } from "vega-embed";
+import { chartSpec, embedOptions } from "../lib/chart-embed.ts";
 import { effectiveMode, onModeChange, themeData } from "./theme.ts";
 
 type Spec = { [key: string]: unknown };
@@ -30,14 +30,11 @@ class PulseVegaChart extends HTMLElement {
     if (canvas === null || this.#spec === undefined) return;
     try {
       const { default: embed } = await import("vega-embed");
-      // Charts fill their figure unless the spec sets a width.
-      const spec = { width: "container", ...this.#spec } as unknown as VisualizationSpec;
-      const result = await embed(canvas, spec, {
-        actions: false,
-        renderer: "svg",
-        config: themeData().vega[effectiveMode()],
-        tooltip: { theme: "custom" },
-      });
+      const result = await embed(
+        canvas,
+        chartSpec(this.#spec),
+        embedOptions(themeData().vega[effectiveMode()]),
+      );
       this.#view?.finalize();
       this.#view = result;
       canvas.hidden = false;

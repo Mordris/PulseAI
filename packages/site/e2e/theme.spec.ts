@@ -42,6 +42,25 @@ test.describe("theme", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 
+  test("chart tooltips wear the page's tokens", async ({ page }, testInfo) => {
+    const mode = testInfo.project.use.colorScheme === "dark" ? "dark" : "light";
+    await page.goto("./");
+    await visualsSettled(page);
+    await page.locator("#visual-research-funnel .role-mark path").first().hover();
+    const tooltip = page.locator("#vg-tooltip-element");
+    await expect(tooltip).toBeVisible();
+    const colors = await tooltip.evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor,
+      key: getComputedStyle(element.querySelector("td.key") ?? element).color,
+      value: getComputedStyle(element.querySelector("td.value") ?? element).color,
+    }));
+    expect(colors).toEqual({
+      background: hexToRgb(tokenValue(mode, "color.surface.raised")),
+      key: hexToRgb(tokenValue(mode, "color.text.secondary")),
+      value: hexToRgb(tokenValue(mode, "color.text.primary")),
+    });
+  });
+
   test("re-themes charts when the theme changes", async ({ page }) => {
     await page.goto("./?theme=light");
     await visualsSettled(page);

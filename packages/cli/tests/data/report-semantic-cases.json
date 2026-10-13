@@ -365,5 +365,118 @@
       }
     ],
     "expect": "visuals inside a dashboard cannot name a block"
+  },
+  {
+    "name": "remote data in a Vega data array",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/-",
+        "value": {
+          "kind": "vega-lite",
+          "id": "remote-array",
+          "title": "Remote",
+          "alt": "Remote data chart",
+          "source_note": "Example",
+          "spec": {
+            "mark": "bar",
+            "data": [{ "name": "table", "url": "https://example.org/data.json" }]
+          }
+        }
+      }
+    ],
+    "expect": "spec/data/0/url"
+  },
+  {
+    "name": "remote image in a chart",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/-",
+        "value": {
+          "kind": "vega-lite",
+          "id": "remote-image",
+          "title": "Remote",
+          "alt": "Remote image chart",
+          "source_note": "Example",
+          "spec": {
+            "mark": "image",
+            "data": { "values": [{ "a": 1 }] },
+            "encoding": { "url": { "value": "https://example.org/image.png" } }
+          }
+        }
+      }
+    ],
+    "expect": "spec/encoding/url"
+  },
+  {
+    "name": "embed options in chart usermeta",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/-",
+        "value": {
+          "kind": "vega-lite",
+          "id": "usermeta-chart",
+          "title": "Usermeta",
+          "alt": "Chart with embed options",
+          "source_note": "Example",
+          "spec": {
+            "mark": "bar",
+            "data": { "values": [{ "a": 1 }] },
+            "usermeta": { "embedOptions": { "patch": "https://example.org/patch.json" } }
+          }
+        }
+      }
+    ],
+    "expect": "spec/usermeta"
+  },
+  {
+    "name": "a Vega spec in a vega-lite visual",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/items/0/visuals/-",
+        "value": {
+          "kind": "vega-lite",
+          "id": "vega-chart",
+          "title": "Vega",
+          "alt": "A full Vega spec",
+          "source_note": "Example",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega/v6.json",
+            "data": [{ "name": "table", "values": [] }]
+          }
+        }
+      }
+    ],
+    "expect": "spec/$schema"
+  },
+  {
+    "name": "notes for an unknown section",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/section_notes/nope",
+        "value": [{ "title": "Lost", "text": "No section shows this note." }]
+      }
+    ],
+    "expect": "section_notes/nope: unknown section"
+  },
+  {
+    "name": "note names a group its section lacks",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/section_notes/models",
+        "value": [{ "group": "top_papers", "title": "Stray", "text": "Models has no groups." }]
+      }
+    ],
+    "expect": "section_notes/models/0/group"
+  },
+  {
+    "name": "window time zone that is not an IANA name",
+    "patch": [{ "op": "replace", "path": "/meta/window/tz", "value": "UTC+3" }],
+    "expect": "meta/window/tz: unknown time zone 'UTC+3'"
   }
 ]

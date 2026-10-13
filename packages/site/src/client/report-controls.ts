@@ -1,4 +1,10 @@
-import { type Filters, type ItemFacets, matchesFilters, NO_FILTERS } from "../lib/filters.ts";
+import {
+  type Filters,
+  type ItemFacets,
+  isFiltering,
+  matchesFilters,
+  NO_FILTERS,
+} from "../lib/filters.ts";
 
 const ITEM = "details[data-item]";
 
@@ -65,9 +71,11 @@ class PulseReportControls extends HTMLElement {
       item.hidden = !visible;
       if (visible) shown += 1;
     }
-    // A group or section with nothing left to show disappears with its heading.
+    // While a filter is set, a group or section with no matching item disappears with its
+    // heading; with no filter set, everything shows, notes-only sections included.
+    const filtering = isFiltering(filters);
     for (const container of document.querySelectorAll<HTMLElement>("[data-filter-group]")) {
-      container.hidden = container.querySelector(`${ITEM}:not([hidden])`) === null;
+      container.hidden = filtering && container.querySelector(`${ITEM}:not([hidden])`) === null;
     }
     const status = this.querySelector<HTMLElement>("[data-filter-status]");
     if (status !== null) {

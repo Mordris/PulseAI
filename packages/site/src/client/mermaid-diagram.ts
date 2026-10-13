@@ -19,6 +19,8 @@ class PulseMermaid extends HTMLElement {
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: "strict",
+        // A broken diagram keeps its alt text and source; Mermaid's own error graphic stays out.
+        suppressErrorRendering: true,
         theme: "base",
         themeVariables: variables,
         fontFamily: variables.fontFamily,

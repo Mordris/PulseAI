@@ -38,6 +38,33 @@ describe("report view", () => {
     expect(html).toContain("data-pagefind-body");
   });
 
+  it("renders every section note, in its group or after the groups", async () => {
+    const withNotes: Report = {
+      ...report,
+      // No long reads today, and nothing at all in the oss section.
+      items: report.items.filter(
+        (item) =>
+          item.section !== "oss" && !(item.section === "research" && item.type === "article"),
+      ),
+      signals: report.signals.filter((item) => item.section !== "oss"),
+      section_notes: {
+        research: [
+          { group: "top_papers", title: "In its group", text: "Sits with the top papers." },
+          { group: "long_reads", title: "Quiet group", text: "No long reads today." },
+        ],
+        models: [{ group: "top_papers", title: "Stray group", text: "Models has no groups." }],
+        oss: [{ group: "releases", title: "Notes only", text: "A section with only a note." }],
+      },
+    };
+    const html = await container.renderToString(ReportView, { props: { ctx, report: withNotes } });
+    for (const title of ["In its group", "Quiet group", "Stray group", "Notes only"]) {
+      expect(html).toContain(title);
+    }
+    const research = html.slice(html.indexOf('id="section-research"'));
+    expect(research.indexOf("In its group")).toBeLessThan(research.indexOf("Also notable"));
+    expect(research.indexOf("Quiet group")).toBeGreaterThan(research.indexOf("Also notable"));
+  });
+
   it("keeps the front page out of the search index", async () => {
     const html = await container.renderToString(ReportView, {
       props: { ctx, report, searchable: false },

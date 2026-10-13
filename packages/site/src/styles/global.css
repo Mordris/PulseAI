@@ -246,6 +246,24 @@ pre {
   font-variant-numeric: tabular-nums;
 }
 
+/* Chart tooltips: vega-tooltip's "custom" theme, drawn on <body>, in the page's tokens. */
+#vg-tooltip-element.vg-tooltip.custom-theme {
+  border: var(--pulse-border-width-thin) solid var(--pulse-color-border-strong);
+  border-radius: var(--pulse-radius-md);
+  background-color: var(--pulse-color-surface-raised);
+  color: var(--pulse-color-text-primary);
+  font-family: var(--pulse-font-family-body);
+  font-size: var(--pulse-font-size-xs);
+}
+
+#vg-tooltip-element.vg-tooltip.custom-theme td.key {
+  color: var(--pulse-color-text-secondary);
+}
+
+#vg-tooltip-element.vg-tooltip.custom-theme td.value {
+  color: var(--pulse-color-text-primary);
+}
+
 /* biome-ignore-start lint/complexity/noImportantStyles: reader preferences and print override components */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -27,6 +27,16 @@ function describeIssues(error: z.ZodError, file: string, prefix: string[] = []):
   });
 }
 
+/** Whether the runtime knows `name` as an IANA time zone (the masthead formats the window in it). */
+function isTimeZone(name: string): boolean {
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone: name });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export type ReportValidator = (data: unknown, file: string) => Report;
 
 /**
@@ -67,6 +77,14 @@ export function createReportValidator(context: SiteContext): ReportValidator {
         if (!result.success)
           problems.push(...describeIssues(result.error, file, [where, "detail"]));
       });
+    }
+    if (!isTimeZone(doc.meta.window.tz)) {
+      problems.push(`${file}: meta/window/tz: unknown time zone "${doc.meta.window.tz}"`);
+    }
+    for (const section of Object.keys(doc.section_notes)) {
+      if (!sections.has(section)) {
+        problems.push(`${file}: section_notes/${section}: unknown section "${section}"`);
+      }
     }
     if (problems.length > 0) throw new ReportError(problems.join("\n"));
     return doc;
