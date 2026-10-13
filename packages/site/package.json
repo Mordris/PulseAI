@@ -28,6 +28,7 @@
     "@pulseai/tokens": "workspace:*",
     "astro": "^7.3.8",
     "astro-pagefind": "^2.0.1",
+    "dompurify": "^3.4.17",
     "mermaid": "^12.1.0",
     "vega": "^6.4.0",
     "vega-embed": "^7.3.0",

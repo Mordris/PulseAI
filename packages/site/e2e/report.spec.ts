@@ -124,6 +124,23 @@ test.describe("report page", () => {
     await expect(page.getByText("alt text")).toBeVisible();
   });
 
+  test("a diagram label cannot inject markup", async ({ page }) => {
+    await page.evaluate(() => {
+      const figure = document.createElement("figure");
+      figure.id = "visual-markup-diagram";
+      figure.innerHTML = `<pulse-mermaid><div data-diagram hidden></div><p data-diagram-fallback>alt text</p></pulse-mermaid><details data-diagram-source><summary>source</summary><pre><code></code></pre></details>`;
+      const code = figure.querySelector("code");
+      if (code !== null) {
+        code.textContent = 'flowchart LR\n  A["<img src=x onerror=alert(1)><b>bold</b>"] --> B';
+      }
+      document.querySelector("main")?.append(figure);
+    });
+    const diagram = page.locator("#visual-markup-diagram pulse-mermaid");
+    await expect(diagram).toHaveAttribute("data-state", "rendered");
+    await expect(page.locator("#visual-markup-diagram [onerror]")).toHaveCount(0);
+    await expect(page.locator("#visual-markup-diagram script")).toHaveCount(0);
+  });
+
   test("a broken diagram leaves no error graphic behind, even after a theme switch", async ({
     page,
   }) => {

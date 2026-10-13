@@ -14,7 +14,10 @@ class PulseMermaid extends HTMLElement {
     const code = this.closest("figure")?.querySelector("[data-diagram-source] code")?.textContent;
     if (canvas === null || !code) return;
     try {
-      const { default: mermaid } = await import("mermaid");
+      const [{ default: mermaid }, { default: DOMPurify }] = await Promise.all([
+        import("mermaid"),
+        import("dompurify"),
+      ]);
       const variables = themeData().mermaid[effectiveMode()];
       mermaid.initialize({
         startOnLoad: false,
@@ -27,8 +30,13 @@ class PulseMermaid extends HTMLElement {
       });
       sequence += 1;
       const { svg } = await mermaid.render(`pulse-mermaid-${sequence}`, code);
-      // Mermaid sanitizes its output under securityLevel "strict".
-      canvas.innerHTML = svg;
+      // Mermaid already sanitizes under securityLevel "strict"; sanitize again here, with the
+      // settings Mermaid uses, so nothing reaches the page unsanitized whatever Mermaid does.
+      canvas.innerHTML = DOMPurify.sanitize(svg, {
+        ADD_TAGS: ["foreignobject"],
+        ADD_ATTR: ["dominant-baseline"],
+        HTML_INTEGRATION_POINTS: { foreignobject: true },
+      });
       canvas.hidden = false;
       this.querySelector<HTMLElement>("[data-diagram-fallback]")?.setAttribute("hidden", "");
       this.dataset.state = "rendered";
