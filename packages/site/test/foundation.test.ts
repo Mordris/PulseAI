@@ -249,6 +249,14 @@ describe("theme data", () => {
     expect(mermaidVariables(tokens.light).fontFamily).toContain("Inter Variable");
   });
 
+  it("pads charts by the chart.padding token", async () => {
+    const tokens = structuredClone((await engineTokens()).light);
+    const padding = tokens.tokens["chart.padding"];
+    if (padding === undefined) throw new Error("chart.padding is not a token");
+    padding.value = 10;
+    expect(vegaConfig(tokens).padding).toBe(10);
+  });
+
   it("orders categorical slots numerically", async () => {
     const tokens = structuredClone((await engineTokens()).light);
     const ten = tokens.tokens["color.chart.category.1"];

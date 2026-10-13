@@ -32,6 +32,34 @@ test.describe("report page", () => {
     await expect(page.locator("details#verify-then-expand")).toHaveAttribute("open", "");
   });
 
+  test("wraps a long badge inside its item", async ({ page }) => {
+    const item = page.locator("details[data-item]").first();
+    await item.locator(".item__kicker").evaluate((kicker) => {
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.id = "long-badge";
+      badge.textContent = Array.from({ length: 12 }, () => "Very Long Venue Name").join(" ");
+      kicker.append(badge);
+    });
+    const badge = await page.locator("#long-badge").boundingBox();
+    const box = await item.boundingBox();
+    const viewport = page.viewportSize();
+    if (badge === null || box === null || viewport === null) throw new Error("not laid out");
+    expect(badge.x + badge.width).toBeLessThanOrEqual(box.x + box.width);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(0);
+  });
+
+  test("keeps the filters working under a malformed fragment", async ({ page }) => {
+    await page.goto("./#%E0%A4%A");
+    await expect(filters(page).getByLabel("Section", { exact: true })).toBeVisible();
+    await filters(page).getByLabel("Section", { exact: true }).selectOption("oss");
+    await expect(page.locator("details[data-item]:visible")).toHaveCount(2);
+  });
+
   test("expands and collapses every item", async ({ page }) => {
     await page.getByRole("button", { name: "Expand all" }).click();
     await expect(page.locator("details[data-item]:not([open])")).toHaveCount(0);

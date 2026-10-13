@@ -2,12 +2,13 @@ import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { beforeAll, describe, expect, it } from "vitest";
 import Dashboard from "../src/components/visuals/Dashboard.astro";
 import Mermaid from "../src/components/visuals/Mermaid.astro";
+import Sparkline from "../src/components/visuals/Sparkline.astro";
 import VegaLite from "../src/components/visuals/VegaLite.astro";
-import type { RenderContext } from "../src/lib/render.ts";
+import { createRenderContext, type RenderContext } from "../src/lib/render.ts";
 import { sparkline } from "../src/lib/sparkline.ts";
 import type { Report } from "../src/lib/types.ts";
 import { inlineTable } from "../src/lib/visual-data.ts";
-import { sampleReport, testContext } from "./fixtures.ts";
+import { engineContext, engineTokens, sampleReport, testContext } from "./fixtures.ts";
 
 let container: AstroContainer;
 let ctx: RenderContext;
@@ -60,6 +61,23 @@ describe("sparkline", () => {
     const line = sparkline([0, 10, 5], 100, 20, 0);
     expect(line?.points).toBe("0,20 50,0 100,10");
     expect(line?.last).toEqual({ x: 100, y: 10 });
+  });
+});
+
+describe("sparkline component", () => {
+  it("takes its size from the chart.sparkline tokens", async () => {
+    const tokens = structuredClone(await engineTokens());
+    for (const mode of ["light", "dark"] as const) {
+      const width = tokens[mode].tokens["chart.sparkline.width"];
+      if (width === undefined) throw new Error("chart.sparkline.width is not a token");
+      width.value = 120;
+    }
+    const wide = createRenderContext(engineContext(), tokens, "/");
+    const html = await container.renderToString(Sparkline, {
+      props: { ctx: wide, series: [1, 3, 2] },
+    });
+    expect(html).toContain('width="120"');
+    expect(html).toContain('viewBox="0 0 120 ');
   });
 });
 

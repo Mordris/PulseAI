@@ -286,6 +286,22 @@ def test_missing_translation_is_a_warning(tmp_path: Path, engine_copy: Path) -> 
     assert any(i.level == "warning" and "not translated" in i.message for i in issues)
 
 
+def test_an_instance_enum_value_without_a_locale_string_is_an_error(
+    tmp_path: Path, repo_root: Path
+) -> None:
+    schema = json.loads(
+        (repo_root / "schema/item-types/security_advisory.schema.json").read_text(encoding="utf-8")
+    )
+    schema["properties"]["severity"]["enum"].append("extreme")
+    override = tmp_path / "schema/item-types/security_advisory.schema.json"
+    override.parent.mkdir(parents=True)
+    override.write_text(json.dumps(schema), encoding="utf-8")
+    assert _errors(check_registries(tmp_path)) == [
+        "item-types/security_advisory.schema.json#/properties/severity: "
+        "missing locale string 'severity.extreme'"
+    ]
+
+
 def test_cli_registry_check_exit_codes(tmp_path: Path) -> None:
     ok = runner.invoke(app, ["registry", "check", "--instance", str(tmp_path)])
     assert ok.exit_code == 0

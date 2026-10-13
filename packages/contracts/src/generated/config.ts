@@ -126,6 +126,10 @@ export interface McpConfig {
 export interface SiteConfig {
   url: string | null;
   search: boolean;
+  /**
+   * How many of the newest editions the RSS feed lists.
+   */
+  feed_items: number;
 }
 export interface PublishConfig {
   repo: string | null;

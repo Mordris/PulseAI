@@ -53,7 +53,7 @@ const plainConfidence = ctx.enums.confidence[0];
       )}
     </span>
     <h3 class="item__title">{item.title}</h3>
-    <p class="item__line">{item.summary}</p>
+    <span class="item__line">{item.summary}</span>
     <Scores ctx={ctx} item={item} />
   </summary>
   <div class="item__body">
@@ -66,7 +66,10 @@ const plainConfidence = ctx.enums.confidence[0];
     ) : (
       <BriefFields ctx={ctx} item={item} itemType={itemType} />
     )}
-    {depth === "deep" && looseVisuals(item, itemType.blocks).map((visual) => <Visual ctx={ctx} visual={visual} />)}
+    {/* A deep dive places visuals in their blocks; a brief has no blocks, so it shows them all. */}
+    {(depth === "deep" ? looseVisuals(item, itemType.blocks) : item.visuals).map((visual) => (
+      <Visual ctx={ctx} visual={visual} />
+    ))}
     {item.facts.length > 0 && <Facts ctx={ctx} item={item} />}
     {item.images.length > 0 && (
       <div class="item__images">{item.images.map((image) => <Figure ctx={ctx} image={image} />)}</div>
@@ -133,7 +136,7 @@ const plainConfidence = ctx.enums.confidence[0];
     color: var(--pulse-color-text-secondary);
     font-size: var(--pulse-font-size-xs);
     font-weight: var(--pulse-font-weight-medium);
-    letter-spacing: 0.03em;
+    letter-spacing: calc(var(--pulse-font-tracking-kicker) * 1em);
     text-transform: uppercase;
   }
 
@@ -179,7 +182,7 @@ const plainConfidence = ctx.enums.confidence[0];
 
   .item__images {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(var(--pulse-layout-image-min), 100%), 1fr));
     gap: var(--pulse-space-4);
   }
 
@@ -201,7 +204,7 @@ const plainConfidence = ctx.enums.confidence[0];
     font-family: var(--pulse-font-family-body);
     font-size: var(--pulse-font-size-xs);
     font-weight: var(--pulse-font-weight-semibold);
-    letter-spacing: 0.05em;
+    letter-spacing: calc(var(--pulse-font-tracking-caps) * 1em);
     text-transform: uppercase;
   }
 

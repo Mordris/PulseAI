@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { validator } from "@pulseai/contracts";
 import { z } from "zod";
-import { renderCss } from "./css.ts";
+import { renderCss, renderCustomMedia } from "./css.ts";
 import { ENGINE_TOKENS_DIR, readLayers, TokenError } from "./layers.ts";
 import {
   applyOverrides,
@@ -28,11 +28,14 @@ export interface BuildTokensOptions {
 export interface TokenBuild {
   resolved: Record<Mode, ResolvedTokens>;
   css: string;
+  /** `@custom-media` rules for the breakpoint tokens. */
+  media: string;
   /** Fontsource packages the resolved font families need, sorted. */
   fonts: string[];
 }
 
 export const CSS_FILE = "tokens.css";
+export const MEDIA_FILE = "media.css";
 
 export function modeFile(mode: Mode): string {
   return `${mode}.json`;
@@ -63,12 +66,18 @@ export async function buildTokens(options: BuildTokensOptions): Promise<TokenBui
     resolved[mode] = await resolveMode(tree, options.preset, mode);
   }
   const complete = resolved as Record<Mode, ResolvedTokens>;
-  return { resolved: complete, css: renderCss(complete), fonts: [...fonts].sort() };
+  return {
+    resolved: complete,
+    css: renderCss(complete),
+    media: renderCustomMedia(complete),
+    fonts: [...fonts].sort(),
+  };
 }
 
 export function writeTokenBuild(build: TokenBuild, outDir: string): void {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, CSS_FILE), build.css);
+  writeFileSync(join(outDir, MEDIA_FILE), build.media);
   for (const mode of MODES) {
     writeFileSync(
       join(outDir, modeFile(mode)),

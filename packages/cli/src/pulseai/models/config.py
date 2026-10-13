@@ -112,6 +112,10 @@ class SiteConfig(BaseModel):
     )
     url: AnyUrl | None
     search: bool
+    feed_items: Annotated[
+        int,
+        Field(description="How many of the newest editions the RSS feed lists.", ge=1),
+    ]
 
 
 class PublishConfig(BaseModel):

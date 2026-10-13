@@ -90,7 +90,7 @@ const models = Object.entries(meta.models).map(([role, model]) => `${role}: ${mo
     gap: var(--pulse-space-5);
   }
 
-  @media (min-width: 56rem) {
+  @media (--pulse-breakpoint-lg) {
     .methodology__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: start;

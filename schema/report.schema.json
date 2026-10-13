@@ -203,7 +203,8 @@
           "minLength": 1
         },
         "host": {
-          "enum": ["routine", "actions", "local", "fixture"]
+          "enum": ["routine", "actions", "local", "fixture"],
+          "x-pulse-label": "hosts"
         },
         "models": {
           "type": "object",
@@ -272,7 +273,8 @@
           "type": "boolean"
         },
         "mode": {
-          "enum": ["normal", "plain", "catch_up"]
+          "enum": ["normal", "plain", "catch_up"],
+          "x-pulse-label": "modes"
         }
       }
     },
@@ -339,7 +341,9 @@
           "$ref": "#/$defs/slug"
         },
         "ring": {
-          "enum": ["adopt", "trial", "assess", "hold"]
+          "enum": ["adopt", "trial", "assess", "hold"],
+          "x-pulse-label": "rings",
+          "x-pulse-tone": "color.ring"
         },
         "rationale": {
           "$ref": "#/$defs/text"
@@ -445,10 +449,12 @@
           "$ref": "#/$defs/shortText"
         },
         "tier": {
-          "enum": ["T1", "T1-data", "T2", "T3"]
+          "enum": ["T1", "T1-data", "T2", "T3"],
+          "x-pulse-label": "tiers"
         },
         "kind": {
-          "enum": ["primary", "secondary"]
+          "enum": ["primary", "secondary"],
+          "x-pulse-label": "kinds"
         },
         "fetched_at": {
           "$ref": "#/$defs/dateTime"
@@ -715,7 +721,9 @@
           "$ref": "#/$defs/score"
         },
         "confidence": {
-          "enum": ["confirmed", "reported", "rumor"]
+          "enum": ["confirmed", "reported", "rumor"],
+          "x-pulse-label": "confidence",
+          "x-pulse-tone": "color.confidence"
         },
         "summary": {
           "$ref": "#/$defs/text"

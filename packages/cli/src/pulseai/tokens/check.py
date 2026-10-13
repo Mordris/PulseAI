@@ -17,6 +17,7 @@ from coloraide import Color
 
 from pulseai.config import load_config
 from pulseai.issues import Issue, unusable_issue
+from pulseai.labels import LabelledEnum, labelled_enums
 from pulseai.models.config import PulseConfig
 from pulseai.registry.loader import load_registry
 from pulseai.schemas import SCHEMA_PROBLEMS, load_schema, validate_document
@@ -189,10 +190,20 @@ def _check_mode(
         yield from _check_pairs(mode, name, _set_pairs(declared), cfg)
 
 
+def _check_tones(mode: str, tokens: dict[str, Any], enums: list[LabelledEnum]) -> Iterator[Issue]:
+    for labelled in enums:
+        for value in labelled.values:
+            token = labelled.tone_token(value)
+            if token is not None and token not in tokens:
+                yield _error(f"{mode}/{labelled.where}", f"value {value!r} has no token {token!r}")
+
+
 def check_tokens(tokens_dir: Path, instance_dir: Path | None = None) -> list[Issue]:
-    """Every contrast and distinctness problem in the resolved token maps under tokens_dir."""
+    """Every contrast, distinctness, and coverage problem in the resolved maps under tokens_dir."""
     cfg = load_config(instance_dir)
     sections = load_registry("sections", instance_dir).data["sections"]
+    item_types = load_registry("item-types", instance_dir).data["item_types"]
+    enums = list(labelled_enums(item_types, instance_dir))
     issues: list[Issue] = []
     try:
         maps = {mode: _read(tokens_dir / f"{mode}.json", mode) for mode in _modes()}
@@ -200,4 +211,5 @@ def check_tokens(tokens_dir: Path, instance_dir: Path | None = None) -> list[Iss
         return [unusable_issue("tokens", str(exc))]
     for mode, doc in maps.items():
         issues += _check_mode(mode, doc["tokens"], sections, cfg)
+        issues += _check_tones(mode, doc["tokens"], enums)
     return sorted(issues)

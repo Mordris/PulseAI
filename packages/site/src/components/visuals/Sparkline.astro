@@ -1,22 +1,23 @@
 ---
+import type { RenderContext } from "../../lib/render.ts";
 import { sparkline } from "../../lib/sparkline.ts";
 
 interface Props {
+  ctx: RenderContext;
   series: readonly number[];
 }
 
 // A decorative trend: the value and delta next to it carry the meaning for every reader.
-const WIDTH = 96;
-const HEIGHT = 28;
-const PADDING = 3;
-const { series } = Astro.props;
-const line = sparkline(series, WIDTH, HEIGHT, PADDING);
+const { ctx, series } = Astro.props;
+const width = ctx.tokenNumber("chart.sparkline.width");
+const height = ctx.tokenNumber("chart.sparkline.height");
+const line = sparkline(series, width, height, ctx.tokenNumber("chart.sparkline.padding"));
 ---
 
 {line && (
-  <svg class="sparkline" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true" focusable="false">
+  <svg class="sparkline" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true" focusable="false">
     <polyline points={line.points} />
-    <circle cx={line.last.x} cy={line.last.y} r="2.5" />
+    <circle cx={line.last.x} cy={line.last.y} r={ctx.tokenNumber("chart.sparkline.point_radius")} />
   </svg>
 )}
 

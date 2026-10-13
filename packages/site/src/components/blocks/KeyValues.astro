@@ -27,7 +27,7 @@ const entries = Astro.props.entries.filter(
 <style>
   .kv {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--pulse-layout-tile-min), 100%), 1fr));
     gap: var(--pulse-space-2) var(--pulse-space-4);
   }
 
