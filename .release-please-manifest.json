@@ -1,6 +1,6 @@
 {
-  "packages/cli": "0.1.0",
-  "packages/contracts": "0.1.0",
-  "packages/tokens": "0.1.0",
-  "packages/site": "0.1.0"
+  "packages/cli": "0.2.0",
+  "packages/contracts": "0.2.0",
+  "packages/tokens": "0.2.0",
+  "packages/site": "0.2.0"
 }
