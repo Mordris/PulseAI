@@ -1,6 +1,6 @@
 [project]
 name = "pulseai"
-version = "0.1.0"
+version = "0.2.0"
 description = "PulseAI engine CLI: daily AI and software research routine for Claude Code"
 readme = "README.md"
 license = "MIT"
