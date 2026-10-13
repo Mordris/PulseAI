@@ -29,6 +29,8 @@ export interface RenderContext {
   tokenNumber(path: string): number;
   /** A link below the site's base path: url("2026/10/11/") -> "/PulseAI/2026/10/11/". */
   url(path: string): string;
+  /** A page's <title>: the page name and the site name, joined by the locale's template. */
+  pageTitle(page: string): string;
 }
 
 export class RenderContextError extends Error {
@@ -51,8 +53,9 @@ export function createRenderContext(
     if (found === undefined) throw new RenderContextError(`the site context has no ${name}`);
     return found;
   };
+  const t = createTranslator(context.strings, lang);
   return {
-    t: createTranslator(context.strings, lang),
+    t,
     fmt: createFormatters(lang),
     lang,
     engineVersion: context.engine_version,
@@ -72,5 +75,6 @@ export function createRenderContext(
       return value;
     },
     url: (path) => `${base}${path.replace(/^\/+/, "")}`,
+    pageTitle: (page) => t("ui.page.title", { page, site: t("ui.site.title") }),
   };
 }

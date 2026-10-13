@@ -17,7 +17,7 @@ const { t } = ctx;
   <figcaption>
     {image.caption}
     <span class="figure__credit">
-      {t("ui.image.credit", { credit: image.credit })}{image.license && ` · ${t("ui.image.license", { license: image.license })}`}
+      {t("ui.image.credit", { credit: image.credit })}{image.license && ` ${t("ui.separator")} ${t("ui.image.license", { license: image.license })}`}
     </span>
   </figcaption>
 </figure>

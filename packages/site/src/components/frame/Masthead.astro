@@ -24,7 +24,7 @@ const regular = ctx.enums.edition[0];
 <header class="masthead">
   <div class="masthead__meta">
     <p class="masthead__edition">
-      {t("ui.masthead.edition", { edition: meta.edition })} · <time datetime={meta.date}>{fmt.date(meta.date)}</time>
+      {t("ui.masthead.edition", { edition: meta.edition })} {t("ui.separator")} <time datetime={meta.date}>{fmt.date(meta.date)}</time>
     </p>
     <div class="masthead__badges">
       {meta.sample && <Badge ctx={ctx} tone="color.status.warning">{t("ui.masthead.sample")}</Badge>}

@@ -10,6 +10,8 @@ export interface Formatters {
   dateShort(isoDate: string): string;
   /** An RFC 3339 timestamp in a time zone: "11 Oct 2026, 17:00". */
   dateTime(timestamp: string, timeZone: string): string;
+  /** Values listed with the language's separators: "text, image, audio". */
+  list(values: readonly string[]): string;
   /** Any detail or table value as text. */
   value(value: unknown, t: Translator): string;
 }
@@ -28,7 +30,11 @@ export function createFormatters(lang: string): Formatters {
     month: "short",
     timeZone: "UTC",
   });
+  // The narrow conjunction is the language's plain list ("a, b, c"; "a、b、c" in Japanese), as
+  // data lists read: authors, modalities, model names.
+  const lists = new Intl.ListFormat(lang, { style: "narrow", type: "conjunction" });
   const formatters: Formatters = {
+    list: (values) => lists.format(values),
     number: (value, options) =>
       options === undefined
         ? numbers.format(value)
@@ -44,7 +50,9 @@ export function createFormatters(lang: string): Formatters {
       if (value === null || value === undefined || value === "") return t("ui.table.empty_cell");
       if (typeof value === "number") return formatters.number(value);
       if (typeof value === "boolean") return t(value ? "ui.yes" : "ui.no");
-      if (Array.isArray(value)) return value.map((entry) => formatters.value(entry, t)).join(", ");
+      if (Array.isArray(value)) {
+        return formatters.list(value.map((entry) => formatters.value(entry, t)));
+      }
       if (typeof value === "object") return JSON.stringify(value);
       return String(value);
     },

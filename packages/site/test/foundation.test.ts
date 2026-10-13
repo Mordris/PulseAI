@@ -22,7 +22,14 @@ import {
 } from "../src/lib/setup.ts";
 import { jsonForScript } from "../src/lib/theme.ts";
 import { categoryColors, mermaidVariables, themeData, vegaConfig } from "../src/lib/theme-data.ts";
-import { EXAMPLES, engineContext, engineTokens, REPO, sampleReport } from "./fixtures.ts";
+import {
+  EXAMPLES,
+  engineContext,
+  engineTokens,
+  REPO,
+  sampleReport,
+  testContext,
+} from "./fixtures.ts";
 
 const SITE_SRC = join(REPO, "packages/site/src");
 
@@ -109,6 +116,21 @@ describe("formatters", () => {
     expect(fmt.value(true, t)).toBe("Yes");
     expect(fmt.value(null, t)).toBe("—");
     expect(fmt.value(["a", 1000], t)).toBe("a, 1,000");
+  });
+
+  it("lists values with the language's separators", () => {
+    expect(fmt.list(["text", "image", "audio"])).toBe("text, image, audio");
+    expect(createFormatters("ja").list(["a", "b"])).toBe("a、b");
+  });
+});
+
+describe("page titles", () => {
+  it("come from the locale's template", async () => {
+    const ctx = await testContext();
+    expect(ctx.pageTitle("Archive")).toBe(
+      ctx.t("ui.page.title", { page: "Archive", site: ctx.t("ui.site.title") }),
+    );
+    expect(ctx.pageTitle("Archive")).toBe("Archive · PulseAI");
   });
 });
 

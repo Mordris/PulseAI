@@ -29,8 +29,8 @@ const keyFacts = [
   },
   { label: t("fields.price_in_per_mtok"), value: price(d.price_in_per_mtok) },
   { label: t("fields.price_out_per_mtok"), value: price(d.price_out_per_mtok) },
-  { label: t("fields.modalities"), value: d.modalities?.join(", ") },
-  { label: t("fields.availability"), value: d.availability?.join(", ") },
+  { label: t("fields.modalities"), value: d.modalities && fmt.list(d.modalities) },
+  { label: t("fields.availability"), value: d.availability && fmt.list(d.availability) },
   { label: t("fields.weights"), value: t(`weights.${d.weights}`) },
   { label: t("fields.license"), value: d.license },
 ];

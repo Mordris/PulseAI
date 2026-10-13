@@ -45,7 +45,7 @@ const plainConfidence = ctx.enums.confidence[0];
   <summary class="item__summary">
     <span class="item__kicker">
       <span class="item__section">{t(section.label)}</span>
-      <span aria-hidden="true">·</span>
+      <span aria-hidden="true">{t("ui.separator")}</span>
       <span>{t(itemType.label)}</span>
       {updateDate && <Badge ctx={ctx}>{t("ui.item.update")}</Badge>}
       {item.confidence !== plainConfidence && (
