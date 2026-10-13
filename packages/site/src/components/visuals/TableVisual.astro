@@ -1,0 +1,18 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { TableVisual } from "../../lib/types.ts";
+import DataTable from "./DataTable.astro";
+import VisualFrame from "./VisualFrame.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: TableVisual;
+  nested?: boolean;
+}
+
+const { ctx, visual, nested = false } = Astro.props;
+---
+
+<VisualFrame ctx={ctx} id={visual.id} kind={visual.kind} title={visual.title} sourceNote={visual.source_note} nested={nested}>
+  <DataTable ctx={ctx} columns={visual.columns} rows={visual.rows} caption={visual.alt} hideCaption />
+</VisualFrame>

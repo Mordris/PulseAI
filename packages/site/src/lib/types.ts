@@ -1,0 +1,20 @@
+import type { ReportSchema } from "@pulseai/contracts";
+
+export type Report = ReportSchema.Report;
+export type Item = ReportSchema.Item;
+export type ItemSource = ReportSchema.ItemSource;
+export type ItemFact = ReportSchema.ItemFact;
+export type ItemImage = ReportSchema.ItemImage;
+export type Kpi = ReportSchema.Kpi;
+export type Visual = ReportSchema.Visual;
+export type LeafVisual = ReportSchema.LeafVisual;
+export type VegaLiteVisual = ReportSchema.VegaLiteVisual;
+export type MermaidVisual = ReportSchema.MermaidVisual;
+export type TableVisual = ReportSchema.TableVisual;
+export type ImageRefVisual = ReportSchema.ImageRefVisual;
+export type DashboardVisual = ReportSchema.DashboardVisual;
+export type StatTile = ReportSchema.StatTile;
+export type VisualTile = ReportSchema.VisualTile;
+export type RadarEntry = ReportSchema.RadarEntry;
+export type SectionNote = ReportSchema.SectionNote;
+export type RunStats = ReportSchema.RunStats;

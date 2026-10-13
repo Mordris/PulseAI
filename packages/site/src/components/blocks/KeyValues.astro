@@ -1,0 +1,44 @@
+---
+export interface Entry {
+  label: string;
+  value: string | undefined;
+}
+
+interface Props {
+  entries: readonly Entry[];
+}
+
+const entries = Astro.props.entries.filter(
+  (entry) => entry.value !== undefined && entry.value !== "",
+);
+---
+
+{entries.length > 0 && (
+  <dl class="kv">
+    {entries.map((entry) => (
+      <div class="kv__pair">
+        <dt>{entry.label}</dt>
+        <dd>{entry.value}</dd>
+      </div>
+    ))}
+  </dl>
+)}
+
+<style>
+  .kv {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+    gap: var(--pulse-space-2) var(--pulse-space-4);
+  }
+
+  dt {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: var(--pulse-font-weight-medium);
+    overflow-wrap: anywhere;
+  }
+</style>

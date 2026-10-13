@@ -1,0 +1,101 @@
+{
+  "color": {
+    "surface": {
+      "$type": "color",
+      "page": {
+        "$value": "#faf6ef"
+      },
+      "raised": {
+        "$value": "#fffdf8"
+      },
+      "sunken": {
+        "$value": "#f2ece1"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "primary": {
+        "$value": "#1f1a14",
+        "$extensions": {
+          "org.pulseai": {
+            "contrast_against": [
+              "color.surface.page",
+              "color.surface.raised",
+              "color.surface.sunken"
+            ]
+          }
+        }
+      },
+      "secondary": {
+        "$value": "#5a5045",
+        "$extensions": {
+          "org.pulseai": {
+            "contrast_against": [
+              "color.surface.page",
+              "color.surface.raised",
+              "color.surface.sunken"
+            ]
+          }
+        }
+      },
+      "muted": {
+        "$value": "#6b6155",
+        "$extensions": {
+          "org.pulseai": {
+            "contrast_against": [
+              "color.surface.page",
+              "color.surface.raised",
+              "color.surface.sunken"
+            ]
+          }
+        }
+      }
+    },
+    "border": {
+      "$type": "color",
+      "subtle": {
+        "$value": "#e6dccb"
+      },
+      "strong": {
+        "$value": "#cbbda6"
+      }
+    },
+    "accent": {
+      "$type": "color",
+      "default": {
+        "$value": "#8a3b12",
+        "$extensions": {
+          "org.pulseai": {
+            "override": "accent",
+            "contrast_against": [
+              "color.surface.page",
+              "color.surface.raised",
+              "color.surface.sunken"
+            ]
+          }
+        }
+      }
+    },
+    "focus": {
+      "$type": "color",
+      "ring": {
+        "$value": "{palette.blue.450}"
+      }
+    },
+    "chart": {
+      "$type": "color",
+      "grid": {
+        "$value": "#e6dccb"
+      },
+      "axis": {
+        "$value": "#cbbda6"
+      },
+      "label": {
+        "$value": "{color.text.secondary}"
+      },
+      "surface": {
+        "$value": "{color.surface.raised}"
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+---
+import type { ItemTypesReleaseSchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import { enumAt } from "../../../lib/schema-values.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import Code from "../../blocks/Code.astro";
+import Badge from "../../frame/Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const { t } = ctx;
+const d = item.detail as ItemTypesReleaseSchema.ReleaseDetail;
+// Changelog entries grouped by tag, in the order the schema lists the tags.
+const tags = enumAt(ctx.detailSchema(itemType), "properties.changelog.items.properties.tag");
+const changelog = [...d.changelog].sort((a, b) => tags.indexOf(a.tag) - tags.indexOf(b.tag));
+---
+
+<p class="release-version">
+  <span class="release-version__product">{d.product}</span>
+  <span class="release-version__number">{d.version}</span>
+  {d.previous_version && <span class="muted">{t("ui.release.from", { version: d.previous_version })}</span>}
+</p>
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "changelog" && (
+      <ul class="changelog">
+        {changelog.map((entry) => (
+          <li>
+            <Badge ctx={ctx} tone={`color.changelog.${entry.tag}`}>{t(`changelog.${entry.tag}`)}</Badge>
+            <span>{entry.text}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+    {block === "verdict" && (
+      <p><Badge ctx={ctx} tone={`color.ring.${d.verdict}`}>{t(`rings.${d.verdict}`)}</Badge></p>
+    )}
+    {block === "snippet" && d.snippet && <Code code={d.snippet} />}
+    {block === "migration_notes" && d.migration_notes && <p>{d.migration_notes}</p>}
+  </Block>
+))}
+
+<style>
+  .release-version {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--pulse-space-2);
+  }
+
+  .release-version__product {
+    font-weight: var(--pulse-font-weight-semibold);
+  }
+
+  .release-version__number {
+    font-family: var(--pulse-font-family-mono);
+  }
+
+  .changelog {
+    list-style: none;
+    padding: 0 !important;
+  }
+
+  .changelog li {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    align-items: baseline;
+    gap: var(--pulse-space-3);
+  }
+
+  .changelog :global(.badge) {
+    justify-self: start;
+  }
+</style>

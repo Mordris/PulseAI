@@ -1,0 +1,27 @@
+---
+import type { GetStaticPaths } from "astro";
+import ReportView from "../../../../components/frame/ReportView.astro";
+import Base from "../../../../layouts/Base.astro";
+import { allReports } from "../../../../lib/reports.ts";
+import { getSite } from "../../../../lib/site-data.ts";
+import type { Report } from "../../../../lib/types.ts";
+
+export const getStaticPaths = (async () => {
+  const reports = await allReports();
+  return reports.map((report) => {
+    const [year, month, day] = report.meta.date.split("-");
+    return { params: { year, month, day }, props: { report } };
+  });
+}) satisfies GetStaticPaths;
+
+interface Props {
+  report: Report;
+}
+
+const { report } = Astro.props;
+const { ctx } = getSite();
+---
+
+<Base title={`${report.headline} · ${ctx.t("ui.site.title")}`} description={report.headline}>
+  <ReportView ctx={ctx} report={report} />
+</Base>

@@ -1,0 +1,56 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import { jsonForScript } from "../../lib/theme.ts";
+import type { VegaLiteVisual } from "../../lib/types.ts";
+import { inlineTable } from "../../lib/visual-data.ts";
+import DataTable from "./DataTable.astro";
+import VisualFrame from "./VisualFrame.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: VegaLiteVisual;
+  nested?: boolean;
+}
+
+const { ctx, visual, nested = false } = Astro.props;
+const { t } = ctx;
+const table = inlineTable(visual.spec);
+---
+
+<VisualFrame ctx={ctx} id={visual.id} kind={visual.kind} title={visual.title} sourceNote={visual.source_note} nested={nested}>
+  <pulse-vega-chart class="chart" role="img" aria-label={visual.alt}>
+    <script type="application/json" set:html={jsonForScript(visual.spec)}></script>
+    <div class="chart__canvas" data-chart hidden></div>
+  </pulse-vega-chart>
+  {table ? (
+    <details class="visual__data" data-chart-table open>
+      <summary>{t("ui.visual.data")}</summary>
+      <DataTable ctx={ctx} columns={table.columns} rows={table.rows} caption={visual.title} hideCaption />
+    </details>
+  ) : (
+    <p class="visual__alt">{visual.alt}</p>
+  )}
+</VisualFrame>
+
+<script>
+  import "../../client/vega-chart.ts";
+</script>
+
+<style>
+  .chart {
+    display: block;
+    min-width: 0;
+  }
+
+  .chart__canvas {
+    width: 100%;
+  }
+
+  .chart__canvas :global(.vega-embed) {
+    width: 100%;
+  }
+
+  .chart[data-state="error"] .chart__canvas {
+    display: none;
+  }
+</style>

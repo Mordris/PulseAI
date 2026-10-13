@@ -1,0 +1,28 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Visual as VisualData } from "../../lib/types.ts";
+import Visual from "../visuals/Visual.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visuals: readonly VisualData[];
+}
+
+const { ctx, visuals } = Astro.props;
+---
+
+{visuals.length > 0 && (
+  <section class="region front-page" aria-labelledby="front-page-title">
+    <h2 class="visually-hidden" id="front-page-title">{ctx.t("ui.front_page.title")}</h2>
+    <div class="front-page__grid">
+      {visuals.map((visual) => <Visual ctx={ctx} visual={visual} />)}
+    </div>
+  </section>
+)}
+
+<style>
+  .front-page__grid {
+    display: grid;
+    gap: var(--pulse-space-4);
+  }
+</style>

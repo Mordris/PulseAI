@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from jsonschema.exceptions import SchemaError
 
@@ -27,7 +28,14 @@ from pulseai.schemas import (
 
 REPORT_SCHEMA = "report.schema.json"
 VEGA_LITE_KIND = "vega-lite"
+# Charts carry their data inline: no key may name a URL to load, except inside the inline rows,
+# where a URL is just a value.
+URL_KEY = "url"
+INLINE_ROW_KEYS = frozenset({"values", "datasets"})
+VEGA_LITE_SCHEMA_MARK = "/schema/vega-lite/"
 TABLE_KIND = "table"
+DASHBOARD_KIND = "dashboard"
+VISUAL_TILE = "visual"
 
 
 @dataclass(frozen=True)
@@ -35,6 +43,7 @@ class _Context:
     cfg: PulseConfig
     instance_dir: Path | None
     section_ids: set[str]
+    section_groups: dict[str, set[str]]
     item_types: dict[str, dict[str, Any]]
     featured_slots: dict[str, dict[str, Any]]
 
@@ -49,21 +58,32 @@ def _items(report: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
             yield f"{key}/{index}", item
 
 
+def _with_nested(where: str, visual: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
+    """A visual followed by the leaf visuals in its dashboard tiles, if it is a dashboard."""
+    yield where, visual
+    if visual["kind"] == DASHBOARD_KIND:
+        for index, tile in enumerate(visual["tiles"]):
+            if tile["tile"] == VISUAL_TILE:
+                yield f"{where}/tiles/{index}/visual", tile["visual"]
+
+
 def _visuals(report: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
     for index, visual in enumerate(report["front_page"]):
-        yield f"front_page/{index}", visual
+        yield from _with_nested(f"front_page/{index}", visual)
     for where, item in _items(report):
         for index, visual in enumerate(item["visuals"]):
-            yield f"{where}/visuals/{index}", visual
+            yield from _with_nested(f"{where}/visuals/{index}", visual)
 
 
 def _remote_data(node: Any, path: str) -> str | None:
+    """The first `url` a chart could load: data, images, anything outside the inline rows."""
     if isinstance(node, dict):
         mapping = cast("dict[str, Any]", node)
-        data = mapping.get("data")
-        if isinstance(data, dict) and "url" in data:
-            return f"{path}/data/url"
         for key, value in mapping.items():
+            if key == URL_KEY:
+                return f"{path}/{key}"
+            if key in INLINE_ROW_KEYS:
+                continue
             found = _remote_data(value, f"{path}/{key}")
             if found:
                 return found
@@ -185,7 +205,18 @@ def _check_featured(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
 def _check_visuals(report: dict[str, Any]) -> Iterator[Issue]:
     for where, visual in _visuals(report):
         if visual["kind"] == VEGA_LITE_KIND:
-            remote = _remote_data(visual["spec"], "spec")
+            spec = visual["spec"]
+            schema = spec.get("$schema")
+            if schema is not None and VEGA_LITE_SCHEMA_MARK not in str(schema):
+                yield _error(
+                    f"{where}/spec/$schema",
+                    f"{schema!r} is not a Vega-Lite schema; vega-lite visuals take Vega-Lite specs",
+                )
+            if "usermeta" in spec:
+                yield _error(
+                    f"{where}/spec/usermeta", "charts cannot carry embed options in usermeta"
+                )
+            remote = _remote_data(spec, "spec")
             if remote:
                 yield _error(
                     where, f"remote chart data ({remote}) is not allowed; embed data.values"
@@ -195,6 +226,47 @@ def _check_visuals(report: dict[str, Any]) -> Iterator[Issue]:
             for index, row in enumerate(visual["rows"]):
                 if len(row) != width:
                     yield _error(f"{where}/rows/{index}", f"{len(row)} cells, expected {width}")
+
+
+def _check_dashboard(where: str, visual: dict[str, Any]) -> Iterator[Issue]:
+    for index, tile in enumerate(visual["tiles"]):
+        span = tile.get("span", 1)
+        if span > visual["columns"]:
+            yield _error(
+                f"{where}/tiles/{index}/span",
+                f"span {span} is wider than the dashboard's {visual['columns']} columns",
+            )
+        if tile["tile"] == VISUAL_TILE and "block" in tile["visual"]:
+            yield _error(
+                f"{where}/tiles/{index}/visual/block",
+                "visuals inside a dashboard cannot name a block",
+            )
+
+
+def _check_visual_placement(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
+    for index, visual in enumerate(report["front_page"]):
+        where = f"front_page/{index}"
+        if "block" in visual:
+            yield _error(
+                f"{where}/block",
+                "front-page visuals are not in an item, so they cannot name a block",
+            )
+        if visual["kind"] == DASHBOARD_KIND:
+            yield from _check_dashboard(where, visual)
+    for item_where, item in _items(report):
+        item_type = ctx.item_types.get(item["type"])
+        for index, visual in enumerate(item["visuals"]):
+            where = f"{item_where}/visuals/{index}"
+            block = visual.get("block")
+            # An unknown item type is reported by _check_registry_refs already.
+            if block is not None and item_type is not None and block not in item_type["blocks"]:
+                yield _error(
+                    f"{where}/block",
+                    f"block {block!r} is not one of the {item['type']!r} blocks: "
+                    f"{', '.join(item_type['blocks'])}",
+                )
+            if visual["kind"] == DASHBOARD_KIND:
+                yield from _check_dashboard(where, visual)
 
 
 def _count(count: int, noun: str) -> str:
@@ -228,6 +300,29 @@ def _check_section_config(report: dict[str, Any], ctx: _Context) -> Iterator[Iss
             )
 
 
+def _check_window(report: dict[str, Any]) -> Iterator[Issue]:
+    tz = report["meta"]["window"]["tz"]
+    try:
+        ZoneInfo(tz)
+    except (ZoneInfoNotFoundError, ValueError):
+        yield _error("meta/window/tz", f"unknown time zone {tz!r}; use an IANA name")
+
+
+def _check_section_notes(report: dict[str, Any], ctx: _Context) -> Iterator[Issue]:
+    for section_id, notes in report["section_notes"].items():
+        groups = ctx.section_groups.get(section_id)
+        if groups is None:
+            yield _error(f"section_notes/{section_id}", f"unknown section {section_id!r}")
+            continue
+        for index, note in enumerate(notes):
+            group = note.get("group")
+            if group is not None and group not in groups:
+                yield _error(
+                    f"section_notes/{section_id}/{index}/group",
+                    f"section {section_id!r} has no group {group!r}",
+                )
+
+
 def _context(instance_dir: Path | None) -> _Context:
     cfg = load_config(instance_dir)
     sections = load_registry("sections", instance_dir).data["sections"]
@@ -242,6 +337,7 @@ def _context(instance_dir: Path | None) -> _Context:
         cfg=cfg,
         instance_dir=instance_dir,
         section_ids={s["id"] for s in sections},
+        section_groups={s["id"]: {g["id"] for g in s["groups"]} for s in sections},
         item_types={t["id"]: t for t in item_types},
         featured_slots=slots,
     )
@@ -268,7 +364,10 @@ def validate_report(data: Any, instance_dir: Path | None = None) -> list[Issue]:
         *_check_confidence_routing(report, ctx),
         *_check_featured(report, ctx),
         *_check_visuals(report),
+        *_check_visual_placement(report, ctx),
         *_check_section_config(report, ctx),
+        *_check_section_notes(report, ctx),
+        *_check_window(report),
     ]
     return sorted(issues)
 

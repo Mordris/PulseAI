@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 import typer.main
+from token_fixtures import write as write_tokens
 from typer.core import TyperGroup
 from typer.testing import CliRunner
 
@@ -110,6 +111,11 @@ def _args(*words: str) -> Callable[[Setup], list[str]]:
     return lambda setup: [*words, "--instance", str(setup.instance)]
 
 
+def _tokens_args(setup: Setup) -> list[str]:
+    tokens = write_tokens(setup.instance / ".pulse" / "tokens")
+    return ["tokens", "check", "--tokens", str(tokens), "--instance", str(setup.instance)]
+
+
 def _validate_args(setup: Setup) -> list[str]:
     return ["validate", str(setup.report), "--instance", str(setup.instance)]
 
@@ -152,6 +158,28 @@ COMMANDS: dict[str, tuple[Callable[[Setup], list[str]], dict[str, Expect]]] = {
             NO_ENGINE_DATA: Expect(2, "stderr", ENGINE_DATA_ENV),
             BROKEN_CATALOG: Expect(2, "stderr", "registries.yaml"),
             BROKEN_REPORT: Expect(2, "stderr", "error file: "),
+        },
+    ),
+    "site context": (
+        _args("site", "context"),
+        {
+            VALID: Expect(0, "stdout", "Wrote "),
+            ISSUE: Expect(1, "stderr", "unknown role 'intern'"),
+            BROKEN_CONFIG: Expect(2, "stderr", "schedule/time"),
+            NO_ENGINE_DATA: Expect(2, "stderr", ENGINE_DATA_ENV),
+            BROKEN_CATALOG: Expect(2, "stderr", "registries.yaml"),
+            BROKEN_LOCALE: Expect(2, "stderr", "locales/en.json"),
+            BROKEN_SECTIONS: Expect(2, "stderr", "taxonomy/sections.yaml"),
+        },
+    ),
+    "tokens check": (
+        _tokens_args,
+        {
+            VALID: Expect(0, "stdout", "Design tokens pass."),
+            BROKEN_CONFIG: Expect(2, "stderr", "schedule/time"),
+            NO_ENGINE_DATA: Expect(2, "stderr", ENGINE_DATA_ENV),
+            BROKEN_CATALOG: Expect(2, "stderr", "registries.yaml"),
+            BROKEN_SECTIONS: Expect(2, "stderr", "taxonomy/sections.yaml"),
         },
     ),
     # The doctor is a report: any failing check is exit 1 and everything goes to stdout.

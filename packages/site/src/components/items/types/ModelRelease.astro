@@ -1,0 +1,44 @@
+---
+import type { ItemTypesModelReleaseSchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import KeyValues from "../../blocks/KeyValues.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const { t, fmt } = ctx;
+const d = item.detail as ItemTypesModelReleaseSchema.ModelReleaseDetail;
+const price = (value: number | undefined) =>
+  value === undefined ? undefined : t("ui.format.usd_per_mtok", { value: fmt.number(value) });
+const keyFacts = [
+  { label: t("fields.org"), value: d.org },
+  { label: t("fields.model"), value: d.model },
+  {
+    label: t("fields.context_tokens"),
+    value:
+      d.context_tokens === undefined
+        ? undefined
+        : t("ui.format.tokens", { value: fmt.number(d.context_tokens) }),
+  },
+  { label: t("fields.price_in_per_mtok"), value: price(d.price_in_per_mtok) },
+  { label: t("fields.price_out_per_mtok"), value: price(d.price_out_per_mtok) },
+  { label: t("fields.modalities"), value: d.modalities?.join(", ") },
+  { label: t("fields.availability"), value: d.availability?.join(", ") },
+  { label: t("fields.weights"), value: t(`weights.${d.weights}`) },
+  { label: t("fields.license"), value: d.license },
+];
+---
+
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "key_facts" && <KeyValues entries={keyFacts} />}
+    {block === "try_it" && d.try_it && <p>{d.try_it}</p>}
+  </Block>
+))}

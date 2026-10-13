@@ -1,0 +1,34 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Report } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  actions: Report["action_list"];
+}
+
+const { ctx, actions } = Astro.props;
+---
+
+{actions.length > 0 && (
+  <section class="region actions" aria-labelledby="actions-title">
+    <h2 class="region__title" id="actions-title">{ctx.t("ui.actions.title")}</h2>
+    <ol class="actions__list">
+      {actions.map((action) => (
+        <li>{action.item_id ? <a href={`#${action.item_id}`}>{action.text}</a> : action.text}</li>
+      ))}
+    </ol>
+  </section>
+)}
+
+<style>
+  .actions__list {
+    display: grid;
+    gap: var(--pulse-space-2);
+    max-width: var(--pulse-layout-reading-width);
+    padding: var(--pulse-space-4) var(--pulse-space-4) var(--pulse-space-4) var(--pulse-space-7);
+    border-inline-start: var(--pulse-border-width-thick) solid var(--pulse-color-accent-default);
+    background: var(--pulse-color-surface-raised);
+    border-radius: var(--pulse-radius-md);
+  }
+</style>

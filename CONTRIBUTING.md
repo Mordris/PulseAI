@@ -21,18 +21,30 @@ this repository it uses the version pinned in `package.json` (`packageManager`).
     uv run pulse registry check                     # registries and config agree
     uv run pulse doctor                             # local setup
 
+The report site (see [docs/site.md](docs/site.md)):
+
+    pnpm demo:build                                 # build the demo instance in examples/
+    pnpm demo:dev                                   # live reload while editing components
+    pnpm demo:check                                 # astro check
+    pnpm tokens:check                               # contrast and color gates for every preset
+    pnpm demo:e2e                                   # Playwright, axe, screenshots (Docker)
+    pnpm --filter @pulseai/site e2e:visual:update   # accept intended visual changes (Linux)
+    pnpm --filter @pulseai/contracts generate       # after editing schema/*.schema.json
+
 ## Rules
 
 - Contracts live in `schema/`; regenerate models after every schema change and commit them.
-- Values live in registries (`taxonomy/`, `sources/`, `locales/`, `defaults/`), never in code.
+- Values live in registries (`taxonomy/`, `sources/`, `locales/`, `defaults/`, `tokens/`), never in
+  code. The site's copy comes from locales and its colors, fonts, and sizes from tokens.
 - Prefer a maintained open-source project over new code. Add dependencies with `uv add` or
   `pnpm add` so the latest version is resolved and locked; Renovate keeps them current.
 - Commits follow Conventional Commits; release-please builds changelogs and versions from them.
 
 ## Releasing
 
-Merging the release-please pull request tags `cli-vX.Y.Z` and `contracts-vX.Y.Z` together and
-publishes the `pulseai` wheel to PyPI through trusted publishing.
+Merging the release-please pull request tags `cli-vX.Y.Z`, `contracts-vX.Y.Z`, `tokens-vX.Y.Z`, and
+`site-vX.Y.Z` together and publishes the `pulseai` wheel to PyPI through trusted publishing. The npm
+packages stay private until M6 builds and publishes them.
 
 One-time repository setup:
 

@@ -1,0 +1,18 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { ImageRefVisual } from "../../lib/types.ts";
+import Figure from "./Figure.astro";
+import VisualFrame from "./VisualFrame.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: ImageRefVisual;
+  nested?: boolean;
+}
+
+const { ctx, visual, nested = false } = Astro.props;
+---
+
+<VisualFrame ctx={ctx} id={visual.id} kind={visual.kind} title={visual.title} sourceNote={visual.source_note} nested={nested}>
+  <Figure ctx={ctx} image={visual.image} />
+</VisualFrame>

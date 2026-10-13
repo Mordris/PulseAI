@@ -1,0 +1,38 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import { reportPath } from "../../lib/report.ts";
+import type { Report } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  corrections: Report["corrections"];
+}
+
+const { ctx, corrections } = Astro.props;
+const { t, fmt } = ctx;
+---
+
+{corrections.length > 0 && (
+  <section class="region" aria-labelledby="corrections-title">
+    <h2 class="region__title" id="corrections-title">{t("ui.corrections.title")}</h2>
+    <ul class="corrections">
+      {corrections.map((correction) => (
+        <li>
+          <a href={`${ctx.url(reportPath(correction.report_date))}#${correction.item_id}`}>
+            {t("ui.corrections.entry", { date: fmt.date(correction.report_date) })}
+          </a>
+          {" "}{correction.text}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .corrections {
+    display: grid;
+    gap: var(--pulse-space-2);
+    max-width: var(--pulse-layout-reading-width);
+    padding-inline-start: var(--pulse-space-5);
+  }
+</style>

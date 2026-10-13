@@ -1,0 +1,40 @@
+---
+import { sparkline } from "../../lib/sparkline.ts";
+
+interface Props {
+  series: readonly number[];
+}
+
+// A decorative trend: the value and delta next to it carry the meaning for every reader.
+const WIDTH = 96;
+const HEIGHT = 28;
+const PADDING = 3;
+const { series } = Astro.props;
+const line = sparkline(series, WIDTH, HEIGHT, PADDING);
+---
+
+{line && (
+  <svg class="sparkline" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true" focusable="false">
+    <polyline points={line.points} />
+    <circle cx={line.last.x} cy={line.last.y} r="2.5" />
+  </svg>
+)}
+
+<style>
+  .sparkline {
+    display: block;
+    overflow: visible;
+  }
+
+  polyline {
+    fill: none;
+    stroke: var(--pulse-color-accent-default);
+    stroke-width: var(--pulse-chart-line-width);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  circle {
+    fill: var(--pulse-color-accent-default);
+  }
+</style>

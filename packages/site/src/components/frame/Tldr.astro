@@ -1,0 +1,46 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Report } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  lines: Report["tldr"];
+}
+
+const { ctx, lines } = Astro.props;
+---
+
+{lines.length > 0 && (
+  <section class="region tldr" aria-labelledby="tldr-title">
+    <h2 class="region__title" id="tldr-title">{ctx.t("ui.tldr.title")}</h2>
+    <ol class="tldr__list">
+      {lines.map((line) => (
+        <li><a href={`#${line.item_id}`}>{line.text}</a></li>
+      ))}
+    </ol>
+  </section>
+)}
+
+<style>
+  .tldr__list {
+    display: grid;
+    gap: var(--pulse-space-2);
+    max-width: var(--pulse-layout-reading-width);
+    padding-inline-start: var(--pulse-space-5);
+    font-size: var(--pulse-font-size-lg);
+  }
+
+  .tldr__list a {
+    color: var(--pulse-color-text-primary);
+    text-decoration-color: var(--pulse-color-border-strong);
+  }
+
+  .tldr__list a:hover {
+    text-decoration-color: var(--pulse-color-accent-default);
+  }
+
+  .tldr__list li::marker {
+    color: var(--pulse-color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:site-context",
+  "title": "SiteContext",
+  "description": "Everything a site build needs from the engine and an instance, resolved by `pulse site context`: the effective config, the merged sections and item-types registries, locale strings with fallbacks applied, and the schemas reports are validated against. Nested documents are validated against their own schemas when the context is built.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "engine_version",
+    "config",
+    "sections",
+    "item_types",
+    "strings",
+    "schemas"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "engine_version": { "type": "string", "minLength": 1 },
+    "config": {
+      "type": "object",
+      "description": "Effective configuration (config.schema.json)."
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Merged sections registry entries (sections.schema.json), sorted by order, then id.",
+      "items": { "type": "object" }
+    },
+    "item_types": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Merged item-types registry entries (item-types.schema.json).",
+      "items": { "type": "object" }
+    },
+    "strings": {
+      "type": "object",
+      "description": "Locale strings for config.language with the fallback chain applied.",
+      "propertyNames": { "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_-]+)+$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "Schemas keyed by name: report.schema.json (engine) and item-types/<file> for every item type (instance first).",
+      "propertyNames": { "pattern": "^(?:item-types/)?[a-z0-9_-]+\\.schema\\.json$" },
+      "additionalProperties": { "type": "object" }
+    }
+  }
+}

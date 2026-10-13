@@ -203,6 +203,30 @@ class ItemImage(BaseModel):
     license: Annotated[str | None, Field(min_length=1)] = None
 
 
+type VisualBlock = Annotated[
+    Id,
+    Field(
+        description="Deep-dive block of the item's type to render this visual in. Without it the visual renders after the item's facts."
+    ),
+]
+
+
+type Span = Annotated[int, Field(ge=1, le=4)]
+
+
+class StatTile(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    tile: Literal["stat"]
+    span: Span | None = None
+    label: ShortText
+    value: str | float
+    unit: Annotated[str | None, Field(max_length=20, min_length=1)] = None
+    delta: float | None = None
+    series: list[float] | None = None
+
+
 class VegaLiteVisual(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -212,6 +236,7 @@ class VegaLiteVisual(BaseModel):
     title: ShortText
     alt: Alt
     source_note: ShortText
+    block: VisualBlock | None = None
     spec: Annotated[dict[str, Any], Field(min_length=1)]
 
 
@@ -224,6 +249,7 @@ class MermaidVisual(BaseModel):
     title: ShortText
     alt: Alt
     source_note: ShortText
+    block: VisualBlock | None = None
     code: Annotated[str, Field(max_length=20000, min_length=1)]
 
 
@@ -236,6 +262,7 @@ class TableVisual(BaseModel):
     title: ShortText
     alt: Alt
     source_note: ShortText
+    block: VisualBlock | None = None
     columns: Annotated[list[ShortText], Field(min_length=1)]
     rows: list[list[str | float | bool | None]]
 
@@ -249,10 +276,45 @@ class ImageRefVisual(BaseModel):
     title: ShortText
     alt: Alt
     source_note: ShortText
+    block: VisualBlock | None = None
     image: ItemImage
 
 
-type Visual = VegaLiteVisual | MermaidVisual | TableVisual | ImageRefVisual
+type LeafVisual = Annotated[
+    VegaLiteVisual | MermaidVisual | TableVisual | ImageRefVisual,
+    Field(
+        description="A visual that can sit inside a dashboard tile (any kind except dashboard)."
+    ),
+]
+
+
+class VisualTile(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    tile: Literal["visual"]
+    span: Span | None = None
+    visual: LeafVisual
+
+
+type DashboardTile = StatTile | VisualTile
+
+
+class DashboardVisual(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    kind: Literal["dashboard"]
+    id: Slug
+    title: ShortText
+    alt: Alt
+    source_note: ShortText
+    block: VisualBlock | None = None
+    columns: Annotated[int, Field(ge=1, le=4)]
+    tiles: Annotated[list[DashboardTile], Field(max_length=12, min_length=1)]
+
+
+type Visual = VegaLiteVisual | MermaidVisual | TableVisual | ImageRefVisual | DashboardVisual
 
 
 class Item(BaseModel):

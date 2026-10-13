@@ -1,0 +1,15 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Visual } from "../../lib/types.ts";
+import Dashboard from "./Dashboard.astro";
+import VisualLeaf from "./VisualLeaf.astro";
+
+interface Props {
+  ctx: RenderContext;
+  visual: Visual;
+}
+
+const { ctx, visual } = Astro.props;
+---
+
+{visual.kind === "dashboard" ? <Dashboard ctx={ctx} visual={visual} /> : <VisualLeaf ctx={ctx} visual={visual} />}

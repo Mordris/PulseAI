@@ -67,6 +67,27 @@ def test_semantic_cases_are_rejected(minimal: dict[str, Any], case: dict[str, An
     assert any(case["expect"] in e for e in errors), errors
 
 
+def test_inline_chart_rows_may_hold_urls(minimal: dict[str, Any]) -> None:
+    rows = [{"repo": "relay", "url": "https://example.org/relay"}]
+    minimal["items"][0]["visuals"].append(
+        {
+            "kind": "vega-lite",
+            "id": "repo-chart",
+            "title": "Repos",
+            "alt": "Repositories by name",
+            "source_note": "Example",
+            "spec": {
+                "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+                "mark": "bar",
+                "data": {"values": rows},
+                "datasets": {"repos": rows},
+                "encoding": {"x": {"field": "repo", "type": "nominal"}},
+            },
+        }
+    )
+    assert validate_report(minimal) == []
+
+
 def test_disabled_section_with_items_is_an_error(tmp_path: Path, minimal: dict[str, Any]) -> None:
     (tmp_path / "pulse.config.yaml").write_text(
         "sections:\n  models: { enabled: false, max_items: 8 }\n", encoding="utf-8"
@@ -434,3 +455,39 @@ def test_missing_engine_report_schema_is_a_load_issue(
     issues = validate_report(minimal)
     assert [(i.where, i.unusable) for i in issues] == [("load", True)]
     assert "report.schema.json" in issues[0].message
+
+
+def test_a_dashboard_with_stat_and_visual_tiles_is_valid(minimal: dict[str, Any]) -> None:
+    minimal["front_page"].append(
+        {
+            "kind": "dashboard",
+            "id": "board",
+            "title": "Today at a glance",
+            "alt": "Two stat tiles and a table",
+            "source_note": "This report",
+            "columns": 3,
+            "tiles": [
+                {"tile": "stat", "label": "Items", "value": 2, "delta": 1, "series": [1, 2]},
+                {"tile": "stat", "label": "Price", "value": 3.5, "unit": "USD"},
+                {
+                    "tile": "visual",
+                    "span": 3,
+                    "visual": {
+                        "kind": "table",
+                        "id": "board-table",
+                        "title": "Items",
+                        "alt": "Items table",
+                        "source_note": "This report",
+                        "columns": ["Item"],
+                        "rows": [["one"], ["two"]],
+                    },
+                },
+            ],
+        }
+    )
+    assert validate_report(minimal) == []
+
+
+def test_a_visual_may_name_one_of_its_item_types_blocks(minimal: dict[str, Any]) -> None:
+    minimal["items"][0]["visuals"][0]["block"] = "timeline"
+    assert validate_report(minimal) == []

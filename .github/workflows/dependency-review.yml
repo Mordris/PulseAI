@@ -24,11 +24,16 @@ jobs:
           comment-summary-in-pr: on-failure
           allow-licenses: >-
             MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, MPL-2.0,
-            PSF-2.0, Python-2.0, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib
+            PSF-2.0, Python-2.0, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, OFL-1.1
           # Packages whose license GitHub misdetects. Each one's declared license (PyPI
           # license_expression) is in the allow list above; re-verify when adding entries.
           #   typing-extensions: PSF-2.0 (detected as "... AND GPL-1.0-or-later ...")
           #   rfc3987-syntax:    MIT     (detected as "Apache-2.0 AND GPL-1.0-or-later AND MIT")
           #   pulseai:           MIT     (this repository's own package; not detected)
+          #   khroma:            MIT     (license file; package.json declares none)
+          # Packages outside the allow list, accepted on purpose:
+          #   elkjs:             EPL-2.0 (Mermaid's layout engine, used unmodified as a library)
+          # OFL-1.1 above covers the Fontsource font packages the site bundles.
           allow-dependencies-licenses: >-
-            pkg:pypi/typing-extensions, pkg:pypi/rfc3987-syntax, pkg:pypi/pulseai
+            pkg:pypi/typing-extensions, pkg:pypi/rfc3987-syntax, pkg:pypi/pulseai,
+            pkg:npm/khroma, pkg:npm/elkjs

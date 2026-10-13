@@ -138,6 +138,18 @@ configuration, a registry or locale that fails to load, or an unreadable report)
 printed to stderr and warnings to stdout. `pulse doctor` is a report: it prints every finding to
 stdout and exits `1` if any check fails, even when the cause is unusable input.
 
+### Build the demo site
+
+`examples/` is a demo instance with three sample editions:
+
+```bash
+pnpm demo:build      # site context, design tokens, and the site in examples/dist/
+pnpm demo:preview    # http://127.0.0.1:4321/PulseAI/
+pnpm demo:e2e        # Playwright, axe, and screenshot tests (Docker)
+```
+
+See [docs/site.md](docs/site.md) for themes, presets, item types, and visuals.
+
 <details>
 <summary><b>Install the Claude Code plugin</b></summary>
 
@@ -223,8 +235,12 @@ defaults/              engine defaults and the registry catalog
 taxonomy/              sections, item types, roles
 sources/registry/      default research sources
 locales/               interface text
+tokens/                design tokens (DTCG): base, modes, and theme presets
+examples/              demo instance with sample reports
 packages/cli/          the pulse CLI (Python, uv)
-packages/contracts/    Zod validators built from the schemas (TypeScript)
+packages/contracts/    Zod validators and types built from the schemas (TypeScript)
+packages/tokens/       token layering and resolution (Style Dictionary)
+packages/site/         the report site (Astro)
 scripts/               maintainer tooling
 docs/                  spec, plans, and architecture decisions
 ```
@@ -233,9 +249,9 @@ docs/                  spec, plans, and architecture decisions
 
 | Concern | Built on | Status |
 |---|---|---|
-| Report site | Astro, Pagefind, Style Dictionary | Planned (M2) |
-| Charts and diagrams | Vega-Lite, Mermaid | Planned (M2) |
-| Browser automation and QA | Playwright, axe-core | Planned (M2, M4) |
+| Report site | Astro, Pagefind, Style Dictionary, Fontsource | Available |
+| Charts and diagrams | Vega-Lite, Mermaid | Available |
+| Browser automation and QA | Playwright, axe-core, ColorAide | Available (design review agent: M4) |
 | Data access | MCP servers (GitHub, Hugging Face, arXiv, fetch, Exa, Brave), feedparser, httpx | Planned (M3) |
 | Contracts | JSON Schema, generated Pydantic models, Zod | Available |
 | Notifications | Apprise | Planned (M6) |
@@ -252,8 +268,8 @@ and audits CI network egress. To report a vulnerability, see [SECURITY.md](SECUR
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Cloud routine spikes | Planned |
-| M1 | Foundation: schemas, registries, config, validation, CI, security | In progress |
-| M2 | Site and visual system | Planned |
+| M1 | Foundation: schemas, registries, config, validation, CI, security | Done |
+| M2 | Site and visual system | Done |
 | M3 | Data access: collector, MCP catalog, sources, coverage history | Planned |
 | M4 | Agents and skills: daily orchestrator, verifier, design review | Planned |
 | M5 | Research desk | Planned |

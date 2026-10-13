@@ -1,0 +1,61 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+}
+
+const { ctx, item } = Astro.props;
+const { t } = ctx;
+const max = ctx.enums.score.at(-1) ?? item.impact;
+const scores = [
+  { key: "impact", value: item.impact },
+  { key: "novelty", value: item.novelty },
+  { key: "relevance", value: item.relevance },
+];
+---
+
+<span class="scores">
+  {scores.map(({ key, value }) => (
+    <span class="scores__score" data-score={key}>
+      <span class="scores__label">{t(`ui.item.${key}`, { value, max })}</span>
+      <span class="scores__pips" aria-hidden="true">
+        {ctx.enums.score.map((step) => <span class:list={["scores__pip", { "scores__pip--on": step <= value }]} />)}
+      </span>
+    </span>
+  ))}
+</span>
+
+<style>
+  .scores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pulse-space-1) var(--pulse-space-4);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-xs);
+  }
+
+  .scores__score {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pulse-space-1);
+  }
+
+  .scores__pips {
+    display: inline-flex;
+    gap: calc(var(--pulse-space-1) / 2);
+  }
+
+  .scores__pip {
+    width: var(--pulse-space-2);
+    height: var(--pulse-space-2);
+    border-radius: var(--pulse-radius-pill);
+    background: var(--pulse-color-border-strong);
+  }
+
+  .scores__pip--on {
+    background: var(--section-color, var(--pulse-color-accent-default));
+  }
+</style>

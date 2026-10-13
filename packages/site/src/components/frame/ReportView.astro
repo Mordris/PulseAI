@@ -1,0 +1,49 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import { sectionItems } from "../../lib/report.ts";
+import type { Report } from "../../lib/types.ts";
+import ActionList from "./ActionList.astro";
+import AdoptionRadar from "./AdoptionRadar.astro";
+import Corrections from "./Corrections.astro";
+import FilterBar from "./FilterBar.astro";
+import FrontPage from "./FrontPage.astro";
+import KpiTiles from "./KpiTiles.astro";
+import Masthead from "./Masthead.astro";
+import Methodology from "./Methodology.astro";
+import ReportSection from "./ReportSection.astro";
+import Signals from "./Signals.astro";
+import Tldr from "./Tldr.astro";
+
+interface Props {
+  ctx: RenderContext;
+  report: Report;
+  /** Index this view for search; the front page repeats the latest edition, so it is not. */
+  searchable?: boolean;
+}
+
+// The fixed frame (spec 12.2): masthead, numbers, TL;DR, front page, radar, sections in registry
+// order, actions, signals, corrections, methodology.
+const { ctx, report, searchable = true } = Astro.props;
+---
+
+<article class="report" data-pagefind-body={searchable ? "" : undefined} data-report={report.meta.date}>
+  <Masthead ctx={ctx} report={report} />
+  <KpiTiles ctx={ctx} kpis={report.kpis} />
+  <Tldr ctx={ctx} lines={report.tldr} />
+  <FrontPage ctx={ctx} visuals={report.front_page} />
+  <AdoptionRadar ctx={ctx} entries={report.adoption_radar} items={report.items} />
+  {report.items.length > 0 && <FilterBar ctx={ctx} items={[...report.items, ...report.signals]} />}
+  {ctx.sections.map((section) => (
+    <ReportSection
+      ctx={ctx}
+      section={section}
+      items={sectionItems(report, section.id)}
+      featured={report.featured}
+      notes={report.section_notes[section.id] ?? []}
+    />
+  ))}
+  <ActionList ctx={ctx} actions={report.action_list} />
+  <Signals ctx={ctx} signals={report.signals} />
+  <Corrections ctx={ctx} corrections={report.corrections} />
+  <Methodology ctx={ctx} report={report} />
+</article>

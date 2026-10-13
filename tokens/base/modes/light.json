@@ -1,0 +1,135 @@
+{
+  "color": {
+    "section": {
+      "$type": "color",
+      "models": {
+        "$value": "{palette.category.light.1}"
+      },
+      "tooling": {
+        "$value": "{palette.category.light.2}"
+      },
+      "research": {
+        "$value": "{palette.category.light.3}"
+      },
+      "oss": {
+        "$value": "{palette.category.light.4}"
+      }
+    },
+    "chart": {
+      "$type": "color",
+      "category": {
+        "1": {
+          "$value": "{palette.category.light.1}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 1
+              }
+            }
+          }
+        },
+        "2": {
+          "$value": "{palette.category.light.2}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 2
+              }
+            }
+          }
+        },
+        "3": {
+          "$value": "{palette.category.light.3}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 3
+              }
+            }
+          }
+        },
+        "4": {
+          "$value": "{palette.category.light.4}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 4
+              }
+            }
+          }
+        },
+        "5": {
+          "$value": "{palette.category.light.5}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 5
+              }
+            }
+          }
+        },
+        "6": {
+          "$value": "{palette.category.light.6}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 6
+              }
+            }
+          }
+        },
+        "7": {
+          "$value": "{palette.category.light.7}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 7
+              }
+            }
+          }
+        },
+        "8": {
+          "$value": "{palette.category.light.8}",
+          "$extensions": {
+            "org.pulseai": {
+              "distinct": {
+                "set": "chart-category",
+                "order": 8
+              }
+            }
+          }
+        }
+      },
+      "ramp": {
+        "low": {
+          "$value": "{palette.blue.100}"
+        },
+        "high": {
+          "$value": "{palette.blue.700}"
+        }
+      }
+    },
+    "status": {
+      "$type": "color",
+      "good": {
+        "$value": "{palette.status.good}"
+      },
+      "warning": {
+        "$value": "{palette.status.warning}"
+      },
+      "serious": {
+        "$value": "{palette.status.serious}"
+      },
+      "critical": {
+        "$value": "{palette.status.critical}"
+      }
+    }
+  }
+}

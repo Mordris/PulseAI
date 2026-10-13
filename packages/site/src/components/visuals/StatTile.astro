@@ -1,0 +1,77 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import Sparkline from "./Sparkline.astro";
+
+interface Props {
+  ctx: RenderContext;
+  label: string;
+  value: string | number;
+  unit?: string | undefined;
+  delta?: number | undefined;
+  series?: readonly number[] | undefined;
+}
+
+const { ctx, label, value, unit, delta, series } = Astro.props;
+const { t, fmt } = ctx;
+const shown = typeof value === "number" ? fmt.number(value) : value;
+const direction = delta === undefined ? undefined : delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+---
+
+<div class="stat">
+  <p class="stat__label">{label}</p>
+  <p class="stat__value">
+    {shown}{unit && <span class="stat__unit">{unit}</span>}
+  </p>
+  <div class="stat__trend">
+    {delta !== undefined && direction !== undefined && (
+      <p class="stat__delta" data-direction={direction}>
+        <span aria-hidden="true">{fmt.signed(delta)}</span>
+        <span class="visually-hidden">{t(`ui.delta.${direction}`, { value: fmt.number(Math.abs(delta)) })}</span>
+      </p>
+    )}
+    {series && <Sparkline series={series} />}
+  </div>
+</div>
+
+<style>
+  .stat {
+    display: grid;
+    gap: var(--pulse-space-1);
+    height: 100%;
+  }
+
+  .stat__label {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .stat__value {
+    font-family: var(--pulse-font-family-display);
+    font-size: var(--pulse-font-size-3xl);
+    font-weight: var(--pulse-font-weight-semibold);
+    line-height: var(--pulse-font-line-height-tight);
+    overflow-wrap: anywhere;
+  }
+
+  .stat__unit {
+    margin-inline-start: var(--pulse-space-1);
+    color: var(--pulse-color-text-secondary);
+    font-family: var(--pulse-font-family-body);
+    font-size: var(--pulse-font-size-sm);
+    font-weight: var(--pulse-font-weight-regular);
+  }
+
+  .stat__trend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pulse-space-3);
+    min-height: var(--pulse-space-5);
+  }
+
+  .stat__delta {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

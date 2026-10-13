@@ -1,0 +1,51 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { ItemImage } from "../../lib/types.ts";
+
+interface Props {
+  ctx: RenderContext;
+  image: ItemImage;
+}
+
+// Real images are hotlinked, never copied: the source's license may not allow copies.
+const { ctx, image } = Astro.props;
+const { t } = ctx;
+---
+
+<figure class="figure">
+  <img src={image.url} alt={image.alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+  <figcaption>
+    {image.caption}
+    <span class="figure__credit">
+      {t("ui.image.credit", { credit: image.credit })}{image.license && ` · ${t("ui.image.license", { license: image.license })}`}
+    </span>
+  </figcaption>
+</figure>
+
+<style>
+  .figure {
+    display: grid;
+    gap: var(--pulse-space-2);
+  }
+
+  .figure img {
+    display: block;
+    width: 100%;
+    max-height: 28rem;
+    object-fit: contain;
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-md);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  figcaption {
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .figure__credit {
+    display: block;
+    color: var(--pulse-color-text-muted);
+    font-size: var(--pulse-font-size-xs);
+  }
+</style>

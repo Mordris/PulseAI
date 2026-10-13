@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:tokens-resolved",
+  "title": "ResolvedTokens",
+  "description": "Design tokens for one theme mode after layering (engine, preset, instance, config overrides) and alias resolution. Written by @pulseai/tokens; read by the site and by `pulse tokens check`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "preset", "mode", "tokens"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "preset": { "$ref": "#/$defs/id" },
+    "mode": { "enum": ["light", "dark"] },
+    "tokens": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/path" },
+      "additionalProperties": { "$ref": "#/$defs/token" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "path": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" },
+    "token": {
+      "title": "ResolvedToken",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "type", "name"],
+      "properties": {
+        "value": { "type": ["string", "number"] },
+        "type": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "pattern": "^--[a-z0-9-]+$" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "extensions": {
+      "title": "TokenExtensions",
+      "description": "The org.pulseai entry of a token's $extensions.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contrast_against": {
+          "description": "Surface tokens this (text) color must reach quality.text_contrast_min against.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/path" }
+        },
+        "distinct": {
+          "title": "DistinctMember",
+          "description": "Membership in a set of colors that must stay distinguishable. With order on every member, only neighbours are compared (categorical chart order); otherwise every pair is.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["set"],
+          "properties": {
+            "set": { "$ref": "#/$defs/id" },
+            "order": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "override": {
+          "description": "Key of config.theme.overrides that replaces this token's value.",
+          "$ref": "#/$defs/id"
+        },
+        "fontsource": {
+          "description": "Fontsource package that provides this font family.",
+          "type": "string",
+          "pattern": "^@?[a-z0-9][a-z0-9._-]*(?:/[a-z0-9][a-z0-9._-]*)?$"
+        }
+      }
+    }
+  }
+}

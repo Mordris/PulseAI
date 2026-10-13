@@ -1,0 +1,93 @@
+---
+import Search from "astro-pagefind/components/Search.astro";
+import type { RenderContext } from "../../lib/render.ts";
+import ThemeSwitch from "./ThemeSwitch.astro";
+
+interface Props {
+  ctx: RenderContext;
+  feed: string | undefined;
+}
+
+const { ctx, feed } = Astro.props;
+const { t, config } = ctx;
+---
+
+<header class="site-header" data-print="hide">
+  <div class="page site-header__bar">
+    <a class="site-header__brand" href={ctx.url("")}>{t("ui.site.title")}</a>
+    <nav class="site-header__nav" aria-label={t("ui.nav.label")}>
+      <a href={ctx.url("")}>{t("ui.nav.latest")}</a>
+      <a href={ctx.url("archive/")}>{t("ui.nav.archive")}</a>
+      {feed && <a href={feed}>{t("ui.nav.feed")}</a>}
+    </nav>
+    <div class="site-header__tools">
+      {config.site.search && (
+        <div class="site-header__search">
+          <Search
+            className="pulse-search"
+            searchboxOptions={{ placeholder: t("ui.search.placeholder"), "aria-label": t("ui.search.label") }}
+          />
+        </div>
+      )}
+      {config.theme.switcher && <ThemeSwitch ctx={ctx} />}
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-block-end: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .site-header__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pulse-space-3) var(--pulse-space-5);
+    padding-block: var(--pulse-space-3);
+  }
+
+  .site-header__brand {
+    color: var(--pulse-color-text-primary);
+    font-family: var(--pulse-font-family-display);
+    font-size: var(--pulse-font-size-xl);
+    font-weight: var(--pulse-font-weight-bold);
+    text-decoration: none;
+  }
+
+  .site-header__nav {
+    display: flex;
+    gap: var(--pulse-space-4);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .site-header__nav a {
+    color: var(--pulse-color-text-secondary);
+    text-decoration: none;
+  }
+
+  .site-header__nav a:hover {
+    color: var(--pulse-color-text-primary);
+  }
+
+  .site-header__tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pulse-space-3);
+    margin-inline-start: auto;
+  }
+
+  .site-header__search {
+    min-width: min(18rem, 100%);
+    --pf-text: var(--pulse-color-text-primary);
+    --pf-text-secondary: var(--pulse-color-text-secondary);
+    --pf-background: var(--pulse-color-surface-raised);
+    --pf-border: var(--pulse-color-border-strong);
+    --pf-border-focus: var(--pulse-color-focus-ring);
+    --pf-hover: var(--pulse-color-surface-sunken);
+    --pf-mark: color-mix(in oklab, var(--pulse-color-accent-default) 25%, transparent);
+    --pf-font: var(--pulse-font-family-body);
+  }
+</style>

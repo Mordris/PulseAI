@@ -1,0 +1,41 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item } from "../../lib/types.ts";
+import ItemShell from "../items/ItemShell.astro";
+
+interface Props {
+  ctx: RenderContext;
+  signals: readonly Item[];
+}
+
+const { ctx, signals } = Astro.props;
+const { t } = ctx;
+---
+
+{signals.length > 0 && (
+  <section class="region signals" aria-labelledby="signals-title" data-filter-group>
+    <h2 class="region__title" id="signals-title">{t("ui.signals.title")}</h2>
+    <p class="signals__intro muted">{t("ui.signals.intro")}</p>
+    <div class="signals__items">
+      {signals.map((item) => <ItemShell ctx={ctx} item={item} />)}
+    </div>
+  </section>
+)}
+
+<style>
+  .signals {
+    padding: var(--pulse-space-5);
+    border: var(--pulse-border-width-thin) dashed var(--pulse-color-border-strong);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  .signals__intro {
+    margin-block-end: var(--pulse-space-4);
+  }
+
+  .signals__items {
+    display: grid;
+    gap: var(--pulse-space-3);
+  }
+</style>

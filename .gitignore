@@ -13,3 +13,9 @@ runs/
 .env
 .claude/worktrees/
 .superpowers/
+# Site build outputs (context, generated tokens, Astro cache, built site)
+.pulse/
+examples/dist/
+packages/site/.astro/
+packages/site/playwright-report/
+packages/site/test-results/

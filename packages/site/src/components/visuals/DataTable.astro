@@ -1,0 +1,42 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+  columns: readonly string[];
+  rows: readonly (readonly unknown[])[];
+  caption: string;
+  /** Hide the caption when a visible title already names the table. */
+  hideCaption?: boolean;
+}
+
+const { ctx, columns, rows, caption, hideCaption = false } = Astro.props;
+---
+
+<div class="table-wrap" role="region" aria-label={caption} tabindex="0">
+  <table>
+    <caption class:list={[{ "visually-hidden": hideCaption }]}>{caption}</caption>
+    <thead>
+      <tr>{columns.map((column) => <th scope="col">{column}</th>)}</tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          {row.map((cell) => (
+            <td class:list={[{ num: typeof cell === "number" }]}>{ctx.fmt.value(cell, ctx.t)}</td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  caption {
+    padding-block: var(--pulse-space-2);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    text-align: start;
+    caption-side: top;
+  }
+</style>

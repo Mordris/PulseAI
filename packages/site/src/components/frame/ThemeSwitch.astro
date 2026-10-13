@@ -1,0 +1,67 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+}
+
+const { ctx } = Astro.props;
+const { t } = ctx;
+---
+
+<pulse-theme-switch hidden>
+  <fieldset class="theme-switch">
+    <legend class="visually-hidden">{t("ui.theme.label")}</legend>
+    {ctx.enums.theme.map((choice) => (
+      <label class="theme-switch__option">
+        <input type="radio" name="pulse-theme" value={choice} />
+        <span>{t(`ui.theme.${choice}`)}</span>
+      </label>
+    ))}
+  </fieldset>
+</pulse-theme-switch>
+
+<script>
+  import "../../client/theme-switch.ts";
+</script>
+
+<style>
+  .theme-switch {
+    display: inline-flex;
+    margin: 0;
+    padding: var(--pulse-space-1);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-strong);
+    border-radius: var(--pulse-radius-pill);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  .theme-switch__option {
+    position: relative;
+  }
+
+  .theme-switch__option input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .theme-switch__option span {
+    display: block;
+    padding: 0 var(--pulse-space-3);
+    border-radius: var(--pulse-radius-pill);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+    line-height: var(--pulse-font-line-height-relaxed);
+  }
+
+  .theme-switch__option input:checked + span {
+    background: var(--pulse-color-surface-raised);
+    color: var(--pulse-color-text-primary);
+    font-weight: var(--pulse-font-weight-semibold);
+  }
+
+  .theme-switch__option input:focus-visible + span {
+    outline: var(--pulse-border-width-thick) solid var(--pulse-color-focus-ring);
+  }
+</style>

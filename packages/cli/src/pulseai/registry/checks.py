@@ -60,6 +60,11 @@ def _label_keys(
             yield f"sections/{i}/groups/{j}/label", group["label"]
     for i, item_type in enumerate(item_types):
         yield f"item_types/{i}/label", item_type["label"]
+        # Block and field labels follow the blocks.<id> and fields.<name> key convention.
+        for j, block in enumerate(item_type["blocks"]):
+            yield f"item_types/{i}/blocks/{j}", f"blocks.{block}"
+        for j, field in enumerate(item_type["brief_fields"]):
+            yield f"item_types/{i}/brief_fields/{j}", f"fields.{field}"
 
 
 def _check_sections(sections: list[dict[str, Any]], type_ids: set[str]) -> Iterator[Issue]:

@@ -1,0 +1,1022 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "date": "2026-10-11",
+    "edition": 3,
+    "window": {
+      "start": "2026-10-10T14:00:00Z",
+      "end": "2026-10-11T14:00:00Z",
+      "tz": "Europe/Istanbul"
+    },
+    "language": "en",
+    "engine_version": "0.1.0",
+    "host": "fixture",
+    "models": {
+      "editor": "claude-opus-5-5",
+      "paper-analyst": "claude-opus-5-5",
+      "section-researcher": "claude-sonnet-5-5",
+      "paper-triage": "claude-haiku-5-5"
+    },
+    "stats": { "scanned": 412, "triaged": 37, "verified": 16, "published": 13 },
+    "cost_usd": 6.31,
+    "source_health": [
+      { "source_id": "hf-daily-papers", "ok": true, "items": 46 },
+      { "source_id": "claude-code-releases", "ok": true, "items": 1 },
+      { "source_id": "openrouter-models", "ok": true, "items": 3 },
+      {
+        "source_id": "example-lab-blog",
+        "ok": false,
+        "items": 0,
+        "error": "HTTP 503 after 3 retries"
+      }
+    ],
+    "sample": true,
+    "mode": "normal"
+  },
+  "headline": "Atlas-3 arrives with a million-token context as Relay CLI 3.0 ships",
+  "pulse_score": { "value": 45, "avg_7d": 11.5 },
+  "kpis": [
+    { "label": "Items published", "value": 13, "delta": 9, "series": [3, 4, 13] },
+    { "label": "Papers read in full", "value": 6, "delta": 3, "series": [2, 3, 6] },
+    { "label": "Releases tracked", "value": 5, "delta": 4, "series": [1, 1, 5] },
+    { "label": "Security advisories", "value": 1, "delta": 1, "series": [0, 0, 1] }
+  ],
+  "tldr": [
+    {
+      "text": "Northwind's Atlas-3 reads a million tokens at half Atlas-2.5's output price.",
+      "item_id": "northwind-atlas-3"
+    },
+    {
+      "text": "Relay CLI 3.0 is final: parallel subagents and a stable plugin API.",
+      "item_id": "relay-cli-3-0"
+    },
+    {
+      "text": "Critic-guided search lets small models beat larger ones on long agent tasks.",
+      "item_id": "verify-then-expand"
+    },
+    {
+      "text": "Upgrade pyfetchkit now: a critical path traversal is fixed in 4.2.1.",
+      "item_id": "pyfetchkit-path-traversal"
+    }
+  ],
+  "featured": { "paper_of_the_day": "verify-then-expand" },
+  "front_page": [
+    {
+      "kind": "dashboard",
+      "id": "today-at-a-glance",
+      "title": "Today at a glance",
+      "alt": "Dashboard with three headline numbers, impact by section, and the highest-impact items",
+      "source_note": "This report",
+      "columns": 3,
+      "tiles": [
+        {
+          "tile": "stat",
+          "label": "Items published",
+          "value": 13,
+          "delta": 9,
+          "series": [3, 4, 13]
+        },
+        { "tile": "stat", "label": "Highest impact", "value": "5 / 5" },
+        { "tile": "stat", "label": "Lowest model price", "value": 2.5, "unit": "USD/Mtok" },
+        {
+          "tile": "visual",
+          "span": 2,
+          "visual": {
+            "kind": "vega-lite",
+            "id": "impact-by-section",
+            "title": "Total impact by section",
+            "alt": "Bar chart: models 11, tooling 12, research 14, software and OSS 8",
+            "source_note": "Impact scores in this report",
+            "spec": {
+              "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+              "data": {
+                "values": [
+                  { "section": "Models", "impact": 11 },
+                  { "section": "Tooling", "impact": 12 },
+                  { "section": "Research", "impact": 14 },
+                  { "section": "Software and OSS", "impact": 8 }
+                ]
+              },
+              "mark": { "type": "bar" },
+              "encoding": {
+                "y": { "field": "section", "type": "nominal", "sort": "-x", "title": null },
+                "x": { "field": "impact", "type": "quantitative", "title": "Sum of impact scores" }
+              }
+            }
+          }
+        },
+        {
+          "tile": "visual",
+          "visual": {
+            "kind": "table",
+            "id": "top-items",
+            "title": "Highest impact",
+            "alt": "Table of the three items with impact 5",
+            "source_note": "This report",
+            "columns": ["Item", "Impact"],
+            "rows": [["Atlas-3", 5], ["Verify-then-expand", 5], ["pyfetchkit advisory", 5]]
+          }
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "northwind-atlas-3",
+      "section": "models",
+      "type": "model_release",
+      "title": "Northwind Labs releases Atlas-3 with a one-million-token context",
+      "entity_key": "northwind/atlas-3",
+      "thread_id": "northwind-atlas",
+      "impact": 5,
+      "novelty": 5,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "Atlas-3 accepts one million tokens of context, adds audio input, and lowers output pricing to $10 per million tokens.",
+      "why_it_matters": "Whole-repository agent runs fit in one context without retrieval, at a lower price than Atlas-2.5.",
+      "what_to_do": "Benchmark Atlas-3 on your longest agent task before changing defaults.",
+      "caveats": "The million-token tier is limited to the API; the chat app is capped at 200,000 tokens.",
+      "sources": [
+        {
+          "url": "https://example.org/northwind/atlas-3",
+          "title": "Introducing Atlas-3",
+          "tier": "T1",
+          "kind": "primary",
+          "fetched_at": "2026-10-11T11:02:00Z"
+        },
+        {
+          "url": "https://example.org/northwind/atlas-3/model-card",
+          "title": "Atlas-3 model card",
+          "tier": "T1",
+          "kind": "primary",
+          "fetched_at": "2026-10-11T11:04:00Z"
+        },
+        {
+          "url": "https://example.net/newsletter/atlas-3",
+          "title": "Example Newsletter on Atlas-3",
+          "tier": "T2",
+          "kind": "secondary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Context window",
+          "value": 1000000,
+          "unit": "tokens",
+          "source_ref": 0,
+          "quote": "a context window of one million tokens"
+        },
+        {
+          "label": "Output price",
+          "value": 10,
+          "unit": "USD/Mtok",
+          "source_ref": 0,
+          "quote": "$10 per million output tokens"
+        },
+        {
+          "label": "CodeTasks-500 score",
+          "value": 71.2,
+          "unit": "%",
+          "source_ref": 1,
+          "quote": "CodeTasks-500: 71.2%"
+        }
+      ],
+      "visuals": [
+        {
+          "kind": "vega-lite",
+          "id": "atlas-3-benchmarks",
+          "title": "CodeTasks-500 success rate",
+          "alt": "Bar chart: Atlas-3 71.2%, Atlas-2.5 58.4%, previous best open model 54.9%",
+          "source_note": "Atlas-3 model card",
+          "block": "benchmarks",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "model": "Atlas-3", "score": 71.2 },
+                { "model": "Atlas-2.5", "score": 58.4 },
+                { "model": "Best open model", "score": 54.9 }
+              ]
+            },
+            "mark": { "type": "bar" },
+            "encoding": {
+              "x": { "field": "model", "type": "nominal", "sort": "-y", "title": null },
+              "y": {
+                "field": "score",
+                "type": "quantitative",
+                "title": "Tasks solved (%)",
+                "scale": { "domain": [0, 100] }
+              }
+            }
+          }
+        },
+        {
+          "kind": "vega-lite",
+          "id": "atlas-price-comparison",
+          "title": "Price per million tokens",
+          "alt": "Grouped bar chart comparing input and output prices of Atlas-3 and Atlas-2.5",
+          "source_note": "Northwind pricing page",
+          "block": "price_comparison",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "model": "Atlas-3", "kind": "Input", "usd": 2.5 },
+                { "model": "Atlas-3", "kind": "Output", "usd": 10 },
+                { "model": "Atlas-2.5", "kind": "Input", "usd": 3 },
+                { "model": "Atlas-2.5", "kind": "Output", "usd": 15 }
+              ]
+            },
+            "mark": { "type": "bar" },
+            "encoding": {
+              "x": { "field": "kind", "type": "nominal", "title": null },
+              "xOffset": { "field": "model" },
+              "y": { "field": "usd", "type": "quantitative", "title": "USD per million tokens" },
+              "color": { "field": "model", "type": "nominal", "title": "Model" }
+            }
+          }
+        }
+      ],
+      "images": [
+        {
+          "url": "https://raw.githubusercontent.com/Mordris/PulseAI/main/docs/assets/logo-light.svg",
+          "caption": "Sample image: the PulseAI logo stands in for a launch screenshot in this sample edition",
+          "credit": "PulseAI",
+          "alt": "PulseAI logo",
+          "license": "MIT"
+        }
+      ],
+      "detail": {
+        "org": "Northwind Labs",
+        "model": "Atlas-3",
+        "context_tokens": 1000000,
+        "price_in_per_mtok": 2.5,
+        "price_out_per_mtok": 10,
+        "modalities": ["text", "image", "audio"],
+        "availability": ["API", "Chat app"],
+        "weights": "closed",
+        "license": "Proprietary",
+        "try_it": "Call the model id atlas-3 from the Northwind API, or pick Atlas-3 in the chat app."
+      }
+    },
+    {
+      "id": "example-co-inference-cloud",
+      "section": "models",
+      "type": "industry",
+      "title": "Example Co opens an inference cloud in three regions",
+      "entity_key": "example-co/inference-cloud",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 3,
+      "confidence": "confirmed",
+      "summary": "Example Co launched a hosted inference service for open-weights models in the EU, the US, and APAC.",
+      "why_it_matters": "Another hosting option with EU data residency for open-weights models.",
+      "sources": [
+        {
+          "url": "https://example.com/news/inference-cloud",
+          "title": "Example Co announcement",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        { "label": "Regions", "value": 3, "source_ref": 0, "quote": "available in three regions" }
+      ],
+      "visuals": [
+        {
+          "kind": "table",
+          "id": "inference-cloud-regions",
+          "title": "Launch regions",
+          "alt": "Table listing the three launch regions and their status",
+          "source_note": "Example Co announcement",
+          "block": "summary_facts",
+          "columns": ["Region", "Status", "Data residency"],
+          "rows": [
+            ["EU", "Available", true],
+            ["US", "Available", false],
+            ["APAC", "Preview", false]
+          ]
+        },
+        {
+          "kind": "vega-lite",
+          "id": "inference-cloud-timeline",
+          "title": "From announcement to general availability",
+          "alt": "Timeline with three milestones from June to October 2026",
+          "source_note": "Example Co announcements",
+          "block": "timeline",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "date": "2026-06-02", "event": "Announced" },
+                { "date": "2026-08-18", "event": "Private preview" },
+                { "date": "2026-10-11", "event": "Generally available" }
+              ]
+            },
+            "layer": [
+              {
+                "mark": { "type": "rule" },
+                "encoding": {
+                  "x": { "field": "date", "type": "temporal", "aggregate": "min" },
+                  "x2": { "field": "date", "aggregate": "max" }
+                }
+              },
+              {
+                "mark": { "type": "point", "filled": true, "size": 120 },
+                "encoding": { "x": { "field": "date", "type": "temporal", "title": null } }
+              },
+              {
+                "mark": { "type": "text", "dy": -14 },
+                "encoding": {
+                  "x": { "field": "date", "type": "temporal" },
+                  "text": { "field": "event" }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "who": "Example Co",
+        "what": "Launched a hosted inference cloud for open-weights models",
+        "amount": "Three regions at launch",
+        "builder_impact": "Teams that need EU data residency get another managed option."
+      }
+    },
+    {
+      "id": "open-agents-leaderboard",
+      "section": "models",
+      "type": "leaderboard_shift",
+      "title": "Atlas-3 takes first place on the Open Agents Leaderboard",
+      "entity_key": "leaderboard/open-agents",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "Atlas-3 entered the Open Agents Leaderboard at first place, moving Atlas-2.5 to third.",
+      "why_it_matters": "Independent confirmation of the vendor's benchmark claims.",
+      "sources": [
+        {
+          "url": "https://example.org/leaderboards/open-agents",
+          "title": "Open Agents Leaderboard",
+          "tier": "T1-data",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "board": "Open Agents Leaderboard",
+        "movers": [
+          { "name": "Atlas-3", "after": 1 },
+          { "name": "Example Pro 2", "before": 1, "after": 2 },
+          { "name": "Atlas-2.5", "before": 2, "after": 3 },
+          { "name": "Open Model 70B", "before": 3, "after": 4 }
+        ],
+        "reliability_note": "Scores are self-reported by submitters and spot-checked by the maintainers."
+      }
+    },
+    {
+      "id": "relay-cli-3-0",
+      "section": "tooling",
+      "type": "tool_release",
+      "title": "Relay CLI 3.0 ships parallel subagents and a stable plugin API",
+      "entity_key": "relay/cli",
+      "thread_id": "relay-cli",
+      "update_of": "2026-10-10#relay-cli-3-rc",
+      "impact": 4,
+      "novelty": 4,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "Relay CLI 3.0 is final: up to eight parallel subagents, plugin manifest version 1, and 30% faster cold starts.",
+      "why_it_matters": "Parallel subagents and plugins make Relay a credible team-wide agent runner.",
+      "what_to_do": "Rename --agents to --subagents in scripts before upgrading.",
+      "sources": [
+        {
+          "url": "https://example.org/relay/releases/3.0.0",
+          "title": "Relay CLI 3.0.0",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Cold start",
+          "value": -30,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "cold starts are 30% faster"
+        }
+      ],
+      "visuals": [
+        {
+          "kind": "vega-lite",
+          "id": "relay-release-cadence",
+          "title": "Relay CLI releases per month",
+          "alt": "Bar chart of releases per month from May to October 2026, between 2 and 6 a month",
+          "source_note": "Relay CLI releases page",
+          "block": "cadence",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "month": "2026-05", "releases": 3 },
+                { "month": "2026-06", "releases": 2 },
+                { "month": "2026-07", "releases": 4 },
+                { "month": "2026-08", "releases": 5 },
+                { "month": "2026-09", "releases": 6 },
+                { "month": "2026-10", "releases": 2 }
+              ]
+            },
+            "mark": { "type": "bar" },
+            "encoding": {
+              "x": { "field": "month", "type": "ordinal", "timeUnit": "yearmonth", "title": null },
+              "y": { "field": "releases", "type": "quantitative", "title": "Releases" }
+            }
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "product": "Relay CLI",
+        "version": "3.0.0",
+        "previous_version": "2.9.2",
+        "changelog": [
+          { "tag": "new", "text": "Parallel subagents, up to eight per session." },
+          { "tag": "new", "text": "Plugin manifest version 1 is stable." },
+          { "tag": "perf", "text": "Cold starts are 30% faster." },
+          { "tag": "breaking", "text": "The --agents flag is renamed to --subagents." },
+          { "tag": "fix", "text": "Interrupted sessions resume without losing tool output." },
+          {
+            "tag": "security",
+            "text": "Plugins run with a read-only file system unless granted write access."
+          },
+          {
+            "tag": "deprecation",
+            "text": "The v0 plugin format is deprecated and will be removed in 3.2."
+          }
+        ],
+        "verdict": "trial",
+        "snippet": "npm install -g relay-cli@3\nrelay --subagents 4 \"migrate the test suite to Vitest\"",
+        "migration_notes": "Replace --agents with --subagents. v0 plugins keep working until 3.2; convert them with relay plugin migrate."
+      }
+    },
+    {
+      "id": "lumen-sdk-2-4",
+      "section": "tooling",
+      "type": "framework_release",
+      "title": "Lumen Agent SDK 2.4 adds typed tool schemas",
+      "entity_key": "lumen/agent-sdk",
+      "thread_id": "lumen-agent-sdk",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "Lumen Agent SDK 2.4 generates tool schemas from TypeScript types and validates tool results at runtime.",
+      "why_it_matters": "Typed tools remove a whole class of malformed tool-call bugs.",
+      "sources": [
+        {
+          "url": "https://example.org/lumen/releases/2.4.0",
+          "title": "Lumen Agent SDK 2.4.0 release notes",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "product": "Lumen Agent SDK",
+        "version": "2.4.0",
+        "previous_version": "2.3.0",
+        "changelog": [
+          { "tag": "new", "text": "Tool schemas generated from TypeScript types." },
+          { "tag": "new", "text": "Runtime validation of tool results." }
+        ],
+        "verdict": "adopt",
+        "snippet": "npm install @lumen/agent-sdk@2.4.0"
+      }
+    },
+    {
+      "id": "mcp-inspector-plus",
+      "section": "tooling",
+      "type": "repo",
+      "title": "mcp-inspector-plus gains 4,200 stars in a week",
+      "entity_key": "repo/example-org/mcp-inspector-plus",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "A desktop inspector for MCP servers that records sessions and replays tool calls against a new server version.",
+      "why_it_matters": "Replaying recorded sessions makes MCP server upgrades testable.",
+      "sources": [
+        {
+          "url": "https://example.org/example-org/mcp-inspector-plus",
+          "title": "mcp-inspector-plus repository",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        { "label": "Stars this week", "value": 4200, "source_ref": 0, "quote": "4.2k stars" }
+      ],
+      "visuals": [
+        {
+          "kind": "vega-lite",
+          "id": "mcp-inspector-stars",
+          "title": "GitHub stars, last 7 days",
+          "alt": "Line chart: stars rose from 1,100 to 5,300 over seven days",
+          "source_note": "Repository star history",
+          "block": "stars_trend",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "day": "2026-10-05", "stars": 1100 },
+                { "day": "2026-10-06", "stars": 1250 },
+                { "day": "2026-10-07", "stars": 1900 },
+                { "day": "2026-10-08", "stars": 2800 },
+                { "day": "2026-10-09", "stars": 3600 },
+                { "day": "2026-10-10", "stars": 4700 },
+                { "day": "2026-10-11", "stars": 5300 }
+              ]
+            },
+            "mark": { "type": "line", "point": true },
+            "encoding": {
+              "x": { "field": "day", "type": "temporal", "title": null },
+              "y": { "field": "stars", "type": "quantitative", "title": "Stars" }
+            }
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "full_name": "example-org/mcp-inspector-plus",
+        "language": "Rust",
+        "license": "Apache-2.0",
+        "stars": 5300,
+        "stars_delta_7d": 4200,
+        "last_commit": "2026-10-11",
+        "alternatives": ["Example MCP Inspector", "mcp-cli-debug"],
+        "quickstart": "cargo install mcp-inspector-plus\nmcp-inspector-plus record -- node ./server.js"
+      }
+    },
+    {
+      "id": "quillmark-1-8-4",
+      "section": "tooling",
+      "type": "tool_release",
+      "title": "Quillmark 1.8.4, the documentation generator, fixes a rare crash when a very long nested table of contents contains Unicode headings",
+      "entity_key": "quillmark/quillmark",
+      "impact": 2,
+      "novelty": 1,
+      "relevance": 2,
+      "confidence": "confirmed",
+      "summary": "A patch release that fixes a crash in table-of-contents generation.",
+      "why_it_matters": "Only affects sites with deeply nested Unicode headings.",
+      "sources": [
+        {
+          "url": "https://example.org/quillmark/releases/1.8.4",
+          "title": "Quillmark 1.8.4",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "product": "Quillmark",
+        "version": "1.8.4",
+        "previous_version": "1.8.3",
+        "changelog": [{ "tag": "fix", "text": "No crash on deeply nested Unicode headings." }],
+        "verdict": "adopt"
+      }
+    },
+    {
+      "id": "verify-then-expand",
+      "section": "research",
+      "type": "paper",
+      "title": "Verify-then-expand: critic-guided search for long-horizon agents",
+      "entity_key": "paper/verify-then-expand",
+      "impact": 5,
+      "novelty": 5,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "A small model that scores candidate plans with a critic and expands only the best branches solved more long-horizon tasks than a model four times its size.",
+      "why_it_matters": "Spending inference compute on verification can beat buying a bigger model for agent workloads.",
+      "what_to_do": "Prototype a critic step before upgrading your agent's model.",
+      "sources": [
+        {
+          "url": "https://example.org/papers/verify-then-expand",
+          "title": "Verify-then-expand (preprint)",
+          "tier": "T1",
+          "kind": "primary",
+          "fetched_at": "2026-10-11T09:30:00Z"
+        },
+        {
+          "url": "https://example.org/papers/verify-then-expand/code",
+          "title": "Verify-then-expand code release",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Success rate, small model with critic",
+          "value": 62.5,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "62.5% of tasks solved (Table 2)"
+        },
+        {
+          "label": "Success rate, 4x larger model",
+          "value": 55.1,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "55.1% for the 4x larger baseline (Table 2)"
+        }
+      ],
+      "visuals": [
+        {
+          "kind": "mermaid",
+          "id": "verify-then-expand-method",
+          "title": "The verify-then-expand loop",
+          "alt": "Flowchart: sample plans, score them with a critic, expand plans above the threshold, prune the rest, and repeat",
+          "source_note": "Figure 1 of the paper",
+          "block": "method",
+          "code": "flowchart LR\n  A[Sample candidate plans] --> B[Score with critic]\n  B --> C{Above threshold?}\n  C -- yes --> D[Expand branch]\n  C -- no --> E[Prune]\n  D --> B"
+        },
+        {
+          "kind": "vega-lite",
+          "id": "verify-then-expand-results",
+          "title": "Tasks solved by method",
+          "alt": "Bar chart: critic-guided small model 62.5%, 4x larger model 55.1%, small model without critic 41.0%",
+          "source_note": "Table 2 of the paper",
+          "block": "results",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "method": "Small + critic", "solved": 62.5 },
+                { "method": "4x larger model", "solved": 55.1 },
+                { "method": "Small, no critic", "solved": 41.0 }
+              ]
+            },
+            "mark": { "type": "bar" },
+            "encoding": {
+              "y": { "field": "method", "type": "nominal", "sort": "-x", "title": null },
+              "x": {
+                "field": "solved",
+                "type": "quantitative",
+                "title": "Tasks solved (%)",
+                "scale": { "domain": [0, 100] }
+              }
+            }
+          }
+        },
+        {
+          "kind": "image-ref",
+          "id": "verify-then-expand-figure",
+          "title": "Figure 1",
+          "alt": "PulseAI logo used as a stand-in for the paper's Figure 1",
+          "source_note": "Sample stand-in image",
+          "block": "figures",
+          "image": {
+            "url": "https://raw.githubusercontent.com/Mordris/PulseAI/main/docs/assets/logo-light.svg",
+            "caption": "Sample image: the PulseAI logo stands in for the paper's Figure 1",
+            "credit": "PulseAI",
+            "alt": "PulseAI logo",
+            "license": "MIT"
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "peer_reviewed": false,
+        "authors": ["A. Example", "B. Sample", "C. Placeholder"],
+        "affiliations": ["Example University", "Sample Research Lab"],
+        "tldr": "Critic-guided search lets a small model beat a 4x larger one on long-horizon agent tasks.",
+        "plain_explanation": "Before acting, the agent drafts several plans, asks a second model to grade them, and only continues with the best ones.",
+        "problem": "Long agent tasks fail because early mistakes compound.",
+        "key_idea": "Score candidate plans with a critic and expand only the branches above a threshold.",
+        "method_steps": [
+          "Sample several candidate plans",
+          "Score each plan with a critic model",
+          "Expand plans above the threshold",
+          "Prune the rest and repeat"
+        ],
+        "critical_review": [
+          "Preprint, not yet peer reviewed",
+          "The critic and the agent share a model family, which may inflate agreement",
+          "Compute cost per task is about 2.3x the baseline"
+        ],
+        "reproducibility": {
+          "code_url": "https://example.org/papers/verify-then-expand/code",
+          "license": "MIT"
+        },
+        "takeaway": "Try a critic loop before upgrading models; budget for roughly twice the inference cost.",
+        "reading_guide": {
+          "sections": ["Section 3 (method)", "Table 2 (results)", "Section 6 (limitations)"],
+          "glossary": {
+            "Critic": "A model that scores plans instead of producing them",
+            "Long-horizon task": "A task that needs more than twenty tool calls"
+          },
+          "reading_minutes": 35,
+          "difficulty": "intermediate"
+        }
+      }
+    },
+    {
+      "id": "sparse-memory-routing",
+      "section": "research",
+      "type": "paper",
+      "title": "Sparse memory routing cuts agent context costs by 38%",
+      "entity_key": "paper/sparse-memory-routing",
+      "impact": 4,
+      "novelty": 4,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "Routing each step to only the relevant memory shards reduced tokens per task by 38% with no loss in success rate.",
+      "why_it_matters": "Context cost is the main driver of agent run cost.",
+      "sources": [
+        {
+          "url": "https://example.org/papers/sparse-memory-routing",
+          "title": "Sparse memory routing (accepted paper)",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Token reduction",
+          "value": 38,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "38% fewer tokens per task"
+        }
+      ],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "venue": "Example Conference 2026",
+        "peer_reviewed": true,
+        "authors": ["D. Example", "E. Sample"],
+        "tldr": "Load only relevant memory shards at each step to cut context cost by 38%.",
+        "plain_explanation": "Instead of putting all memory in every prompt, a small router picks the few pieces each step needs.",
+        "problem": "Agents re-send large memories on every step.",
+        "key_idea": "A learned router selects memory shards per step.",
+        "method_steps": [
+          "Split memory into shards",
+          "Train a router on task traces",
+          "Load only routed shards per step"
+        ],
+        "critical_review": ["Router training needs task traces you may not have"],
+        "reproducibility": {},
+        "takeaway": "Shard agent memory and route per step if context cost dominates.",
+        "reading_guide": {
+          "sections": ["Section 4"],
+          "glossary": { "Shard": "A self-contained slice of memory" },
+          "reading_minutes": 20,
+          "difficulty": "advanced"
+        }
+      }
+    },
+    {
+      "id": "tool-use-eval-survey",
+      "section": "research",
+      "type": "paper",
+      "title": "A survey of tool-use evaluation for language agents",
+      "entity_key": "paper/tool-use-eval-survey",
+      "impact": 2,
+      "novelty": 2,
+      "relevance": 3,
+      "confidence": "confirmed",
+      "summary": "A survey that groups 48 tool-use benchmarks by what they measure.",
+      "why_it_matters": "A map for picking the right benchmark.",
+      "sources": [
+        {
+          "url": "https://example.org/papers/tool-use-eval-survey",
+          "title": "Tool-use evaluation survey (preprint)",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "peer_reviewed": false,
+        "authors": ["F. Example"],
+        "tldr": "48 tool-use benchmarks, grouped by what they actually measure.",
+        "plain_explanation": "The authors sort benchmarks into accuracy, robustness, and cost families.",
+        "problem": "Benchmarks with similar names measure different things.",
+        "key_idea": "A taxonomy of tool-use benchmarks.",
+        "method_steps": ["Collect benchmarks", "Classify them by measured property"],
+        "critical_review": ["No new experiments"],
+        "reproducibility": {},
+        "takeaway": "Use the taxonomy table to pick benchmarks.",
+        "reading_guide": {
+          "sections": ["Table 1"],
+          "glossary": {},
+          "reading_minutes": 10,
+          "difficulty": "intro"
+        }
+      }
+    },
+    {
+      "id": "agents-in-production-year-one",
+      "section": "research",
+      "type": "article",
+      "title": "What a year of running agents in production taught one platform team",
+      "entity_key": "article/example-engineering/agents-year-one",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "A platform team describes budgets, evaluation gates, and rollback practices from a year of production agents.",
+      "why_it_matters": "Concrete operational lessons that rarely appear in papers.",
+      "sources": [
+        {
+          "url": "https://example.com/engineering/agents-year-one",
+          "title": "Example Engineering blog",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "author": "G. Example",
+        "publication": "Example Engineering",
+        "key_points": [
+          "Hard token budgets per task prevented runaway costs.",
+          "Every prompt change ships behind an evaluation gate.",
+          "Rollbacks are rehearsed monthly."
+        ],
+        "reading_minutes": 14,
+        "worth_full_read": true,
+        "worth_reason": "The evaluation-gate section has reusable checklists."
+      }
+    },
+    {
+      "id": "pyfetchkit-path-traversal",
+      "section": "oss",
+      "type": "security_advisory",
+      "title": "Critical path traversal in pyfetchkit's download helper",
+      "entity_key": "advisory/pyfetchkit/psa-2026-0142",
+      "impact": 5,
+      "novelty": 4,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "pyfetchkit before 4.2.1 writes downloaded files outside the target directory when an archive contains ../ paths.",
+      "why_it_matters": "Agent tools that download and unpack archives with pyfetchkit can overwrite arbitrary files.",
+      "what_to_do": "Upgrade to pyfetchkit 4.2.1 and re-scan containers that bundle older versions.",
+      "sources": [
+        {
+          "url": "https://example.org/advisories/PSA-2026-0142",
+          "title": "PSA-2026-0142",
+          "tier": "T1-data",
+          "kind": "primary"
+        }
+      ],
+      "facts": [{ "label": "CVSS", "value": 9.1, "source_ref": 0, "quote": "CVSS 9.1 (Critical)" }],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "advisory_id": "PSA-2026-0142",
+        "cvss": 9.1,
+        "severity": "critical",
+        "affected": "pyfetchkit < 4.2.1",
+        "fixed_in": "4.2.1",
+        "exploited_in_wild": false,
+        "fix_command": "pip install --upgrade \"pyfetchkit>=4.2.1\""
+      }
+    },
+    {
+      "id": "rillet-5-0",
+      "section": "oss",
+      "type": "framework_release",
+      "title": "Rillet 5.0 drops Node 20 and ships a new router",
+      "entity_key": "rillet/rillet",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 3,
+      "confidence": "confirmed",
+      "summary": "The Rillet web framework's 5.0 release requires Node 22 and replaces the file router with a typed router.",
+      "why_it_matters": "Apps on Node 20 must upgrade the runtime before upgrading Rillet.",
+      "sources": [
+        {
+          "url": "https://example.org/rillet/blog/5-0",
+          "title": "Rillet 5.0",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "product": "Rillet",
+        "version": "5.0.0",
+        "previous_version": "4.7.1",
+        "changelog": [
+          { "tag": "breaking", "text": "Node 20 is no longer supported." },
+          { "tag": "new", "text": "Typed router replaces the file router." }
+        ],
+        "verdict": "assess",
+        "migration_notes": "Run rillet migrate router after upgrading Node."
+      }
+    }
+  ],
+  "adoption_radar": [
+    {
+      "item_id": "lumen-sdk-2-4",
+      "ring": "adopt",
+      "rationale": "Typed tools are stable and remove a common bug class."
+    },
+    {
+      "item_id": "relay-cli-3-0",
+      "ring": "trial",
+      "rationale": "Stable now; trial parallel subagents on one repository first."
+    },
+    {
+      "item_id": "mcp-inspector-plus",
+      "ring": "assess",
+      "rationale": "Promising, but only three weeks old."
+    },
+    {
+      "item_id": "rillet-5-0",
+      "ring": "hold",
+      "rationale": "Wait for the router migration tool to leave beta."
+    }
+  ],
+  "action_list": [
+    { "text": "Upgrade pyfetchkit to 4.2.1 everywhere.", "item_id": "pyfetchkit-path-traversal" },
+    { "text": "Benchmark Atlas-3 on your longest agent task.", "item_id": "northwind-atlas-3" },
+    { "text": "Prototype a critic step in one agent loop.", "item_id": "verify-then-expand" }
+  ],
+  "signals": [
+    {
+      "id": "atlas-3-mini-rumor",
+      "section": "models",
+      "type": "model_release",
+      "title": "Northwind is reportedly preparing a smaller Atlas-3 Mini",
+      "entity_key": "northwind/atlas-3-mini",
+      "thread_id": "northwind-atlas",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 4,
+      "confidence": "reported",
+      "summary": "Two newsletters report a cheaper Atlas-3 Mini for later this quarter; Northwind has not commented.",
+      "why_it_matters": "A cheaper Atlas-3 tier would change model routing decisions.",
+      "sources": [
+        {
+          "url": "https://example.net/newsletter/atlas-3-mini",
+          "title": "Example Newsletter",
+          "tier": "T2",
+          "kind": "secondary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": { "org": "Northwind Labs", "model": "Atlas-3 Mini", "weights": "closed" }
+    }
+  ],
+  "corrections": [
+    {
+      "report_date": "2026-10-10",
+      "item_id": "example-gpu-pricing",
+      "text": "The index fell 6% month over month, not 8% as an earlier draft said."
+    }
+  ],
+  "section_notes": {
+    "research": [
+      {
+        "title": "Venue watch: Example Conference camera-ready deadline",
+        "text": "Camera-ready versions are due on 20 October, so expect revised preprints next week.",
+        "url": "https://example.org/conference/dates"
+      }
+    ]
+  },
+  "methodology": {
+    "notes": [
+      "Sample edition written by hand for the demo site; every entity is fictional.",
+      "The example lab blog was unreachable; its items are missing from this edition."
+    ],
+    "rejected": [
+      {
+        "title": "Atlas-3 benchmark screenshot thread",
+        "reason": "Screenshot only, no primary source",
+        "url": "https://example.net/thread/2"
+      },
+      {
+        "title": "Duplicate coverage of Relay CLI 3.0 RC",
+        "reason": "Already covered on 2026-10-10"
+      }
+    ]
+  }
+}

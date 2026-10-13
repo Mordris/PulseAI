@@ -1,0 +1,29 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+}
+
+const { ctx } = Astro.props;
+const { t } = ctx;
+---
+
+<footer class="site-footer">
+  <div class="page site-footer__inner">
+    <p>{t("ui.footer.generated", { version: ctx.engineVersion })}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--pulse-space-8);
+    border-block-start: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    color: var(--pulse-color-text-secondary);
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .site-footer__inner {
+    padding-block: var(--pulse-space-5);
+  }
+</style>

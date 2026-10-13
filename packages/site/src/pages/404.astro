@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+import { getSite } from "../lib/site-data.ts";
+
+const { ctx } = getSite();
+const { t } = ctx;
+---
+
+<Base title={`${t("ui.not_found.title")} · ${t("ui.site.title")}`}>
+  <section class="not-found">
+    <h1>{t("ui.not_found.title")}</h1>
+    <p class="muted">{t("ui.not_found.text")}</p>
+    <p><a href={ctx.url("")}>{t("ui.not_found.home")}</a></p>
+  </section>
+</Base>
+
+<style>
+  .not-found {
+    display: grid;
+    gap: var(--pulse-space-3);
+    padding-block: var(--pulse-space-8);
+    text-align: center;
+  }
+</style>

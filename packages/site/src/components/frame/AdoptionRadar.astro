@@ -1,0 +1,74 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+import type { Item, RadarEntry } from "../../lib/types.ts";
+import Badge from "./Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  entries: readonly RadarEntry[];
+  items: readonly Item[];
+}
+
+const { ctx, entries, items } = Astro.props;
+const { t } = ctx;
+const titles = new Map(items.map((item) => [item.id, item.title]));
+// Rings in schema order (adopt first); empty rings are left out.
+const rings = ctx.enums.ring
+  .map((ring) => ({ ring, entries: entries.filter((entry) => entry.ring === ring) }))
+  .filter((group) => group.entries.length > 0);
+---
+
+{rings.length > 0 && (
+  <section class="region radar" aria-labelledby="radar-title">
+    <h2 class="region__title" id="radar-title">{t("ui.radar.title")}</h2>
+    <div class="radar__rings">
+      {rings.map(({ ring, entries: ringEntries }) => (
+        <section class="radar__ring" aria-labelledby={`radar-${ring}`}>
+          <h3 class="radar__ring-title" id={`radar-${ring}`}>
+            <Badge ctx={ctx} tone={`color.ring.${ring}`}>{t(`rings.${ring}`)}</Badge>
+          </h3>
+          <ul class="radar__entries">
+            {ringEntries.map((entry) => (
+              <li>
+                <a href={`#${entry.item_id}`}>{titles.get(entry.item_id) ?? entry.item_id}</a>
+                <p class="muted">{entry.rationale}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .radar__rings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+    gap: var(--pulse-space-3);
+  }
+
+  .radar__ring {
+    padding: var(--pulse-space-4);
+    border: var(--pulse-border-width-thin) solid var(--pulse-color-border-subtle);
+    border-radius: var(--pulse-radius-lg);
+    background: var(--pulse-color-surface-raised);
+  }
+
+  .radar__ring-title {
+    margin-block-end: var(--pulse-space-3);
+    font-size: var(--pulse-font-size-md);
+  }
+
+  .radar__entries {
+    display: grid;
+    gap: var(--pulse-space-3);
+    padding: 0;
+    list-style: none;
+    font-size: var(--pulse-font-size-sm);
+  }
+
+  .radar__entries a {
+    font-weight: var(--pulse-font-weight-semibold);
+  }
+</style>

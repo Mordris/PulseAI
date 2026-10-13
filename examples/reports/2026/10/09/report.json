@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "date": "2026-10-09",
+    "edition": 1,
+    "window": {
+      "start": "2026-10-08T14:00:00Z",
+      "end": "2026-10-09T14:00:00Z",
+      "tz": "Europe/Istanbul"
+    },
+    "language": "en",
+    "engine_version": "0.1.0",
+    "host": "fixture",
+    "models": { "editor": "claude-opus-5-5", "section-researcher": "claude-sonnet-5-5" },
+    "stats": { "scanned": 214, "triaged": 22, "verified": 5, "published": 3 },
+    "cost_usd": 4.12,
+    "source_health": [
+      { "source_id": "hf-daily-papers", "ok": true, "items": 38 },
+      { "source_id": "claude-code-releases", "ok": true, "items": 1 }
+    ],
+    "sample": true,
+    "mode": "normal"
+  },
+  "headline": "Northwind cuts Atlas-2.5 prices as Lumen SDK adds streaming tools",
+  "pulse_score": { "value": 10, "avg_7d": null },
+  "kpis": [
+    { "label": "Items published", "value": 3 },
+    { "label": "Papers read in full", "value": 2 }
+  ],
+  "tldr": [
+    {
+      "text": "Atlas-2.5 input tokens now cost 40% less.",
+      "item_id": "northwind-atlas-2-5-price-cut"
+    },
+    { "text": "Lumen Agent SDK 2.3 streams tool calls.", "item_id": "lumen-sdk-2-3" }
+  ],
+  "featured": { "paper_of_the_day": "self-check-agents" },
+  "front_page": [],
+  "items": [
+    {
+      "id": "northwind-atlas-2-5-price-cut",
+      "section": "models",
+      "type": "model_release",
+      "title": "Northwind Labs cuts Atlas-2.5 prices by 40%",
+      "entity_key": "northwind/atlas-2.5",
+      "thread_id": "northwind-atlas",
+      "impact": 4,
+      "novelty": 3,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "Northwind Labs lowered Atlas-2.5 input pricing from $5 to $3 per million tokens; output pricing is unchanged.",
+      "why_it_matters": "Long-context agent runs on Atlas-2.5 get noticeably cheaper without changing models.",
+      "what_to_do": "Re-run your cost estimates for agent workloads that read large repositories.",
+      "sources": [
+        {
+          "url": "https://example.org/northwind/pricing",
+          "title": "Northwind pricing page",
+          "tier": "T1",
+          "kind": "primary",
+          "fetched_at": "2026-10-09T12:10:00Z"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Input price",
+          "value": 3,
+          "unit": "USD/Mtok",
+          "source_ref": 0,
+          "quote": "Input: $3.00 per million tokens"
+        }
+      ],
+      "visuals": [
+        {
+          "kind": "vega-lite",
+          "id": "atlas-2-5-price",
+          "title": "Atlas-2.5 input price per million tokens",
+          "alt": "Bar chart: input price fell from 5 to 3 US dollars per million tokens",
+          "source_note": "Northwind pricing page",
+          "block": "price_comparison",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [{ "period": "Before", "usd": 5 }, { "period": "After", "usd": 3 }]
+            },
+            "mark": { "type": "bar" },
+            "encoding": {
+              "x": { "field": "period", "type": "nominal", "sort": null, "title": null },
+              "y": {
+                "field": "usd",
+                "type": "quantitative",
+                "title": "USD per million input tokens"
+              }
+            }
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "org": "Northwind Labs",
+        "model": "Atlas-2.5",
+        "context_tokens": 400000,
+        "price_in_per_mtok": 3,
+        "price_out_per_mtok": 15,
+        "modalities": ["text", "image"],
+        "availability": ["API"],
+        "weights": "closed",
+        "license": "Proprietary"
+      }
+    },
+    {
+      "id": "lumen-sdk-2-3",
+      "section": "tooling",
+      "type": "framework_release",
+      "title": "Lumen Agent SDK 2.3 streams tool calls",
+      "entity_key": "lumen/agent-sdk",
+      "thread_id": "lumen-agent-sdk",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "Lumen Agent SDK 2.3 streams partial tool-call arguments and adds cancellation tokens.",
+      "why_it_matters": "Agents can show tool progress in the UI before a call completes.",
+      "sources": [
+        {
+          "url": "https://example.org/lumen/releases/2.3.0",
+          "title": "Lumen Agent SDK 2.3.0 release notes",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "product": "Lumen Agent SDK",
+        "version": "2.3.0",
+        "previous_version": "2.2.4",
+        "changelog": [
+          { "tag": "new", "text": "Streaming tool-call arguments." },
+          { "tag": "new", "text": "Cancellation tokens for long-running tools." },
+          { "tag": "fix", "text": "Retries no longer duplicate tool results." }
+        ],
+        "verdict": "trial",
+        "snippet": "npm install @lumen/agent-sdk@2.3.0"
+      }
+    },
+    {
+      "id": "self-check-agents",
+      "section": "research",
+      "type": "paper",
+      "title": "Self-check prompts reduce silent tool failures in agents",
+      "entity_key": "paper/self-check-agents",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "Asking an agent to restate each tool result before continuing caught most silent tool failures in a benchmark of 400 tasks.",
+      "why_it_matters": "A one-line prompt change that makes agent failures visible instead of silent.",
+      "sources": [
+        {
+          "url": "https://example.org/papers/self-check-agents",
+          "title": "Self-check prompts (preprint)",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Tasks",
+          "value": 400,
+          "source_ref": 0,
+          "quote": "a benchmark of 400 multi-step tasks"
+        }
+      ],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "peer_reviewed": false,
+        "authors": ["R. Okafor", "L. Brandt"],
+        "affiliations": ["Example University"],
+        "tldr": "Making agents restate tool results surfaces silent failures.",
+        "plain_explanation": "After each tool call the agent writes one sentence about what the tool returned, which exposes empty or failed results.",
+        "problem": "Agents often continue after a tool silently returns nothing.",
+        "key_idea": "Force an explicit restatement of every tool result.",
+        "method_steps": [
+          "Add a restatement step after each tool call",
+          "Flag restatements that contradict the plan"
+        ],
+        "critical_review": ["Single benchmark", "No cost analysis"],
+        "reproducibility": { "code_url": "https://example.org/code/self-check" },
+        "takeaway": "Cheap to try in any agent loop.",
+        "reading_guide": {
+          "sections": ["Section 2", "Table 1"],
+          "glossary": { "Silent failure": "A tool call that fails without raising an error" },
+          "reading_minutes": 15,
+          "difficulty": "intro"
+        }
+      }
+    }
+  ],
+  "adoption_radar": [
+    {
+      "item_id": "lumen-sdk-2-3",
+      "ring": "trial",
+      "rationale": "Streaming tools are useful, but the API is marked beta."
+    }
+  ],
+  "action_list": [
+    {
+      "text": "Re-run cost estimates for long-context agent runs.",
+      "item_id": "northwind-atlas-2-5-price-cut"
+    }
+  ],
+  "signals": [],
+  "corrections": [],
+  "section_notes": {},
+  "methodology": {
+    "notes": ["Sample edition written by hand for the demo site; every entity is fictional."],
+    "rejected": []
+  }
+}

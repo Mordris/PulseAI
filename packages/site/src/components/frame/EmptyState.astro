@@ -1,0 +1,24 @@
+---
+import type { RenderContext } from "../../lib/render.ts";
+
+interface Props {
+  ctx: RenderContext;
+}
+
+const { ctx } = Astro.props;
+const { t } = ctx;
+---
+
+<section class="empty">
+  <h1>{t("ui.empty.title")}</h1>
+  <p class="muted">{t("ui.empty.text")}</p>
+</section>
+
+<style>
+  .empty {
+    display: grid;
+    gap: var(--pulse-space-3);
+    padding-block: var(--pulse-space-8);
+    text-align: center;
+  }
+</style>

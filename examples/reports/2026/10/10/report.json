@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "date": "2026-10-10",
+    "edition": 2,
+    "window": {
+      "start": "2026-10-09T14:00:00Z",
+      "end": "2026-10-10T14:00:00Z",
+      "tz": "Europe/Istanbul"
+    },
+    "language": "en",
+    "engine_version": "0.1.0",
+    "host": "fixture",
+    "models": { "editor": "claude-opus-5-5", "section-researcher": "claude-sonnet-5-5" },
+    "stats": { "scanned": 238, "triaged": 25, "verified": 6, "published": 4 },
+    "cost_usd": 4.87,
+    "source_health": [
+      { "source_id": "hf-daily-papers", "ok": true, "items": 41 },
+      { "source_id": "claude-code-releases", "ok": true, "items": 0 }
+    ],
+    "sample": true,
+    "mode": "normal"
+  },
+  "headline": "Relay CLI 3.0 enters release candidate as GPU rental prices slide",
+  "pulse_score": { "value": 13, "avg_7d": 10 },
+  "kpis": [
+    { "label": "Items published", "value": 4, "delta": 1, "series": [3, 4] },
+    { "label": "Papers read in full", "value": 3, "delta": 1, "series": [2, 3] }
+  ],
+  "tldr": [
+    { "text": "Relay CLI 3.0 RC adds parallel subagents.", "item_id": "relay-cli-3-rc" },
+    {
+      "text": "Hourly GPU rental prices fell for the third month.",
+      "item_id": "example-gpu-pricing"
+    }
+  ],
+  "featured": { "paper_of_the_day": "budget-aware-planning" },
+  "front_page": [],
+  "items": [
+    {
+      "id": "relay-cli-3-rc",
+      "section": "tooling",
+      "type": "tool_release",
+      "title": "Relay CLI 3.0 release candidate adds parallel subagents",
+      "entity_key": "relay/cli",
+      "thread_id": "relay-cli",
+      "impact": 3,
+      "novelty": 4,
+      "relevance": 5,
+      "confidence": "confirmed",
+      "summary": "The first Relay CLI 3.0 release candidate runs up to eight subagents in parallel and introduces a plugin manifest.",
+      "why_it_matters": "Parallel subagents cut wall-clock time for repository-wide refactors.",
+      "caveats": "Release candidate: the plugin manifest format may still change before 3.0.",
+      "sources": [
+        {
+          "url": "https://example.org/relay/releases/3.0.0-rc.1",
+          "title": "Relay CLI 3.0.0-rc.1",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Parallel subagents",
+          "value": 8,
+          "source_ref": 0,
+          "quote": "up to eight subagents in parallel"
+        }
+      ],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "product": "Relay CLI",
+        "version": "3.0.0-rc.1",
+        "previous_version": "2.9.2",
+        "changelog": [
+          { "tag": "new", "text": "Parallel subagents (up to eight)." },
+          { "tag": "new", "text": "Plugin manifest, version 1." },
+          { "tag": "breaking", "text": "The --agents flag is renamed to --subagents." }
+        ],
+        "verdict": "assess"
+      }
+    },
+    {
+      "id": "example-gpu-pricing",
+      "section": "models",
+      "type": "industry",
+      "title": "Hourly GPU rental prices fall for a third month",
+      "entity_key": "industry/gpu-rental-prices",
+      "impact": 3,
+      "novelty": 2,
+      "relevance": 3,
+      "confidence": "confirmed",
+      "summary": "The Example Compute Index shows on-demand accelerator prices down 6% month over month.",
+      "why_it_matters": "Self-hosting open-weights models keeps getting cheaper.",
+      "sources": [
+        {
+          "url": "https://example.com/compute-index/2026-10",
+          "title": "Example Compute Index, October 2026",
+          "tier": "T1-data",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Monthly change",
+          "value": -6,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "down 6% month over month"
+        }
+      ],
+      "visuals": [
+        {
+          "kind": "vega-lite",
+          "id": "gpu-price-trend",
+          "title": "On-demand accelerator price index",
+          "alt": "Line chart: the price index fell from 100 in July to 82 in October",
+          "source_note": "Example Compute Index",
+          "block": "timeline",
+          "spec": {
+            "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+            "data": {
+              "values": [
+                { "month": "2026-07", "index": 100 },
+                { "month": "2026-08", "index": 93 },
+                { "month": "2026-09", "index": 87 },
+                { "month": "2026-10", "index": 82 }
+              ]
+            },
+            "mark": { "type": "line", "point": true },
+            "encoding": {
+              "x": { "field": "month", "type": "temporal", "timeUnit": "yearmonth", "title": null },
+              "y": {
+                "field": "index",
+                "type": "quantitative",
+                "title": "Index (July = 100)",
+                "scale": { "zero": false }
+              }
+            }
+          }
+        }
+      ],
+      "images": [],
+      "detail": {
+        "who": "Example Compute Index",
+        "what": "On-demand accelerator prices fell 6% month over month",
+        "builder_impact": "Re-check self-hosting break-even points for open-weights models."
+      }
+    },
+    {
+      "id": "budget-aware-planning",
+      "section": "research",
+      "type": "paper",
+      "title": "Budget-aware planning keeps agents under a token limit",
+      "entity_key": "paper/budget-aware-planning",
+      "impact": 4,
+      "novelty": 4,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "A planner that tracks the remaining token budget finished 91% of tasks within budget, against 64% for an unbudgeted baseline.",
+      "why_it_matters": "Hard budgets are a common production requirement for agents.",
+      "sources": [
+        {
+          "url": "https://example.org/papers/budget-aware-planning",
+          "title": "Budget-aware planning (preprint)",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Tasks within budget",
+          "value": 91,
+          "unit": "%",
+          "source_ref": 0,
+          "quote": "91% of tasks within budget"
+        }
+      ],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "peer_reviewed": false,
+        "authors": ["M. Haddad", "J. Lindqvist", "S. Mori"],
+        "tldr": "Planning with an explicit budget keeps agents under token limits.",
+        "plain_explanation": "The planner knows how many tokens are left and picks cheaper steps as the budget runs low.",
+        "problem": "Agents overshoot token budgets on long tasks.",
+        "key_idea": "Make the remaining budget part of the planner's state.",
+        "method_steps": [
+          "Estimate the cost of each candidate step",
+          "Prefer steps that fit the remaining budget",
+          "Re-plan when the estimate is wrong"
+        ],
+        "critical_review": ["Cost estimates come from the same model being evaluated"],
+        "reproducibility": {},
+        "takeaway": "Expose the remaining budget to the planner, not only to the orchestrator.",
+        "reading_guide": {
+          "sections": ["Section 3", "Figure 2"],
+          "glossary": { "Budget": "The maximum number of tokens a task may use" },
+          "reading_minutes": 25,
+          "difficulty": "intermediate"
+        }
+      }
+    },
+    {
+      "id": "agent-trace-viewer",
+      "section": "oss",
+      "type": "repo",
+      "title": "agent-trace-viewer: a local UI for agent traces",
+      "entity_key": "repo/example-org/agent-trace-viewer",
+      "impact": 3,
+      "novelty": 3,
+      "relevance": 4,
+      "confidence": "confirmed",
+      "summary": "An MIT-licensed local web UI that renders OpenTelemetry agent traces as a timeline.",
+      "why_it_matters": "Debugging agents is easier when every tool call is on one timeline.",
+      "sources": [
+        {
+          "url": "https://example.org/example-org/agent-trace-viewer",
+          "title": "agent-trace-viewer repository",
+          "tier": "T1",
+          "kind": "primary"
+        }
+      ],
+      "facts": [],
+      "visuals": [],
+      "images": [],
+      "detail": {
+        "full_name": "example-org/agent-trace-viewer",
+        "language": "TypeScript",
+        "license": "MIT",
+        "stars": 2140,
+        "stars_delta_7d": 1350,
+        "last_commit": "2026-10-10",
+        "alternatives": ["Example Trace Explorer"],
+        "quickstart": "npx agent-trace-viewer ./traces"
+      }
+    }
+  ],
+  "adoption_radar": [
+    {
+      "item_id": "relay-cli-3-rc",
+      "ring": "assess",
+      "rationale": "Wait for the final 3.0 release before switching team workflows."
+    }
+  ],
+  "action_list": [
+    { "text": "Try agent-trace-viewer on one failing agent run.", "item_id": "agent-trace-viewer" }
+  ],
+  "signals": [],
+  "corrections": [],
+  "section_notes": {},
+  "methodology": {
+    "notes": ["Sample edition written by hand for the demo site; every entity is fictional."],
+    "rejected": [
+      {
+        "title": "Unverified benchmark thread",
+        "reason": "No primary source",
+        "url": "https://example.net/thread/1"
+      }
+    ]
+  }
+}

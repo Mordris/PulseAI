@@ -1,0 +1,30 @@
+{
+  "color": {
+    "$type": "color",
+    "confidence": {
+      "confirmed": { "$value": "{color.status.good}" },
+      "reported": { "$value": "{color.status.warning}" },
+      "rumor": { "$value": "{color.status.critical}" }
+    },
+    "severity": {
+      "low": { "$value": "{color.status.good}" },
+      "medium": { "$value": "{color.status.warning}" },
+      "high": { "$value": "{color.status.serious}" },
+      "critical": { "$value": "{color.status.critical}" }
+    },
+    "ring": {
+      "adopt": { "$value": "{color.status.good}" },
+      "trial": { "$value": "{color.accent.default}" },
+      "assess": { "$value": "{color.status.warning}" },
+      "hold": { "$value": "{color.status.critical}" }
+    },
+    "changelog": {
+      "new": { "$value": "{color.status.good}" },
+      "fix": { "$value": "{color.accent.default}" },
+      "perf": { "$value": "{color.status.good}" },
+      "breaking": { "$value": "{color.status.critical}" },
+      "deprecation": { "$value": "{color.status.warning}" },
+      "security": { "$value": "{color.status.serious}" }
+    }
+  }
+}

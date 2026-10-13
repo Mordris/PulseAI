@@ -1,0 +1,91 @@
+---
+import type { ItemTypesSecurityAdvisorySchema } from "@pulseai/contracts";
+import type { ItemType } from "../../../lib/context.ts";
+import type { RenderContext } from "../../../lib/render.ts";
+import { rangeAt } from "../../../lib/schema-values.ts";
+import type { Item } from "../../../lib/types.ts";
+import Block from "../../blocks/Block.astro";
+import Code from "../../blocks/Code.astro";
+import KeyValues from "../../blocks/KeyValues.astro";
+import Badge from "../../frame/Badge.astro";
+
+interface Props {
+  ctx: RenderContext;
+  item: Item;
+  itemType: ItemType;
+}
+
+const { ctx, item, itemType } = Astro.props;
+const { t, fmt } = ctx;
+const d = item.detail as ItemTypesSecurityAdvisorySchema.SecurityAdvisoryDetail;
+// The CVSS scale comes from the schema (0 to 10).
+const cvssScale = rangeAt(ctx.detailSchema(itemType), "properties.cvss");
+const cvssMax = cvssScale.at(-1) ?? 1;
+const tone = `color.severity.${d.severity}`;
+---
+
+{itemType.blocks.map((block) => (
+  <Block ctx={ctx} item={item} id={block}>
+    {block === "severity" && (
+      <div class="severity" style={`--tone: ${ctx.cssVar(tone)}`}>
+        <Badge ctx={ctx} tone={tone}>{t(`severity.${d.severity}`)}</Badge>
+        {d.cvss !== undefined && (
+          <>
+            <p class="severity__score">{t("ui.advisory.cvss", { score: fmt.number(d.cvss) })}</p>
+            <meter class="severity__meter" min="0" max={cvssMax} value={d.cvss} aria-label={t("ui.advisory.cvss", { score: fmt.number(d.cvss) })}></meter>
+          </>
+        )}
+        <p class="muted">{d.advisory_id}</p>
+      </div>
+    )}
+    {block === "versions" && (
+      <KeyValues entries={[{ label: t("fields.affected"), value: d.affected }, { label: t("fields.fixed_in"), value: d.fixed_in }]} />
+    )}
+    {block === "exploitation" && (
+      <p>
+        <Badge ctx={ctx} tone={d.exploited_in_wild ? "color.status.critical" : "color.status.good"}>
+          {t(d.exploited_in_wild ? "ui.advisory.exploited" : "ui.advisory.not_exploited")}
+        </Badge>
+      </p>
+    )}
+    {block === "fix" && d.fix_command && <Code code={d.fix_command} />}
+  </Block>
+))}
+
+<style>
+  .severity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pulse-space-3);
+  }
+
+  .severity__score {
+    font-weight: var(--pulse-font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .severity__meter {
+    inline-size: min(16rem, 100%);
+    block-size: var(--pulse-space-3);
+    accent-color: var(--tone);
+  }
+
+  .severity__meter::-webkit-meter-bar {
+    border: 0;
+    border-radius: var(--pulse-radius-pill);
+    background: var(--pulse-color-surface-sunken);
+  }
+
+  .severity__meter::-webkit-meter-optimum-value,
+  .severity__meter::-webkit-meter-suboptimum-value,
+  .severity__meter::-webkit-meter-even-less-good-value {
+    border-radius: var(--pulse-radius-pill);
+    background: var(--tone);
+  }
+
+  .severity__meter::-moz-meter-bar {
+    border-radius: var(--pulse-radius-pill);
+    background: var(--tone);
+  }
+</style>
