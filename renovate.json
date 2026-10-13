@@ -9,6 +9,29 @@
       "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance"],
       "automerge": true
     },
-    { "matchUpdateTypes": ["major"], "automerge": false, "labels": ["major-update"] }
+    { "matchUpdateTypes": ["major"], "automerge": false, "labels": ["major-update"] },
+    {
+      "description": "The Playwright image must carry the same version as @playwright/test; screenshots may need updating",
+      "groupName": "playwright",
+      "matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
+      "automerge": false
+    },
+    {
+      "description": "@astrojs/check supports TypeScript 5 and 6 only; the rest of the repository uses 7",
+      "matchFileNames": ["packages/site/package.json"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The Playwright image the site's browser tests run in (packages/site/package.json config.playwrightImage)",
+      "managerFilePatterns": ["/^packages/site/package\\.json$/"],
+      "matchStrings": [
+        "\"playwrightImage\": \"(?<depName>mcr\\.microsoft\\.com/playwright):(?<currentValue>v[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker"
+    }
   ]
 }

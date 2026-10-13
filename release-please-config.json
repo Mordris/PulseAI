@@ -15,7 +15,11 @@
     { "type": "chore", "section": "Miscellaneous", "hidden": true }
   ],
   "plugins": [
-    { "type": "linked-versions", "groupName": "engine", "components": ["cli", "contracts"] }
+    {
+      "type": "linked-versions",
+      "groupName": "engine",
+      "components": ["cli", "contracts", "tokens", "site"]
+    }
   ],
   "packages": {
     "packages/cli": {
@@ -41,6 +45,16 @@
       "release-type": "node",
       "package-name": "@pulseai/contracts",
       "component": "contracts"
+    },
+    "packages/tokens": {
+      "release-type": "node",
+      "package-name": "@pulseai/tokens",
+      "component": "tokens"
+    },
+    "packages/site": {
+      "release-type": "node",
+      "package-name": "@pulseai/site",
+      "component": "site"
     }
   }
 }

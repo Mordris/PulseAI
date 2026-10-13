@@ -55,6 +55,7 @@ ruleset:
     - python (3.12)
     - python (3.15)
     - node
+    - site
     - analyze (python)
     - analyze (javascript-typescript)
     - analyze (actions)
