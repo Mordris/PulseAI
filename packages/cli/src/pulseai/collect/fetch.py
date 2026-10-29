@@ -9,11 +9,14 @@ exception text, or the cache.
 from __future__ import annotations
 
 import time
-from collections.abc import Awaitable, Callable, Mapping
+import zlib
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC
 from email.utils import parsedate_to_datetime
 from http import HTTPStatus
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 from pathlib import Path
 from typing import Self
 
@@ -45,6 +48,11 @@ SECONDS_PER_MINUTE = 60
 DISALLOW_ALL = "User-agent: *\nDisallow: /\n"
 # Request extension marking a request that carries credentials; such requests skip the cache.
 CREDENTIALED = "pulseai_credentialed"
+# The content codings the body reader decodes; the request asks for these and nothing else.
+DECODED_CODINGS = ("gzip", "x-gzip", "deflate")
+ACCEPT_ENCODING = "gzip, deflate"
+# 32 added to wbits makes zlib read either a gzip or a zlib header (RFC 9110 §8.4.1.2-3).
+GZIP_OR_ZLIB_WBITS = zlib.MAX_WBITS | 32
 
 __all__ = ["FailureReason", "FetchError", "FetchResult", "Fetcher"]
 
@@ -93,25 +101,94 @@ _RETRYABLE = (
 )
 
 
-class _CacheUnlessCredentialed(httpx.AsyncBaseTransport):
-    """Sends requests that carry credentials past the cache, straight to the network.
+# The network responses sent for the cache request in progress (one task, one request).
+_SENT: ContextVar[list[httpx.Response] | None] = ContextVar("pulseai_sent", default=None)
 
-    hishel's shared-cache rule (RFC 9111 §3.5) covers only the Authorization header, and hishel
-    writes request headers into each stored entry. Skipping the cache for every credentialed
-    request keeps a response to one from being stored or reused, whatever the header is
-    called, and keeps the credential off disk.
-    """
 
-    def __init__(self, cache: httpx.AsyncBaseTransport, network: httpx.AsyncBaseTransport) -> None:
-        self._cache = cache
+async def _close_all(responses: list[httpx.Response]) -> None:
+    with anyio.CancelScope(shield=True):  # runs during a timeout's cancellation too
+        for response in responses:
+            await response.aclose()
+
+
+class _NoteSent(httpx.AsyncBaseTransport):
+    """Sits under hishel and notes each network response, so `_Cache` can close it."""
+
+    def __init__(self, network: httpx.AsyncBaseTransport) -> None:
         self._network = network
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        transport = self._network if request.extensions.get(CREDENTIALED) else self._cache
-        return await transport.handle_async_request(request)
+        response = await self._network.handle_async_request(request)
+        sent = _SENT.get()
+        if sent is not None:
+            sent.append(response)
+        return response
 
     async def aclose(self) -> None:
-        await self._cache.aclose()  # also closes the network transport it wraps
+        await self._network.aclose()
+
+
+class _ClosingStream(httpx.AsyncByteStream):
+    """hishel's response body, whose close also closes the network responses behind it."""
+
+    def __init__(self, stream: httpx.AsyncByteStream, sent: list[httpx.Response]) -> None:
+        self._stream = stream
+        self._sent = sent
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        async for chunk in self._stream:
+            yield chunk
+
+    async def aclose(self) -> None:
+        try:
+            await self._stream.aclose()
+        finally:
+            await _close_all(self._sent)
+
+
+class _Cache(httpx.AsyncBaseTransport):
+    """hishel's shared cache (RFC 9111), with two fixes around it.
+
+    - Requests that carry credentials go straight to the network. hishel's rule for
+      authorized requests (§3.5) covers only the Authorization header, and hishel writes request
+      headers into each stored entry. So a response to a credentialed request is never stored or
+      reused, whatever the header is called, and the credential stays off disk.
+    - Closing a response closes the network response behind it. hishel's response body ignores
+      close, and httpx releases a pooled connection only when the body is read to the end, so
+      every response left unread (a redirect, a 4xx, a retried 5xx, a body over the cap) would
+      otherwise keep its connection until the pool runs dry.
+    """
+
+    def __init__(self, network: httpx.AsyncBaseTransport, cache_path: Path) -> None:
+        self._network = network
+        self._cache = hishel.httpx.AsyncCacheTransport(
+            next_transport=_NoteSent(network),
+            storage=hishel.AsyncSqliteStorage(database_path=cache_path / CACHE_FILE),
+            policy=hishel.SpecificationPolicy(cache_options=hishel.CacheOptions(shared=True)),
+        )
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if request.extensions.get(CREDENTIALED):
+            return await self._network.handle_async_request(request)
+        sent: list[httpx.Response] = []
+        token = _SENT.set(sent)
+        try:
+            response = await self._cache.handle_async_request(request)
+        except BaseException:
+            await _close_all(sent)
+            raise
+        finally:
+            _SENT.reset(token)
+        stream = response.stream
+        if not isinstance(stream, httpx.AsyncByteStream):  # pragma: no cover - hishel's is async
+            await _close_all(sent)
+            msg = "hishel returned a response without an async body"
+            raise TypeError(msg)
+        response.stream = _ClosingStream(stream, sent)
+        return response
+
+    async def aclose(self) -> None:
+        await self._cache.aclose()  # also closes the network transport under it
 
 
 def _is_digits(text: str) -> bool:
@@ -165,14 +242,67 @@ def _describe(error: BaseException, *, credentialed: bool) -> str:
     return f"{type(error).__name__}: {message}" if message else type(error).__name__
 
 
-async def _read_capped(response: httpx.Response, max_bytes: int) -> bytes:
-    """The decoded body, read in chunks; stops and fails as soon as it passes `max_bytes`."""
+def _is_compressed(headers: httpx.Headers, url: httpx.URL) -> bool:
+    """Whether the body has one gzip or deflate coding to undo. Any other coding is refused."""
+    listed = (
+        raw.strip().lower() for raw in headers.get_list("Content-Encoding", split_commas=True)
+    )
+    codings = [coding for coding in listed if coding not in ("", "identity")]
+    if not codings:
+        return False
+    if len(codings) > 1:
+        msg = f"response from {url} stacks {len(codings)} content codings; only one is decoded"
+        raise FetchError("parse_error", msg)
+    if codings[0] not in DECODED_CODINGS:
+        msg = f"response from {url} uses content coding {codings[0]!r}, which is not decoded"
+        raise FetchError("parse_error", msg)
+    return True
+
+
+def _too_large(url: httpx.URL, max_bytes: int) -> FetchError:
+    return FetchError(
+        "too_large", f"response from {url} is larger than max_response_bytes ({max_bytes})"
+    )
+
+
+async def _read_body(response: httpx.Response, max_bytes: int) -> bytes:
+    """The decoded body. Neither the bytes received nor the decoded bytes may pass `max_bytes`.
+
+    The raw body is inflated here, in steps that never produce more than the cap allows. httpx's
+    own decoding inflates each network chunk in full before any size check, and undoes stacked
+    codings one after another, so a few hundred compressed bytes could take hundreds of MiB.
+    """
+    url = response.url
+    if response.is_stream_consumed:
+        # Built in memory from bytes (a mock transport, or a replayed cassette) and already
+        # decoded by httpx; nothing came over the network, so only the cap applies.
+        if len(response.content) > max_bytes:
+            raise _too_large(url, max_bytes)
+        return response.content
+    compressed = _is_compressed(response.headers, url)
+    inflater = zlib.decompressobj(GZIP_OR_ZLIB_WBITS) if compressed else None
     body = bytearray()
-    async for chunk in response.aiter_bytes():
-        body += chunk
-        if len(body) > max_bytes:
-            msg = f"response from {response.url} is larger than max_response_bytes ({max_bytes})"
-            raise FetchError("too_large", msg)
+    received = 0
+    try:
+        async for chunk in response.aiter_raw():
+            received += len(chunk)
+            if received > max_bytes:
+                raise _too_large(url, max_bytes)
+            if inflater is None:
+                body += chunk
+            else:
+                # Each step may add at most one byte past the cap (max_length 0 would mean no
+                # limit, which the loop condition rules out). Data after the end of the
+                # compressed stream is still received, so the response and hishel's copy of it
+                # complete, but ignored, as httpx does.
+                data = chunk
+                while data and not inflater.eof and len(body) <= max_bytes:
+                    body += inflater.decompress(data, max_bytes + 1 - len(body))
+                    data = inflater.unconsumed_tail
+            if len(body) > max_bytes:
+                raise _too_large(url, max_bytes)
+    except zlib.error:
+        raise FetchError("parse_error", f"response body from {url} could not be decoded") from None
     return bytes(body)
 
 
@@ -205,19 +335,14 @@ class Fetcher:
         self._backoff = wait_exponential_jitter(max=settings.max_wait_seconds)
 
         network = transport or httpx.AsyncHTTPTransport()
-        client_transport: httpx.AsyncBaseTransport = network
-        if cache_path is not None:
-            cache = hishel.httpx.AsyncCacheTransport(
-                next_transport=network,
-                storage=hishel.AsyncSqliteStorage(database_path=cache_path / CACHE_FILE),
-                policy=hishel.SpecificationPolicy(cache_options=hishel.CacheOptions(shared=True)),
-            )
-            client_transport = _CacheUnlessCredentialed(cache, network)
         # Redirects are followed by hand (see _attempt) so each hop gets the robots check and
         # the host's rate limit, and credentials never follow a redirect to another origin.
+        # Cookies are refused: one jar for the run would carry a session cookie set for one
+        # source's credentials to every other source on that host, and into the cache.
         self._client = httpx.AsyncClient(
-            transport=client_transport,
-            headers={"User-Agent": user_agent},
+            transport=network if cache_path is None else _Cache(network, cache_path),
+            headers={"User-Agent": user_agent, "Accept-Encoding": ACCEPT_ENCODING},
+            cookies=CookieJar(policy=DefaultCookiePolicy(allowed_domains=[])),
             timeout=settings.timeout_seconds,
             follow_redirects=False,
         )
@@ -405,7 +530,7 @@ class Fetcher:
             raise _RetryableError(status, rate_limited=False)
         if not response.is_success:
             raise FetchError("http_error", f"HTTP {status} from {final_url}", status=status)
-        content = await _read_capped(response, self._settings.max_response_bytes)
+        content = await _read_body(response, self._settings.max_response_bytes)
         return FetchResult(
             url=url,
             final_url=str(final_url),

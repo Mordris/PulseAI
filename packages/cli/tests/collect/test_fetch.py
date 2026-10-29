@@ -1,7 +1,11 @@
 import email.utils
+import gzip
 import time
+import tracemalloc
+import zlib
 from collections.abc import AsyncIterator, Callable, Mapping
 from datetime import UTC, datetime, timedelta
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +40,48 @@ class Sleeps:
 
     async def __call__(self, delay: float) -> None:
         self.delays.append(delay)
+
+
+class Body(httpx.AsyncByteStream):
+    """A body sent over the "network" in chunks, as a real transport does; notes its close."""
+
+    def __init__(
+        self, data: bytes, *, chunk: int = 64 * 1024, fail: Exception | None = None
+    ) -> None:
+        self.data = data
+        self.chunk = chunk
+        self.fail = fail
+        self.closed = False
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        for start in range(0, len(self.data), self.chunk):
+            yield self.data[start : start + self.chunk]
+        if self.fail is not None:
+            raise self.fail
+
+    async def aclose(self) -> None:
+        self.closed = True
+
+
+@cache
+def gzip_bomb(decoded_mib: int) -> bytes:
+    """Gzip of `decoded_mib` MiB of zeros (about a thousandth of that on the wire)."""
+    compressor = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+    block = bytes(1 << 20)
+    return b"".join(compressor.compress(block) for _ in range(decoded_mib)) + compressor.flush()
+
+
+async def peak_allocation(fetcher: Fetcher, url: str) -> tuple[FetchError, int]:
+    """The error a fetch fails with, and the most memory allocated while it ran."""
+    async with fetcher:
+        tracemalloc.start()
+        try:
+            with pytest.raises(FetchError) as caught:
+                await fetcher.get(url)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+    return caught.value, peak
 
 
 def settings(**overrides: Any) -> CollectConfig:
@@ -143,6 +189,78 @@ async def test_body_at_cap_is_read() -> None:
         result = await fetcher.get(FEED)
 
     assert len(result.content) == 1024
+
+
+MAX_BYTES = 64 * 1024
+PEAK_BOUND = 4 * 2**20  # the bombs below decode to 32 MiB; reading under the cap stays far below
+
+
+async def test_gzip_bomb_fails_too_large_without_inflating_it() -> None:
+    bomb = gzip_bomb(32)
+    assert len(bomb) < MAX_BYTES  # small on the wire: only the decoded size is over the cap
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, stream=Body(bomb))
+
+    error, peak = await peak_allocation(make(handler, max_response_bytes=MAX_BYTES), FEED)
+
+    assert error.reason == "too_large"
+    assert peak < PEAK_BOUND
+
+
+async def test_stacked_content_codings_are_refused_without_decoding() -> None:
+    stacked = gzip.compress(gzip_bomb(32))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"Content-Encoding": "gzip, gzip"}, stream=Body(stacked))
+
+    error, peak = await peak_allocation(make(handler, max_response_bytes=MAX_BYTES), FEED)
+
+    assert error.reason == "parse_error"
+    assert peak < PEAK_BOUND
+
+
+@pytest.mark.parametrize(
+    ("coding", "encode"),
+    [
+        ("gzip", gzip.compress),
+        ("x-gzip", gzip.compress),
+        ("GZIP", gzip.compress),
+        ("deflate", zlib.compress),
+        ("identity", bytes),
+    ],
+)
+async def test_one_gzip_or_deflate_coding_is_decoded(
+    coding: str, encode: Callable[[bytes], bytes]
+) -> None:
+    text = b"<rss>" + b"item " * 2000 + b"</rss>"
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200, headers={"Content-Encoding": coding}, stream=Body(encode(text), chunk=7)
+        )
+
+    async with make(handler, max_response_bytes=len(text)) as fetcher:
+        result = await fetcher.get(FEED)
+
+    assert result.content == text
+    assert requests[0].headers["Accept-Encoding"] == "gzip, deflate"
+
+
+@pytest.mark.parametrize(
+    ("coding", "body"),
+    [("br", b"\x1b\x00\x00"), ("gzip", b"\x1f\x8b not really gzip"), ("deflate", b"raw?")],
+    ids=["unsupported", "corrupt-gzip", "corrupt-deflate"],
+)
+async def test_undecodable_body_fails_parse_error(coding: str, body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"Content-Encoding": coding}, stream=Body(body))
+
+    error = await failure(make(handler), FEED)
+
+    assert error.reason == "parse_error"
 
 
 # --- retries and rate limits -------------------------------------------------------------------
@@ -607,3 +725,83 @@ async def test_conditional_request_served_from_cache(tmp_path: Path) -> None:
     assert route.calls[1].request.headers["If-None-Match"] == '"v1"'
     assert (first.from_cache, second.from_cache) == (False, True)
     assert (second.status, second.content) == (200, b"body")
+
+
+async def test_compressed_response_is_cached_and_replayed_decoded(tmp_path: Path) -> None:
+    text = b"<feed>" + b"entry " * 500 + b"</feed>"
+    sent: list[Body] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(Body(gzip.compress(text), chunk=100))
+        headers = {"Content-Encoding": "gzip", "Cache-Control": "max-age=600"}
+        return httpx.Response(200, headers=headers, stream=sent[-1])
+
+    async with make(handler, cache_path=tmp_path, max_response_bytes=len(text)) as fetcher:
+        first = await fetcher.get(FEED)
+        second = await fetcher.get(FEED)
+
+    assert len(sent) == 1
+    assert (first.from_cache, second.from_cache) == (False, True)
+    assert first.content == second.content == text
+
+
+async def test_cache_releases_every_network_response(tmp_path: Path) -> None:
+    sent: list[Body] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        status, headers, body = 200, {"Cache-Control": "max-age=600"}, Body(b"ok")
+        if path == "/missing":
+            status, body = 404, Body(b"not found")
+        elif path == "/moved":
+            status, headers = 301, {"Location": "/ok"}
+        elif path == "/big":
+            body = Body(b"x" * 4096, chunk=512)
+        elif path == "/flaky":
+            status = 503
+        elif path == "/slow":
+            body = Body(b"partial", fail=httpx.ReadTimeout("stalled"))
+        sent.append(body)
+        return httpx.Response(status, headers=headers, stream=body)
+
+    async with make(handler, cache_path=tmp_path, max_response_bytes=1024, retries=1) as fetcher:
+        for path, reason in [
+            ("/missing", "http_error"),
+            ("/big", "too_large"),
+            ("/flaky", "http_error"),
+            ("/slow", "timeout"),
+        ]:
+            with pytest.raises(FetchError) as caught:
+                await fetcher.get(f"https://example.com{path}")
+            assert caught.value.reason == reason
+        moved = await fetcher.get("https://example.com/moved")
+        still_open = [body for body in sent if not body.closed]
+
+    assert moved.content == b"ok"
+    assert len(sent) == 8  # 404, too large, 503 twice, stalled twice, the redirect, its target
+    assert still_open == []
+
+
+async def test_cookies_are_never_kept_or_sent(tmp_path: Path) -> None:
+    cookie = "session=from-an-authorized-response"
+    router = respx.Router()
+    router.get(API).respond(200, headers={"Set-Cookie": f"{cookie}; Path=/"})
+    public = router.get("https://api.example.com/v1/public").respond(
+        200, headers={"Cache-Control": "public, max-age=60"}
+    )
+    router.get("https://api.example.com/login").respond(
+        302, headers={"Set-Cookie": f"{cookie}; Path=/", "Location": "/v1/landing"}
+    )
+    landing = router.get("https://api.example.com/v1/landing").respond(200)
+
+    environ = {AUTH_ENV: CREDENTIAL}
+    async with make(router.handler, environ=environ, cache_path=tmp_path) as fetcher:
+        await fetcher.get(API, BEARER)  # sets the cookie on an authorized response
+        await fetcher.get("https://api.example.com/v1/public")  # anonymous, and stored
+        await fetcher.get("https://api.example.com/login")  # sets it again, then redirects
+
+    sent = [*public.calls, *landing.calls]
+    assert len(sent) == 2
+    assert all("Cookie" not in call.request.headers for call in sent)
+    stored = b"".join(path.read_bytes() for path in tmp_path.rglob("*") if path.is_file())
+    assert cookie.encode() not in stored
