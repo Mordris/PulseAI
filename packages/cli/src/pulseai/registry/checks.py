@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import os
 import re
-import string
 from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jmespath
@@ -35,15 +34,9 @@ from pulseai.schemas import (
     load_schema,
     schema_file,
 )
+from pulseai.templates import MISSING, config_variable, is_template_value, template_fields
 
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
-# A template field `config.a.b` reads the config value at a.b.
-CONFIG_VARIABLE_ROOT = "config"
-CONFIG_VARIABLE_SEPARATOR = "."
-# What a template field can expand to. bool is excluded: it is an int, but not a number to a human.
-TEMPLATE_VALUE_TYPES = (str, int, float)
-
-_MISSING = object()
 
 
 def _error(where: str, message: str) -> Issue:
@@ -52,28 +45,6 @@ def _error(where: str, message: str) -> Issue:
 
 def _warning(where: str, message: str) -> Issue:
     return Issue("warning", where, message)
-
-
-def _template_fields(text: str) -> Iterator[str]:
-    for _, field, _, _ in string.Formatter().parse(text):
-        if field:
-            yield field
-
-
-def _config_variable(field: str, config: Mapping[str, Any]) -> object:
-    """The config value a `config.<path>` template field names, or _MISSING when there is none."""
-    root, separator, path = field.partition(CONFIG_VARIABLE_SEPARATOR)
-    if root != CONFIG_VARIABLE_ROOT or not separator:
-        return _MISSING
-    value: object = config
-    for key in path.split(CONFIG_VARIABLE_SEPARATOR):
-        if not isinstance(value, dict):
-            return _MISSING
-        children = cast("dict[str, object]", value)
-        if key not in children:
-            return _MISSING
-        value = children[key]
-    return value
 
 
 def _label_keys(
@@ -198,17 +169,17 @@ def _check_sources(
         templates += source.get("search", {}).get("queries", [])
         for template in templates:
             try:
-                fields = list(_template_fields(template))
+                fields = list(template_fields(template))
             except ValueError as exc:
                 yield _error(where, f"invalid template {template!r}: {exc}")
                 continue
             for field in fields:
                 if field in allowed_variables:
                     continue
-                value = _config_variable(field, config)
-                if value is _MISSING:
+                value = config_variable(field, config)
+                if value is MISSING:
                     yield _error(where, f"unknown template variable {field!r} in {template!r}")
-                elif isinstance(value, bool) or not isinstance(value, TEMPLATE_VALUE_TYPES):
+                elif not is_template_value(value):
                     yield _error(
                         where,
                         f"template variable {field!r} must be a string or number in {template!r}",
