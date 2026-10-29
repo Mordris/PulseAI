@@ -34,7 +34,13 @@ from pulseai.schemas import (
     load_schema,
     schema_file,
 )
-from pulseai.templates import MISSING, config_variable, is_template_value, template_fields
+from pulseai.templates import (
+    MISSING,
+    config_variable,
+    field_problem,
+    is_template_value,
+    template_parts,
+)
 
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
 
@@ -146,6 +152,34 @@ def _check_config(cfg: PulseConfig, section_ids: set[str], role_ids: set[str]) -
         yield _error("config/quality", "section_cvd_fail must not exceed section_cvd_target")
 
 
+def _check_template(
+    where: str, template: str, allowed_variables: set[str], config: Mapping[str, Any]
+) -> Iterator[Issue]:
+    """Every problem that would make expanding the template fail at run time."""
+    try:
+        parts = list(template_parts(template))
+    except ValueError as exc:
+        yield _error(where, f"invalid template {template!r}: {exc}")
+        return
+    for part in parts:
+        field = part.field
+        if field is None:
+            continue
+        problem = field_problem(part)
+        if problem is not None:
+            yield _error(where, f"template field {field!r} {problem} in {template!r}")
+            continue
+        if field in allowed_variables:
+            continue
+        value = config_variable(field, config)
+        if value is MISSING:
+            yield _error(where, f"unknown template variable {field!r} in {template!r}")
+        elif not is_template_value(value):
+            yield _error(
+                where, f"template variable {field!r} must be a string or number in {template!r}"
+            )
+
+
 def _check_sources(
     sources: list[dict[str, Any]],
     section_ids: set[str],
@@ -168,22 +202,7 @@ def _check_sources(
             expressions += list(collector.get("track", []))
         templates += source.get("search", {}).get("queries", [])
         for template in templates:
-            try:
-                fields = list(template_fields(template))
-            except ValueError as exc:
-                yield _error(where, f"invalid template {template!r}: {exc}")
-                continue
-            for field in fields:
-                if field in allowed_variables:
-                    continue
-                value = config_variable(field, config)
-                if value is MISSING:
-                    yield _error(where, f"unknown template variable {field!r} in {template!r}")
-                elif not is_template_value(value):
-                    yield _error(
-                        where,
-                        f"template variable {field!r} must be a string or number in {template!r}",
-                    )
+            yield from _check_template(where, template, allowed_variables, config)
         for expression in expressions:
             try:
                 jmespath.compile(expression)

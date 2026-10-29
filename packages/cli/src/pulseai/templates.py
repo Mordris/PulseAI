@@ -35,11 +35,16 @@ def template_parts(text: str) -> Iterator[TemplatePart]:
         yield TemplatePart(literal, field, formatted=bool(spec) or conversion is not None)
 
 
-def template_fields(text: str) -> Iterator[str]:
-    """The named fields of a template, in order. Raises ValueError for unbalanced braces."""
-    for part in template_parts(text):
-        if part.field:
-            yield part.field
+def field_problem(part: TemplatePart) -> str | None:
+    """Why the part's field cannot be expanded, or None when it can (or there is no field).
+
+    A field needs a name, and format specs and conversions are not supported.
+    """
+    if part.field == "":
+        return "has no name"
+    if part.formatted:
+        return "has a format spec or conversion"
+    return None
 
 
 def config_variable(field: str, config: Mapping[str, Any]) -> object:

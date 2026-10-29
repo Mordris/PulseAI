@@ -92,9 +92,12 @@ def test_parse_timestamp_struct_time_leap_second_rolls_over() -> None:
         "12",
         "0001-01-01T00:00:00+05:00",  # before the first UTC instant
         None,
-        12345,
-        1.5,
-        True,
+        True,  # a bool is an int, but not a number of seconds
+        False,
+        float("nan"),
+        float("inf"),
+        1761746400000,  # milliseconds: far beyond year 9999 when read as seconds
+        10**30,
         [],
         b"2026-10-28",
         time.struct_time((99999, 1, 1, 0, 0, 0, 0, 1, 0)),
@@ -102,6 +105,26 @@ def test_parse_timestamp_struct_time_leap_second_rolls_over() -> None:
 )
 def test_parse_timestamp_garbage_is_none(value: object) -> None:
     assert parse_timestamp(value) is None
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    [
+        (1793282400, utc(2026, 10, 29, 14)),
+        (1761746400, utc(2025, 10, 29, 14)),
+        (0, utc(1970, 1, 1)),
+        (-86400, utc(1969, 12, 31)),
+        (1793282400.0, utc(2026, 10, 29, 14)),
+        (1793282400.5, datetime(2026, 10, 29, 14, 0, 0, 500000, tzinfo=UTC)),
+    ],
+)
+def test_parse_timestamp_number_is_unix_epoch_seconds_in_utc(
+    seconds: float, expected: datetime
+) -> None:
+    parsed = parse_timestamp(seconds)
+    assert parsed == expected
+    assert parsed is not None
+    assert parsed.utcoffset() == timedelta(0)
 
 
 def test_format_timestamp_is_utc_with_z_and_no_microseconds() -> None:
@@ -131,15 +154,40 @@ def test_canonical_url_drops_tracking_params() -> None:
     assert canonical_url("https://example.com/a?fbclid=z&utm_medium=m") == "https://example.com/a"
 
 
+def test_canonical_url_keeps_only_the_non_tracking_params() -> None:
+    assert canonical_url("https://example.com/a?utm_source=x&id=3&fbclid=z") == (
+        "https://example.com/a?id=3"
+    )
+
+
 def test_canonical_url_is_the_same_for_variants_of_one_page() -> None:
     variants = [
         "https://example.com/a/b?id=3",
         "HTTPS://Example.COM/a/b?utm_source=x&id=3",
-        "https://example.com/a/b?id=3#comments",
         "https://example.com:443/a/b?id=3&utm_campaign=y",
+        "https://example.com/a/b?id=3&fbclid=z",
         "  https://example.com/a/b?id=3\n",
     ]
     assert len({canonical_url(variant) for variant in variants}) == 1
+
+
+def test_canonical_url_keeps_params_that_tell_pages_apart() -> None:
+    # A query parameter is dropped only when it tracks; ?v= and ?slug= pick the page.
+    assert canonical_url("https://video.test/watch?v=abc") == "https://video.test/watch?v=abc"
+    assert canonical_url("https://video.test/watch?v=abc") != canonical_url(
+        "https://video.test/watch?v=xyz"
+    )
+    assert canonical_url("https://example.com/blog?slug=foo") != canonical_url(
+        "https://example.com/blog?slug=bar"
+    )
+
+
+def test_canonical_url_keeps_the_fragment_that_tells_entries_apart() -> None:
+    # A changelog page lists its releases under fragments of one URL.
+    first = canonical_url("https://example.com/changelog#v1.2.0")
+    second = canonical_url("https://example.com/changelog#v1.3.0")
+    assert first == "https://example.com/changelog#v1.2.0"
+    assert first != second
 
 
 def test_canonical_url_keeps_the_scheme() -> None:

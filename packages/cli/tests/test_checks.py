@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -469,6 +470,29 @@ def test_non_scalar_config_template_variable(tmp_path: Path, variable: str) -> N
     _write_sources(tmp_path, _collector_source(f"https://e.org/{{{variable}}}"))
     errors = _errors(check_registries(tmp_path))
     assert any(f"'{variable}' must be a string or number" in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    ("field", "problem"),
+    [
+        ("date:%Y", "has a format spec or conversion"),
+        ("date!r", "has a format spec or conversion"),
+        ("config.window.max_hours:>5", "has a format spec or conversion"),
+        ("", "has no name"),
+        (":>5", "has no name"),
+    ],
+    ids=["format-spec", "conversion", "config-format-spec", "empty-name", "empty-name-with-spec"],
+)
+@pytest.mark.parametrize("make_source", [_collector_source, _search_source], ids=["url", "query"])
+def test_template_field_that_expand_url_rejects_is_an_error(
+    tmp_path: Path, make_source: Callable[[str], dict[str, Any]], field: str, problem: str
+) -> None:
+    template = (
+        f"https://e.org/{{{field}}}" if make_source is _collector_source else f"x {{{field}}}"
+    )
+    _write_sources(tmp_path, make_source(template))
+    errors = _errors(check_registries(tmp_path))
+    assert any(f"{problem} in {template!r}" in e for e in errors), errors
 
 
 def test_catalog_and_config_variables_can_be_mixed(tmp_path: Path) -> None:

@@ -7,10 +7,16 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
 from typing import Any
 from urllib.parse import quote
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pulseai.collect.normalize import format_timestamp, to_utc
-from pulseai.templates import MISSING, config_variable, is_template_value, template_parts
+from pulseai.templates import (
+    MISSING,
+    config_variable,
+    field_problem,
+    is_template_value,
+    template_parts,
+)
 
 # Characters a template value may keep unencoded: RFC 3986 unreserved, plus ":" for timestamps.
 URL_SAFE_CHARS = "-._~:"
@@ -27,9 +33,19 @@ class Window:
         return self.since <= at < self.until
 
 
+def _zone(tz: str) -> ZoneInfo:
+    """The named time zone. Raises ValueError, not the lookup error, when there is no such zone."""
+    try:
+        return ZoneInfo(tz)
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        # ValueError is a malformed key and OSError one the file system rejects (too long).
+        msg = f"unknown time zone {tz!r}"
+        raise ValueError(msg) from None
+
+
 def default_run_date(tz: str, now: datetime) -> date:
-    """The calendar date of `now` in the schedule's time zone."""
-    return to_utc(now).astimezone(ZoneInfo(tz)).date()
+    """The calendar date of `now` in the schedule's time zone. Raises ValueError for a bad zone."""
+    return to_utc(now).astimezone(_zone(tz)).date()
 
 
 def _bound(option: str, text: str, zone: tzinfo) -> datetime:
@@ -50,9 +66,10 @@ def resolve_window(
     """The window for a run.
 
     `until` defaults to `now` and `since` to `max_hours` before `until`. Bounds without a time zone
-    are read in `tz`. Raises ValueError for a bound that does not parse or a window that is empty.
+    are read in `tz`. Raises ValueError for an unknown time zone, a bound that does not parse, or a
+    window that is empty.
     """
-    zone = ZoneInfo(tz)
+    zone = _zone(tz)
     window_end = to_utc(now) if until is None else _bound("until", until, zone)
     try:
         window_start = (
@@ -104,8 +121,9 @@ def expand_url(template: str, *, run_date: date, window: Window, config: Mapping
         pieces.append(part.literal)
         if part.field is None:
             continue
-        if part.formatted:
-            msg = f"template field {part.field!r} has a format spec or conversion in {template!r}"
+        problem = field_problem(part)
+        if problem is not None:
+            msg = f"template field {part.field!r} {problem} in {template!r}"
             raise ValueError(msg)
         value = _field_value(part.field, variables, config, template)
         pieces.append(quote(value, safe=URL_SAFE_CHARS))

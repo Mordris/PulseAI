@@ -145,6 +145,14 @@ def test_default_run_date_reads_an_aware_now_in_any_offset() -> None:
     assert default_run_date("UTC", now) == date(2026, 10, 30)
 
 
+@pytest.mark.parametrize("tz", ["Mars/Base", "", "../etc", "europe/istanbul", "UTC\0", "a" * 5000])
+def test_unknown_time_zone_is_a_value_error(tz: str) -> None:
+    with pytest.raises(ValueError, match="time zone"):
+        resolve(tz=tz)
+    with pytest.raises(ValueError, match="time zone"):
+        default_run_date(tz, NOW)
+
+
 def expand(
     template: str, config: dict[str, Any] | None = None, window: Window | None = None
 ) -> str:
@@ -196,9 +204,7 @@ def test_expand_url_covers_every_catalog_variable() -> None:
         assert expand("{" + name + "}")
 
 
-@pytest.mark.parametrize(
-    "template", ["{nope}", "{}", "{0}", "{config}", "{config.nope}", "{config.a.b}"]
-)
+@pytest.mark.parametrize("template", ["{nope}", "{0}", "{config}", "{config.nope}", "{config.a.b}"])
 def test_expand_url_rejects_unknown_variables(template: str) -> None:
     with pytest.raises(ValueError, match="unknown template variable"):
         expand(template, {"a": "text"})
@@ -215,6 +221,12 @@ def test_expand_url_rejects_booleans_and_non_scalars(name: str) -> None:
 def test_expand_url_rejects_format_specs_and_conversions(template: str) -> None:
     with pytest.raises(ValueError, match="format"):
         expand(template, {"n": 1})
+
+
+@pytest.mark.parametrize("template", ["{}", "x/{}/y", "{:>5}", "{!r}"])
+def test_expand_url_rejects_a_field_without_a_name(template: str) -> None:
+    with pytest.raises(ValueError, match="has no name"):
+        expand(template)
 
 
 @pytest.mark.parametrize("template", ["https://x.test/{date", "https://x.test/date}"])

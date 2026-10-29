@@ -43,14 +43,19 @@ def _parse_text(text: str) -> datetime:
 
 
 def parse_timestamp(value: object) -> datetime | None:
-    """A datetime, a feedparser struct_time, or ISO 8601 or RFC 822 text, as a UTC datetime.
+    """A datetime, a feedparser struct_time, Unix epoch seconds, or ISO 8601 or RFC 822 text.
 
-    A value without a time zone is UTC and a date alone is that day at 00:00. Anything else,
-    including a value that is out of range, gives None.
+    The result is a UTC datetime. A value without a time zone is UTC and a date alone is that day
+    at 00:00. Anything else, including a bool, NaN, or a value out of range (such as epoch
+    milliseconds), gives None.
     """
     try:
         if isinstance(value, datetime):
             return to_utc(value)
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int | float):
+            return _EPOCH + timedelta(seconds=value)
         if isinstance(value, time.struct_time):
             # timegm rolls a leap second (:60) over into the next minute.
             return _EPOCH + timedelta(seconds=calendar.timegm(value))
@@ -67,9 +72,10 @@ def format_timestamp(at: datetime) -> str:
 
 
 def canonical_url(url: str) -> str | None:
-    """The URL without tracking parameters, fragment, or other spellings of the same address.
+    """The URL without tracking parameters or other spellings of the same address.
 
-    None when it is not an http(s) URL with a host, or cannot be parsed.
+    Other query parameters and the fragment stay: they can tell pages and entries apart (`?v=`,
+    `/changelog#v1.2.0`). None when it is not an http(s) URL with a host, or cannot be parsed.
     """
     candidate = url.strip()
     try:
@@ -77,7 +83,7 @@ def canonical_url(url: str) -> str | None:
         if parts.scheme.lower() not in URL_SCHEMES or not parts.hostname:
             return None
         _ = parts.port  # a port that is not a number in range raises ValueError
-        return courlan.normalize_url(candidate, strict=True)
+        return courlan.normalize_url(candidate, strict=False)
     except ValueError:
         return None
 
