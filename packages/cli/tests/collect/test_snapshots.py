@@ -8,7 +8,13 @@ import pytest
 from structlog.testing import capture_logs
 
 from pulseai.collect.parsers import KeyedEntry, RawEntry
-from pulseai.collect.snapshots import SnapshotStore, diff_snapshot, snapshot_document, stored_entry
+from pulseai.collect.snapshots import (
+    SnapshotStore,
+    diff_snapshot,
+    is_sitemap_snapshot,
+    snapshot_document,
+    stored_entry,
+)
 from pulseai.models.collected import FieldChange, ItemChange
 
 SOURCE = "openrouter-models"
@@ -112,6 +118,45 @@ def test_previous_is_none_when_no_snapshot_can_be_read(tmp_path: Path) -> None:
 
     with capture_logs():
         assert store.previous(SOURCE, DAY) is None
+
+
+def test_previous_reads_the_shape_of_the_kind_that_asks(tmp_path: Path) -> None:
+    store = SnapshotStore(tmp_path, keep=14)
+    store.write(SOURCE, day(27), document(a=record("Keyed")))
+    store.write(SOURCE, day(28), {"entries": {"https://example.com/a": "2026-10-01T00:00:00Z"}})
+
+    with capture_logs() as logs:
+        # A snapshot of the other shape is as unreadable as a damaged file: the run goes on to
+        # the next older one, or to none.
+        keyed = store.previous(SOURCE, DAY)
+        urls = store.previous(SOURCE, DAY, valid=is_sitemap_snapshot)
+        none_before = store.previous(SOURCE, day(28), valid=is_sitemap_snapshot)
+
+    assert keyed == document(a=record("Keyed"))
+    assert urls == {"entries": {"https://example.com/a": "2026-10-01T00:00:00Z"}}
+    assert none_before is None
+    assert [(entry["event"], entry["file"]) for entry in logs] == [
+        ("snapshot_unreadable", "2026-10-28.json"),
+        ("snapshot_unreadable", "2026-10-27.json"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("document_", "expected"),
+    [
+        ({"entries": {}}, True),
+        ({"entries": {"https://e.com/a": None, "https://e.com/b": "2026-10-01T00:00:00Z"}}, True),
+        ({"entries": {"https://e.com/a": 5}}, False),
+        ({"entries": {"https://e.com/a": {"fields": {}, "tracked": {}}}}, False),
+        ({"entries": []}, False),
+        ({"entries": None}, False),
+        ({"urls": {}}, False),
+        ([], False),
+        ("entries", False),
+    ],
+)
+def test_is_sitemap_snapshot(document_: object, *, expected: bool) -> None:
+    assert is_sitemap_snapshot(document_) is expected
 
 
 def test_write_replaces_the_snapshot_of_the_same_date(tmp_path: Path) -> None:

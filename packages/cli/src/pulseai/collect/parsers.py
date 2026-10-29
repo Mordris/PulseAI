@@ -1,23 +1,29 @@
 """Turn fetched bytes into raw entries: feeds through feedparser, JSON through JMESPath.
 
 Entries are not checked here. A missing or odd field is None, and `items.build_items` decides
-what to do with the entry.
+what to do with the entry. A sitemap is read into the URLs it lists, which are not entries yet.
 """
 
 from __future__ import annotations
 
+import gzip
 import io
 import json
+import zlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import feedparser
 import jmespath
+from defusedxml.ElementTree import ParseError, fromstring
 from jmespath.exceptions import JMESPathError, JMESPathTypeError
 from jmespath.parser import ParsedResult
 
 from pulseai.collect.fetch import FetchError
+from pulseai.collect.normalize import URL_SCHEMES, parse_timestamp
 from pulseai.models.sources import FieldMap
 
 # FieldMap keys that map one value to one RawEntry attribute (`extra` maps several).
@@ -32,6 +38,17 @@ FEED_DEFAULTS: Mapping[str, str] = {
     "published": "published_parsed || updated_parsed || published",
     "summary": "summary",
 }
+
+
+# The two bytes every gzip file starts with.
+GZIP_MAGIC = b"\x1f\x8b"
+# How much of a gzip file is inflated per step, so that the cap is checked long before a bomb has
+# filled memory.
+GUNZIP_CHUNK_BYTES = 64 * 1024
+# The root elements of a sitemap (sitemaps.org): a list of pages, or a list of sitemaps.
+SITEMAP_ROOTS = frozenset({"urlset", "sitemapindex"})
+# How much of an unexpected root element's name an error message quotes.
+ROOT_NAME_CHARS = 40
 
 
 @dataclass(frozen=True)
@@ -223,3 +240,106 @@ def parse_json_keyed(
     selected = _select(content, items)
     mapping = _mapping(fields, {})
     return _keyed(selected, mapping, _compile(key), {name: _compile(name) for name in track})
+
+
+@dataclass(frozen=True)
+class SitemapDoc:
+    """What one sitemap file lists.
+
+    `urls` holds each page with its `<lastmod>` (None when it has none or cannot be read), in the
+    order of the file. `children` holds the sitemaps an index lists. Both hold absolute http(s)
+    URLs only.
+    """
+
+    urls: dict[str, datetime | None]
+    children: list[str]
+
+
+def _too_large(max_bytes: int) -> FetchError:
+    return FetchError("too_large", f"the sitemap is larger than max_response_bytes ({max_bytes})")
+
+
+def _gunzip(content: bytes, max_bytes: int) -> bytes:
+    """The inflated bytes of a gzip file, never more than `max_bytes` of them (a gzip bomb)."""
+    inflated = bytearray()
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(content)) as stream:
+            # Each read asks for at most one byte past the cap, so the check below needs no more.
+            while chunk := stream.read(min(GUNZIP_CHUNK_BYTES, max_bytes + 1 - len(inflated))):
+                inflated += chunk
+                if len(inflated) > max_bytes:
+                    raise _too_large(max_bytes)
+    except (OSError, EOFError, zlib.error):  # BadGzipFile is an OSError
+        raise FetchError("parse_error", "the sitemap is not a readable gzip file") from None
+    return bytes(inflated)
+
+
+def _local(tag: str) -> str:
+    """An element's name without its namespace, which sitemaps write in more than one way."""
+    return tag.rsplit("}", 1)[-1]
+
+
+def _location(text: str | None) -> str | None:
+    """The `<loc>` text as an absolute http(s) URL with a host, or None. Nothing else is fetched.
+
+    A URL with a space or a control character in it is not one a sitemap may list (they are
+    escaped), and it would reach the logs as written.
+    """
+    url = (text or "").strip()
+    if not url.isprintable() or any(char.isspace() for char in url):
+        return None
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname
+    except ValueError:  # a bracket or port that is not valid
+        return None
+    return url if parts.scheme.lower() in URL_SCHEMES and host else None
+
+
+def parse_sitemap(content: bytes, max_bytes: int) -> SitemapDoc:
+    """The pages and child sitemaps a sitemap or sitemap index lists.
+
+    Gzip is undone when the content starts with the gzip magic (a `.xml.gz` file is gzip whatever
+    the server says), and the inflated document may not pass `max_bytes`: FetchError("too_large").
+    The XML is untrusted, so it is read with defusedxml, which refuses entity declarations and
+    external references. Anything that is not a readable sitemap is FetchError("parse_error"). An
+    entry without a usable `<loc>` is left out, and the first entry for a URL is the one kept.
+    """
+    document = _gunzip(content, max_bytes) if content.startswith(GZIP_MAGIC) else content
+    if len(document) > max_bytes:
+        raise _too_large(max_bytes)
+    try:
+        root = fromstring(document)
+    except (ParseError, LookupError, ValueError) as exc:
+        # defusedxml's EntitiesForbidden, ExternalReferenceForbidden and DTDForbidden are
+        # ValueErrors; expat's errors are ParseErrors; an encoding the XML declaration names that
+        # Python does not know is a LookupError. The message is the type only: some of these
+        # quote what the document declared, which can be as large as the document.
+        msg = f"the response is not a readable sitemap ({type(exc).__name__})"
+        raise FetchError("parse_error", msg) from None
+    kind = _local(root.tag)
+    if kind not in SITEMAP_ROOTS:
+        msg = f"the response is not a sitemap: its root element is <{kind[:ROOT_NAME_CHARS]}>"
+        raise FetchError("parse_error", msg)
+    urls: dict[str, datetime | None] = {}
+    children: dict[str, None] = {}  # a dict for its order and a fast membership test
+    for entry in root:
+        name = _local(entry.tag)
+        if name not in ("url", "sitemap"):
+            continue
+        # Only the entry's own children: an image or video extension has its own <loc> inside.
+        loc: str | None = None
+        lastmod: datetime | None = None
+        for field in entry:
+            field_name = _local(field.tag)
+            if field_name == "loc" and loc is None:
+                loc = _location(field.text)
+            elif field_name == "lastmod" and lastmod is None:
+                lastmod = parse_timestamp((field.text or "").strip())
+        if loc is None:
+            continue
+        if name == "sitemap":
+            children[loc] = None
+        else:
+            urls.setdefault(loc, lastmod)
+    return SitemapDoc(urls=urls, children=list(children))

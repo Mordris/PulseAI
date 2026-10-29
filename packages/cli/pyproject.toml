@@ -11,6 +11,7 @@ dependencies = [
     "anyio>=4.15.1",
     "coloraide>=8.13.1",
     "courlan>=1.4.0",
+    "defusedxml>=0.7.1",
     "feedparser>=6.0.14",
     "hishel[httpx]>=1.4.0",
     "httpx>=0.28.1",
@@ -26,6 +27,7 @@ dependencies = [
     "referencing>=0.37.0",
     "structlog>=26.1.0",
     "tenacity>=9.2.1",
+    "trafilatura>=2.3.1",
     "typer>=0.27.3",
     "tzdata>=2026.6 ; sys_platform == 'win32'",
 ]

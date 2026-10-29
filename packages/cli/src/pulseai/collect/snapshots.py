@@ -2,7 +2,8 @@
 
 A snapshot is `{"entries": {key: {"fields": {...}, "tracked": {expression: value}}}}`: for each
 entry the registry's `key` picks, the fields it was mapped to and the values the source's `track`
-expressions gave. One file holds a run date's snapshot, at
+expressions gave. A sitemap source's snapshot is `{"entries": {url: lastmod}}`: each URL it keeps,
+with its `<lastmod>` as RFC 3339 text or null. One file holds a run date's snapshot, at
 `<instance>/state/snapshots/<source-id>/<YYYY-MM-DD>.json`. The directory is a registry id and the
 file name is the run date, so nothing fetched ever forms part of a path.
 """
@@ -13,7 +14,7 @@ import json
 import os
 import re
 import tempfile
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
@@ -64,6 +65,17 @@ def _is_snapshot(document: object) -> bool:
     )
 
 
+def is_sitemap_snapshot(document: object) -> bool:
+    """Whether the JSON has the shape a sitemap source writes: each URL with its lastmod or null."""
+    if not isinstance(document, dict):
+        return False
+    entries = cast(dict[str, Any], document).get("entries")
+    return isinstance(entries, dict) and all(
+        lastmod is None or isinstance(lastmod, str)
+        for lastmod in cast(dict[str, Any], entries).values()
+    )
+
+
 class SnapshotStore:
     """The dated snapshots of every source, kept under an instance directory.
 
@@ -99,11 +111,19 @@ class SnapshotStore:
                 continue
         return sorted(found)
 
-    def previous(self, source_id: str, run_date: date) -> dict[str, Any] | None:
+    def previous(
+        self,
+        source_id: str,
+        run_date: date,
+        *,
+        valid: Callable[[object], bool] = _is_snapshot,
+    ) -> dict[str, Any] | None:
         """The latest snapshot dated strictly before `run_date`, or None when there is none.
 
-        A snapshot that cannot be read (not JSON, or not a snapshot) is logged and skipped, so
-        the run compares with the next older one instead of failing on a damaged file.
+        `valid` says whether a document has the shape the caller's kind writes (by default the
+        keyed entries of a json-snapshot-diff source). A snapshot that cannot be read (not JSON,
+        or not of that shape) is logged and skipped, so the run compares with the next older one
+        instead of failing on a damaged file.
         """
         for day, path in reversed(self._dated(self._directory(source_id))):
             if day >= run_date:
@@ -113,7 +133,7 @@ class SnapshotStore:
             except (OSError, ValueError) as exc:  # JSONDecodeError and UnicodeDecodeError
                 reason = type(exc).__name__
             else:
-                if _is_snapshot(document):
+                if valid(document):
                     return cast(dict[str, Any], document)
                 reason = "not a snapshot"
             log.warning("snapshot_unreadable", source=source_id, file=path.name, reason=reason)

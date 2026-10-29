@@ -9,7 +9,7 @@ import httpx
 import pytest
 import respx
 import vcr
-from test_kinds_feed_json import ITEM, NOW, RECORDED_WINDOW, collect, serving
+from collect_helpers import ITEM, NOW, RECORDED_WINDOW, collect, serving
 
 from pulseai.collect.fetch import FetchError
 from pulseai.collect.kinds import KindResult

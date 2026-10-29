@@ -10,10 +10,13 @@ from urllib.parse import urlsplit
 
 from pulseai.collect.fetch import Fetcher, FetchError, FetchResult
 from pulseai.collect.items import BuildResult, build_items
+from pulseai.collect.normalize import format_timestamp
 from pulseai.collect.parsers import RawEntry, parse_feed, parse_json, parse_json_keyed
+from pulseai.collect.sitemap import candidates, matching_urls, read_page, read_sitemaps
 from pulseai.collect.snapshots import (
     SnapshotStore,
     diff_snapshot,
+    is_sitemap_snapshot,
     snapshot_document,
     stored_entry,
 )
@@ -33,6 +36,9 @@ from pulseai.models.sources import (
 BASELINE_NOTE = "baseline created"
 # The note when a snapshot source returns nothing but its earlier snapshot has entries.
 EMPTY_NOTE = "empty response; previous snapshot kept"
+# What the entries of a sitemap source lacked when it failed because none of them gave an item. A
+# page that could not be fetched counts with the pages whose metadata was no use.
+UNREADABLE = "no usable title or https URL, or could not be read"
 
 
 @dataclass(frozen=True)
@@ -66,8 +72,8 @@ class KindResult:
 async def run_collector(source: CollectorSource, ctx: SourceContext) -> KindResult:
     """Collect one source by the kind of its collector. Raises FetchError when it fails.
 
-    A snapshot source also writes its snapshot, but only once it has succeeded. That raises
-    OSError when the snapshot directory cannot be written.
+    A snapshot or sitemap source also writes its snapshot, but only once it has succeeded. That
+    raises OSError when the snapshot directory cannot be written.
     """
     collector = source.collector
     match collector:
@@ -82,8 +88,7 @@ async def run_collector(source: CollectorSource, ctx: SourceContext) -> KindResu
         case SnapshotCollector():
             return await _snapshot(source, collector, ctx)
         case SitemapCollector():
-            msg = "sitemap sources are not collected yet"
-            raise NotImplementedError(msg)
+            return await _sitemap(source, collector, ctx)
         case _:  # pyright reports a collector kind that no case above handles
             assert_never(collector)
 
@@ -119,6 +124,7 @@ def _result(
     *,
     valid: int | None = None,
     note: str | None = None,
+    unread: int = 0,
     malformed: str = "no usable title or https URL",
 ) -> KindResult:
     """The source's result, or a failure when every entry it returned was invalid (design §12).
@@ -145,6 +151,7 @@ def _result(
         http_status=fetched.status,
         redirected_to=_redirected_to(url, fetched.final_url),
         note=note,
+        unread=unread,
     )
 
 
@@ -222,6 +229,90 @@ async def _snapshot(
         valid=len(built.items),
         note=BASELINE_NOTE if previous is None else None,
         malformed="no usable key, title, or https URL",
+    )
+    ctx.snapshots.write(source.id, ctx.run_date, current)
+    return result
+
+
+def _notes(*notes: str | None) -> str | None:
+    """The notes that say something, as one."""
+    return "; ".join(note for note in notes if note) or None
+
+
+async def _sitemap(
+    source: CollectorSource, collector: SitemapCollector, ctx: SourceContext
+) -> KindResult:
+    """A sitemap source: one item for each page that is new or has a later lastmod (design §8.5).
+
+    The URLs the sitemap and its child sitemaps list are kept by the `include` and `exclude`
+    globs and compared with the latest snapshot dated before the run date, so running a date
+    again gives the same items. With no earlier snapshot there is nothing to compare, so the
+    result has no items and the note says a baseline was created. A sitemap with no URL to keep,
+    when the earlier snapshot has some, is an empty success: no items, nothing written, and a
+    note saying the earlier snapshot was kept.
+
+    The candidates are read newest first, up to `meta_fetch_limit`, and the rest are counted as
+    unread. A page that cannot be fetched is skipped and counts as invalid, and the source fails
+    only when no page gave an item. Candidates are new by definition, so the window does not
+    apply. The snapshot lists every URL kept, read or not, and is written last, after the source
+    has succeeded.
+    """
+    url, fetched = await _fetch(collector, ctx)
+    found = await read_sitemaps(
+        ctx.fetcher,
+        url,
+        fetched,
+        collector.http,
+        max_children=ctx.settings.max_child_sitemaps,
+        max_bytes=ctx.settings.max_response_bytes,
+    )
+    kept = matching_urls(found.urls, collector.include, collector.exclude or [])
+    current = {
+        "entries": {loc: None if at is None else format_timestamp(at) for loc, at in kept.items()}
+    }
+    previous = ctx.snapshots.previous(source.id, ctx.run_date, valid=is_sitemap_snapshot)
+    old_entries: Mapping[str, str | None] = {} if previous is None else previous["entries"]
+    if not kept and old_entries:
+        # As for a snapshot source: more likely an outage than a site with nothing left.
+        empty = BuildResult(items=[], dropped_window=0, dropped_invalid=0)
+        return _result(url, fetched, empty, note=_notes(EMPTY_NOTE, found.note))
+    due = [] if previous is None else candidates(kept, old_entries)
+    limit = (
+        ctx.settings.meta_fetch_limit
+        if collector.meta_fetch_limit is None
+        else collector.meta_fetch_limit
+    )
+    read = due[:limit]
+    entries: list[RawEntry] = []
+    changes: dict[str, ItemChange] = {}
+    unreadable = 0
+    for candidate in read:
+        entry = await read_page(ctx.fetcher, candidate.url, url, collector.http)
+        if entry is None:
+            unreadable += 1
+        else:
+            entries.append(entry)
+            changes[candidate.url] = candidate.change
+    built = build_items(
+        entries,
+        source_id=source.id,
+        window=None,
+        changelog=bool(source.changelog),
+        settings=ctx.settings,
+        detected_at=ctx.now,
+        change=lambda entry: changes.get(entry.url or ""),
+    )
+    result = _result(
+        url,
+        fetched,
+        BuildResult(
+            items=built.items,
+            dropped_window=0,
+            dropped_invalid=built.dropped_invalid + unreadable,
+        ),
+        note=_notes(BASELINE_NOTE if previous is None else None, found.note),
+        unread=len(due) - len(read),
+        malformed=UNREADABLE,
     )
     ctx.snapshots.write(source.id, ctx.run_date, current)
     return result
