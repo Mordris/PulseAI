@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import re
 import string
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jmespath
@@ -36,6 +37,13 @@ from pulseai.schemas import (
 )
 
 COLLECTOR_EXPRESSION_KEYS = ("items", "key")
+# A template field `config.a.b` reads the config value at a.b.
+CONFIG_VARIABLE_ROOT = "config"
+CONFIG_VARIABLE_SEPARATOR = "."
+# What a template field can expand to. bool is excluded: it is an int, but not a number to a human.
+TEMPLATE_VALUE_TYPES = (str, int, float)
+
+_MISSING = object()
 
 
 def _error(where: str, message: str) -> Issue:
@@ -50,6 +58,22 @@ def _template_fields(text: str) -> Iterator[str]:
     for _, field, _, _ in string.Formatter().parse(text):
         if field:
             yield field
+
+
+def _config_variable(field: str, config: Mapping[str, Any]) -> object:
+    """The config value a `config.<path>` template field names, or _MISSING when there is none."""
+    root, separator, path = field.partition(CONFIG_VARIABLE_SEPARATOR)
+    if root != CONFIG_VARIABLE_ROOT or not separator:
+        return _MISSING
+    value: object = config
+    for key in path.split(CONFIG_VARIABLE_SEPARATOR):
+        if not isinstance(value, dict):
+            return _MISSING
+        children = cast("dict[str, object]", value)
+        if key not in children:
+            return _MISSING
+        value = children[key]
+    return value
 
 
 def _label_keys(
@@ -155,6 +179,7 @@ def _check_sources(
     sources: list[dict[str, Any]],
     section_ids: set[str],
     allowed_variables: set[str],
+    config: Mapping[str, Any],
     mcp_servers: set[str],
 ) -> Iterator[Issue]:
     for i, source in enumerate(sources):
@@ -178,8 +203,16 @@ def _check_sources(
                 yield _error(where, f"invalid template {template!r}: {exc}")
                 continue
             for field in fields:
-                if field not in allowed_variables:
+                if field in allowed_variables:
+                    continue
+                value = _config_variable(field, config)
+                if value is _MISSING:
                     yield _error(where, f"unknown template variable {field!r} in {template!r}")
+                elif isinstance(value, bool) or not isinstance(value, TEMPLATE_VALUE_TYPES):
+                    yield _error(
+                        where,
+                        f"template variable {field!r} must be a string or number in {template!r}",
+                    )
         for expression in expressions:
             try:
                 jmespath.compile(expression)
@@ -191,6 +224,40 @@ def _check_sources(
                 where,
                 f"MCP server {mcp['server']!r} is not listed in config.mcp.enabled "
                 "or config.mcp.optional",
+            )
+
+
+def _enabled_collectors(
+    sources: list[dict[str, Any]],
+) -> Iterator[tuple[str, dict[str, Any], dict[str, Any]]]:
+    """Each enabled collector source as (where, source, collector)."""
+    for i, source in enumerate(sources):
+        collector = source.get("collector")
+        if collector is not None and source["enabled"]:
+            yield f"sources/{i} ({source['id']})", source, collector
+
+
+def _check_collector_urls(sources: list[dict[str, Any]]) -> Iterator[Issue]:
+    ids_by_url: dict[str, list[str]] = {}
+    for _, source, collector in _enabled_collectors(sources):
+        ids_by_url.setdefault(collector["url"], []).append(source["id"])
+    for url, ids in ids_by_url.items():
+        if len(ids) > 1:
+            shared_by = ", ".join(repr(source_id) for source_id in ids)
+            yield _warning(
+                "sources", f"collector URL {url!r} is shared by enabled sources {shared_by}"
+            )
+
+
+def _check_auth_env(sources: list[dict[str, Any]], environ: Mapping[str, str]) -> Iterator[Issue]:
+    for where, _, collector in _enabled_collectors(sources):
+        http = collector.get("http", {})
+        name = http.get("auth_env")
+        if name is not None and not http.get("auth_optional", False) and name not in environ:
+            yield _warning(
+                where,
+                f"environment variable {name!r} (http.auth_env) is not set; collection will fail "
+                "unless it is set or http.auth_optional is true",
             )
 
 
@@ -210,8 +277,13 @@ def _check_engine(tools: list[dict[str, Any]]) -> Iterator[Issue]:
             yield _error(where, f"invalid specifier {tool['specifier']!r}")
 
 
-def check_registries(instance_dir: Path | None = None) -> list[Issue]:
-    """Load every registry and the config, then apply the cross-reference rules."""
+def check_registries(
+    instance_dir: Path | None = None, environ: Mapping[str, str] | None = None
+) -> list[Issue]:
+    """Load every registry and the config, then apply the cross-reference rules.
+
+    `environ` is where source auth variables are looked up; it defaults to the process environment.
+    """
     try:
         cfg = load_config(instance_dir)
         sections = load_registry("sections", instance_dir).data["sections"]
@@ -240,7 +312,11 @@ def check_registries(instance_dir: Path | None = None) -> list[Issue]:
             instance_dir,
         ),
         *_check_config(cfg, section_ids, role_ids),
-        *_check_sources(sources, section_ids, allowed_variables, mcp_servers),
+        *_check_sources(
+            sources, section_ids, allowed_variables, cfg.model_dump(mode="json"), mcp_servers
+        ),
+        *_check_collector_urls(sources),
+        *_check_auth_env(sources, os.environ if environ is None else environ),
         *_check_engine(tools),
     ]
     return sorted(issues)

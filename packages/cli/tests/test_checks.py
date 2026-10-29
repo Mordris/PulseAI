@@ -414,3 +414,147 @@ def test_block_and_brief_field_labels_must_exist(engine_copy: Path) -> None:
     assert any("missing locale string 'fields.who'" in m for m in messages), messages
     assert any("/blocks/" in m for m in messages)
     assert any("/brief_fields/" in m for m in messages)
+
+
+def _write_sources(tmp_path: Path, *sources: dict[str, Any]) -> None:
+    _write(tmp_path / "sources/registry/mine.yaml", {"schema_version": 1, "sources": list(sources)})
+
+
+def _collector_with_id(source_id: str, url: str, **overrides: Any) -> dict[str, Any]:
+    return {**_collector_source(url), "id": source_id, **overrides}
+
+
+def _authenticated_source(source_id: str = "keyed", **http: Any) -> dict[str, Any]:
+    source = _collector_with_id(source_id, "https://e.org/feed.json")
+    source["collector"]["http"] = {"auth_header": "X-Api-Key", "auth_env": "EXAMPLE_KEY", **http}
+    return source
+
+
+def _warnings(issues: list[Issue]) -> list[str]:
+    return [f"{i.where}: {i.message}" for i in issues if i.level == "warning"]
+
+
+@pytest.mark.parametrize(
+    "variable",
+    ["config.window.max_hours", "config.quality.text_contrast_min", "config.language"],
+    ids=["int", "float", "str"],
+)
+def test_config_template_variable_resolves(tmp_path: Path, variable: str) -> None:
+    _write_sources(tmp_path, _collector_source(f"https://e.org/feed?v={{{variable}}}"))
+    assert _errors(check_registries(tmp_path)) == []
+
+
+def test_config_template_variable_is_accepted_in_a_search_query(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _search_source("claude {config.window.max_hours}"))
+    assert _errors(check_registries(tmp_path)) == []
+
+
+@pytest.mark.parametrize(
+    "variable",
+    ["config.window.nope", "config.nope", "config.", "config", "configuration.window"],
+    ids=["unknown-leaf", "unknown-section", "empty-path", "bare-config", "other-prefix"],
+)
+def test_unknown_config_template_variable(tmp_path: Path, variable: str) -> None:
+    _write_sources(tmp_path, _collector_source(f"https://e.org/{{{variable}}}"))
+    errors = _errors(check_registries(tmp_path))
+    assert any(f"unknown template variable '{variable}'" in e for e in errors), errors
+
+
+@pytest.mark.parametrize(
+    "variable",
+    ["config.interests.high", "config.window", "config.site.url", "config.collect.respect_robots"],
+    ids=["list", "mapping", "null", "boolean"],
+)
+def test_non_scalar_config_template_variable(tmp_path: Path, variable: str) -> None:
+    _write_sources(tmp_path, _collector_source(f"https://e.org/{{{variable}}}"))
+    errors = _errors(check_registries(tmp_path))
+    assert any(f"'{variable}' must be a string or number" in e for e in errors), errors
+
+
+def test_catalog_and_config_variables_can_be_mixed(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _collector_source("https://e.org/{date}/{config.window.max_hours}"))
+    assert _errors(check_registries(tmp_path)) == []
+
+
+def test_duplicate_collector_url_warns(tmp_path: Path) -> None:
+    url = "https://e.org/feed.json"
+    _write_sources(
+        tmp_path,
+        _collector_with_id("first", url),
+        _collector_with_id("second", url),
+        _collector_with_id("other", "https://e.org/other.json"),
+    )
+    warnings = [w for w in _warnings(check_registries(tmp_path)) if url in w]
+    assert len(warnings) == 1, warnings
+    assert "'first'" in warnings[0]
+    assert "'second'" in warnings[0]
+    assert "'other'" not in warnings[0]
+
+
+def test_a_url_shared_by_three_sources_warns_once(tmp_path: Path) -> None:
+    url = "https://e.org/feed.json"
+    _write_sources(tmp_path, *(_collector_with_id(name, url) for name in ("a", "b", "c")))
+    warnings = [w for w in _warnings(check_registries(tmp_path)) if url in w]
+    assert len(warnings) == 1, warnings
+    assert all(f"'{name}'" in warnings[0] for name in ("a", "b", "c"))
+
+
+def test_disabled_duplicate_url_does_not_warn(tmp_path: Path) -> None:
+    url = "https://e.org/feed.json"
+    _write_sources(
+        tmp_path,
+        _collector_with_id("first", url),
+        _collector_with_id("second", url, enabled=False),
+    )
+    assert _warnings(check_registries(tmp_path)) == []
+
+
+def test_required_auth_env_unset_warns(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _authenticated_source())
+    issues = check_registries(tmp_path, environ={})
+    assert any(i.level == "warning" and "EXAMPLE_KEY" in i.message for i in issues)
+    assert _errors(issues) == []
+
+
+def test_required_auth_env_set_is_silent(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _authenticated_source())
+    assert _warnings(check_registries(tmp_path, environ={"EXAMPLE_KEY": "secret"})) == []
+
+
+def test_auth_env_warning_never_carries_the_secret(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _authenticated_source(), _authenticated_source("other"))
+    issues = check_registries(tmp_path, environ={"EXAMPLE_KEY": "s3cr3t-value"})
+    assert "s3cr3t-value" not in "".join(f"{i.where}{i.message}" for i in issues)
+
+
+def test_optional_auth_env_unset_is_silent(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _authenticated_source(auth_optional=True))
+    assert _warnings(check_registries(tmp_path, environ={})) == []
+
+
+def test_disabled_source_with_unset_auth_env_is_silent(tmp_path: Path) -> None:
+    source = _authenticated_source()
+    source["enabled"] = False
+    _write_sources(tmp_path, source)
+    assert _warnings(check_registries(tmp_path, environ={})) == []
+
+
+def test_environ_defaults_to_the_process_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_sources(tmp_path, _authenticated_source())
+    monkeypatch.delenv("EXAMPLE_KEY", raising=False)
+    assert any("EXAMPLE_KEY" in w for w in _warnings(check_registries(tmp_path)))
+    monkeypatch.setenv("EXAMPLE_KEY", "secret")
+    assert _warnings(check_registries(tmp_path)) == []
+
+
+def test_cli_registry_check_reports_unset_auth_env_without_failing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_sources(tmp_path, _authenticated_source())
+    monkeypatch.delenv("EXAMPLE_KEY", raising=False)
+    result = runner.invoke(app, ["registry", "check", "--instance", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert "warning sources/" in result.output
+    assert "EXAMPLE_KEY" in result.output
