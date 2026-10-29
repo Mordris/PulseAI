@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, constr
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from typing_extensions import TypeAliasType
 
 StringsAdditionalProperty = TypeAliasType(
@@ -42,13 +42,13 @@ class SiteContext(BaseModel):
         ),
     ]
     strings: Annotated[
-        dict[constr(pattern=r"^[a-z0-9_]+(?:\.[a-z0-9_-]+)+$"), StringsAdditionalProperty],
+        dict[Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]+(?:\.[a-z0-9_-]+)+$")], StringsAdditionalProperty],
         Field(
             description="Locale strings for config.language with the fallback chain applied."
         ),
     ]
     schemas: Annotated[
-        dict[constr(pattern=r"^(?:item-types/)?[a-z0-9_-]+\.schema\.json$"), dict[str, Any]],
+        dict[Annotated[str, StringConstraints(pattern=r"^(?:item-types/)?[a-z0-9_-]+\.schema\.json$")], dict[str, Any]],
         Field(
             description="Schemas keyed by name: report.schema.json (engine) and item-types/<file> for every item type (instance first)."
         ),
