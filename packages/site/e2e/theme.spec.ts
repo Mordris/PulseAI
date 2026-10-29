@@ -29,6 +29,15 @@ test.describe("theme", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme-choice", "auto");
   });
 
+  test("keeps a stored light choice when the OS is dark", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("./");
+    await page.getByRole("radio", { name: "Light" }).check();
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await background(page)).toBe(hexToRgb(tokenValue("light", "color.surface.page")));
+  });
+
   test("survives storage that throws", async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(window, "localStorage", {
@@ -59,6 +68,25 @@ test.describe("theme", () => {
       key: hexToRgb(tokenValue(mode, "color.text.secondary")),
       value: hexToRgb(tokenValue(mode, "color.text.primary")),
     });
+  });
+
+  test("charts end in the last theme after rapid switching", async ({ page }) => {
+    await page.goto("./?theme=light");
+    await visualsSettled(page);
+    await page.evaluate(() => {
+      // Three picks without waiting for any chart to redraw.
+      for (const choice of ["Dark", "Light", "Dark"]) {
+        const radio = [...document.querySelectorAll<HTMLInputElement>("input[type=radio]")].find(
+          (input) => input.labels?.[0]?.textContent?.trim() === choice,
+        );
+        radio?.click();
+      }
+    });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    const label = page.locator("#visual-impact-by-section pulse-vega-chart svg text").first();
+    await expect(label).toHaveAttribute("fill", tokenValue("dark", "color.chart.label"));
+    await page.waitForTimeout(500);
+    await expect(label).toHaveAttribute("fill", tokenValue("dark", "color.chart.label"));
   });
 
   test("re-themes charts when the theme changes", async ({ page }) => {

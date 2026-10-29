@@ -32,7 +32,7 @@ body {
 a {
   color: var(--pulse-color-accent-default);
   text-decoration-thickness: var(--pulse-border-width-thin);
-  text-underline-offset: 0.18em;
+  text-underline-offset: calc(var(--pulse-font-em-underline-offset) * 1em);
 }
 
 a:hover {
@@ -132,7 +132,7 @@ pre {
   padding-inline: var(--pulse-space-4);
 }
 
-@media (min-width: 48rem) {
+@media (--pulse-breakpoint-md) {
   .page {
     padding-inline: var(--pulse-space-6);
   }
@@ -173,7 +173,9 @@ pre {
   font-size: var(--pulse-font-size-xs);
   font-weight: var(--pulse-font-weight-medium);
   line-height: var(--pulse-font-line-height-normal);
-  white-space: nowrap;
+  /* A short badge sits on one line; a long one (a venue name) wraps rather than widen its item. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .badge[data-tone] {
@@ -185,8 +187,8 @@ pre {
 .badge[data-tone]::before {
   content: "";
   flex: none;
-  width: 0.5em;
-  height: 0.5em;
+  width: calc(var(--pulse-font-em-badge-dot) * 1em);
+  height: calc(var(--pulse-font-em-badge-dot) * 1em);
   border-radius: var(--pulse-radius-pill);
   background: var(--tone);
 }

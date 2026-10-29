@@ -108,6 +108,20 @@ describe("item shell", () => {
     expect(html).not.toContain("data-block=");
   });
 
+  it("shows a brief item's visuals, whether or not they name a block", async () => {
+    const [placed, loose] = item("northwind-atlas-3").visuals;
+    if (placed === undefined || loose === undefined) throw new Error("fixture changed");
+    const { block: _block, ...unplaced } = loose;
+    const brief = {
+      ...item("quillmark-1-8-4"),
+      visuals: [{ ...placed, block: "benchmarks" }, unplaced],
+    };
+    const html = await container.renderToString(ItemShell, { props: { ctx, item: brief } });
+    expect(html).toContain(`id="visual-${placed.id}"`);
+    expect(html).toContain(`id="visual-${loose.id}"`);
+    expect(html).not.toContain("data-block=");
+  });
+
   it("links an update to the item it follows up on", async () => {
     const html = await container.renderToString(ItemShell, {
       props: { ctx, item: item("relay-cli-3-0") },

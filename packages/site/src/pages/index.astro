@@ -11,7 +11,7 @@ const [latest] = await allReports();
 ---
 
 <Base
-  title={latest ? `${latest.headline} · ${ctx.t("ui.site.title")}` : ctx.t("ui.site.title")}
+  title={latest ? ctx.pageTitle(latest.headline) : ctx.t("ui.site.title")}
   description={latest?.headline}
   canonical={latest ? reportPath(latest.meta.date) : undefined}
 >

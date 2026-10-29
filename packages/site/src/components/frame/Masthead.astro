@@ -24,7 +24,7 @@ const regular = ctx.enums.edition[0];
 <header class="masthead">
   <div class="masthead__meta">
     <p class="masthead__edition">
-      {t("ui.masthead.edition", { edition: meta.edition })} · <time datetime={meta.date}>{fmt.date(meta.date)}</time>
+      {t("ui.masthead.edition", { edition: meta.edition })} {t("ui.separator")} <time datetime={meta.date}>{fmt.date(meta.date)}</time>
     </p>
     <div class="masthead__badges">
       {meta.sample && <Badge ctx={ctx} tone="color.status.warning">{t("ui.masthead.sample")}</Badge>}
@@ -56,7 +56,7 @@ const regular = ctx.enums.edition[0];
     color: var(--pulse-color-text-secondary);
     font-size: var(--pulse-font-size-sm);
     font-weight: var(--pulse-font-weight-medium);
-    letter-spacing: 0.04em;
+    letter-spacing: calc(var(--pulse-font-tracking-eyebrow) * 1em);
     text-transform: uppercase;
   }
 
@@ -66,8 +66,8 @@ const regular = ctx.enums.edition[0];
   }
 
   .masthead__headline {
-    max-width: 22ch;
-    font-size: clamp(var(--pulse-font-size-2xl), 6vw, var(--pulse-font-size-3xl));
+    max-width: calc(var(--pulse-font-headline-measure) * 1ch);
+    font-size: clamp(var(--pulse-font-size-2xl), calc(var(--pulse-font-headline-fluid) * 1vw), var(--pulse-font-size-3xl));
   }
 
   .masthead__window {

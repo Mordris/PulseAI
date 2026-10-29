@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 const SITE_DIR = fileURLToPath(new URL("..", import.meta.url));
 const REPO_DIR = fileURLToPath(new URL("../../..", import.meta.url));
 const PASSED_ENV = ["CI", "PULSE_E2E_INSTANCE", "PULSE_E2E_PORT"];
+const PLAYWRIGHT_BIN = "node_modules/.bin/playwright";
 
 export function playwrightImage(): string {
   const manifest = JSON.parse(
@@ -41,16 +42,36 @@ export function dockerArgs(image: string, testArgs: readonly string[]): string[]
     `--volume=${REPO_DIR}:${REPO_DIR}`,
     `--workdir=${SITE_DIR}`,
     image,
-    "npx",
-    "playwright",
+    // The installed binary, so a missing install fails instead of fetching Playwright.
+    PLAYWRIGHT_BIN,
     "test",
     ...testArgs,
   ];
+}
+
+/** Docker exits 125 when it cannot create or start the container. */
+const DOCKER_RUN_FAILED = 125;
+
+/** A message when Docker itself failed (not the tests run inside it); undefined otherwise. */
+export function dockerFailure(result: {
+  error?: (Error & { code?: string | undefined }) | undefined;
+  status: number | null;
+}): string | undefined {
+  if (result.error?.code === "ENOENT") {
+    return "Docker is not installed or not on PATH; the browser tests run in the Playwright image.";
+  }
+  if (result.error !== undefined) return `Docker did not start: ${result.error.message}`;
+  if (result.status === DOCKER_RUN_FAILED) {
+    return "Docker could not run the container (exit 125): is the daemon running, and can it pull the image?";
+  }
+  return undefined;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = spawnSync("docker", dockerArgs(playwrightImage(), process.argv.slice(2)), {
     stdio: "inherit",
   });
+  const failure = dockerFailure(result);
+  if (failure !== undefined) console.error(failure);
   process.exitCode = result.status ?? 1;
 }

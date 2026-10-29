@@ -8,7 +8,11 @@
   "properties": {
     "advisory_id": { "type": "string", "minLength": 1 },
     "cvss": { "type": "number", "minimum": 0, "maximum": 10 },
-    "severity": { "enum": ["low", "medium", "high", "critical"] },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"],
+      "x-pulse-label": "severity",
+      "x-pulse-tone": "color.severity"
+    },
     "affected": { "type": "string", "minLength": 1 },
     "fixed_in": { "type": "string", "minLength": 1 },
     "exploited_in_wild": { "type": "boolean" },

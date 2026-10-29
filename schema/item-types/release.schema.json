@@ -18,12 +18,20 @@
         "additionalProperties": false,
         "required": ["tag", "text"],
         "properties": {
-          "tag": { "enum": ["new", "fix", "breaking", "perf", "deprecation", "security"] },
+          "tag": {
+            "enum": ["new", "fix", "breaking", "perf", "deprecation", "security"],
+            "x-pulse-label": "changelog",
+            "x-pulse-tone": "color.changelog"
+          },
           "text": { "type": "string", "minLength": 1, "maxLength": 300 }
         }
       }
     },
-    "verdict": { "enum": ["adopt", "trial", "assess", "hold"] },
+    "verdict": {
+      "enum": ["adopt", "trial", "assess", "hold"],
+      "x-pulse-label": "rings",
+      "x-pulse-tone": "color.ring"
+    },
     "snippet": { "type": "string", "minLength": 1 },
     "migration_notes": { "type": "string", "minLength": 1 }
   }

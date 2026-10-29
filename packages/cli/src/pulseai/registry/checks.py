@@ -16,6 +16,7 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from pulseai.config import ConfigError, load_config
 from pulseai.issues import Issue, unusable_issue
+from pulseai.labels import labelled_enums
 from pulseai.models.config import PulseConfig
 from pulseai.paths import EngineDataError
 from pulseai.registry.loader import (
@@ -65,6 +66,14 @@ def _label_keys(
             yield f"item_types/{i}/blocks/{j}", f"blocks.{block}"
         for j, field in enumerate(item_type["brief_fields"]):
             yield f"item_types/{i}/brief_fields/{j}", f"fields.{field}"
+
+
+def _enum_label_keys(
+    item_types: list[dict[str, Any]], instance_dir: Path | None
+) -> Iterator[tuple[str, str]]:
+    for labelled in labelled_enums(item_types, instance_dir):
+        for value in labelled.values:
+            yield labelled.where, labelled.label_key(value)
 
 
 def _check_sections(sections: list[dict[str, Any]], type_ids: set[str]) -> Iterator[Issue]:
@@ -222,7 +231,14 @@ def check_registries(instance_dir: Path | None = None) -> list[Issue]:
     issues = [
         *_check_sections(sections, type_ids),
         *_check_item_types(item_types, instance_dir),
-        *_check_locales(list(_label_keys(sections, item_types)), cfg, instance_dir),
+        *_check_locales(
+            [
+                *_label_keys(sections, item_types),
+                *_enum_label_keys(item_types, instance_dir),
+            ],
+            cfg,
+            instance_dir,
+        ),
         *_check_config(cfg, section_ids, role_ids),
         *_check_sources(sources, section_ids, allowed_variables, mcp_servers),
         *_check_engine(tools),

@@ -21,7 +21,7 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
-    "weights": { "enum": ["open", "closed", "partial"] },
+    "weights": { "enum": ["open", "closed", "partial"], "x-pulse-label": "weights" },
     "license": { "type": "string", "minLength": 1 },
     "try_it": { "type": "string", "minLength": 1 }
   }

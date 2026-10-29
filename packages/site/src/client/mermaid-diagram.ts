@@ -1,3 +1,4 @@
+import { latestOnly } from "../lib/latest-only.ts";
 import { effectiveMode, onModeChange, themeData } from "./theme.ts";
 
 let sequence = 0;
@@ -9,7 +10,10 @@ class PulseMermaid extends HTMLElement {
     void this.render();
   }
 
-  async render(): Promise<void> {
+  /** Draw in the current theme; overlapping calls run in turn and only the latest draws. */
+  readonly render = latestOnly(() => this.#draw());
+
+  async #draw(): Promise<void> {
     const canvas = this.querySelector<HTMLElement>("[data-diagram]");
     const code = this.closest("figure")?.querySelector("[data-diagram-source] code")?.textContent;
     if (canvas === null || !code) return;

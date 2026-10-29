@@ -28,8 +28,8 @@ const glossary = Object.entries(guide.glossary);
 ---
 
 <div class="paper-byline">
-  <p>{d.authors.join(", ")}</p>
-  {d.affiliations && d.affiliations.length > 0 && <p class="muted">{d.affiliations.join(" · ")}</p>}
+  <p>{fmt.list(d.authors)}</p>
+  {d.affiliations && d.affiliations.length > 0 && <p class="muted">{d.affiliations.join(` ${t("ui.separator")} `)}</p>}
   <p class="paper-byline__badges">
     <Badge ctx={ctx}>{d.peer_reviewed ? t("ui.paper.peer_reviewed") : t("ui.paper.preprint")}</Badge>
     {d.venue && <Badge ctx={ctx}>{d.venue}</Badge>}
@@ -63,7 +63,7 @@ const glossary = Object.entries(guide.glossary);
           entries={[
             { label: t("fields.reading_minutes"), value: t("ui.paper.minutes", { minutes: fmt.number(guide.reading_minutes) }) },
             { label: t("fields.difficulty"), value: t(`difficulty.${guide.difficulty}`) },
-            { label: t("fields.sections"), value: guide.sections.join(", ") },
+            { label: t("fields.sections"), value: fmt.list(guide.sections) },
           ]}
         />
         {glossary.length > 0 && (

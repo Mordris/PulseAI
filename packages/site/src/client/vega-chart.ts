@@ -1,4 +1,5 @@
 import { chartSpec, embedOptions } from "../lib/chart-embed.ts";
+import { latestOnly } from "../lib/latest-only.ts";
 import { effectiveMode, onModeChange, themeData } from "./theme.ts";
 
 type Spec = { [key: string]: unknown };
@@ -25,7 +26,10 @@ class PulseVegaChart extends HTMLElement {
     this.#view?.finalize();
   }
 
-  async render(): Promise<void> {
+  /** Draw in the current theme; overlapping calls run in turn and only the latest draws. */
+  readonly render = latestOnly(() => this.#draw());
+
+  async #draw(): Promise<void> {
     const canvas = this.querySelector<HTMLElement>("[data-chart]");
     if (canvas === null || this.#spec === undefined) return;
     try {

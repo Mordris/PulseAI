@@ -50,6 +50,25 @@
       "tight": { "$value": 1.2 },
       "normal": { "$value": 1.5 },
       "relaxed": { "$value": 1.7 }
+    },
+    "tracking": {
+      "$type": "number",
+      "$description": "Letter spacing for uppercase labels, in em (use as calc(var(--…) * 1em)).",
+      "kicker": { "$value": 0.03 },
+      "eyebrow": { "$value": 0.04 },
+      "caps": { "$value": 0.05 }
+    },
+    "em": {
+      "$type": "number",
+      "$description": "Sizes that follow the text around them, in em (use as calc(var(--…) * 1em)).",
+      "underline_offset": { "$value": 0.18 },
+      "badge_dot": { "$value": 0.5 }
+    },
+    "headline": {
+      "$type": "number",
+      "$description": "Front-page headline: longest line in ch, and fluid size in vw between font.size.2xl and 3xl.",
+      "measure": { "$value": 22 },
+      "fluid": { "$value": 6 }
     }
   }
 }

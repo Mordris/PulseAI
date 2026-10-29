@@ -29,7 +29,7 @@ const direction = delta === undefined ? undefined : delta > 0 ? "up" : delta < 0
         <span class="visually-hidden">{t(`ui.delta.${direction}`, { value: fmt.number(Math.abs(delta)) })}</span>
       </p>
     )}
-    {series && <Sparkline series={series} />}
+    {series && <Sparkline ctx={ctx} series={series} />}
   </div>
 </div>
 

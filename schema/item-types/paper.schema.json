@@ -62,7 +62,10 @@
           "additionalProperties": { "type": "string", "minLength": 1 }
         },
         "reading_minutes": { "type": "integer", "minimum": 1 },
-        "difficulty": { "enum": ["intro", "intermediate", "advanced"] }
+        "difficulty": {
+          "enum": ["intro", "intermediate", "advanced"],
+          "x-pulse-label": "difficulty"
+        }
       }
     }
   }

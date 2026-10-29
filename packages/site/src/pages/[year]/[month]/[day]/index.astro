@@ -22,6 +22,6 @@ const { report } = Astro.props;
 const { ctx } = getSite();
 ---
 
-<Base title={`${report.headline} · ${ctx.t("ui.site.title")}`} description={report.headline}>
+<Base title={ctx.pageTitle(report.headline)} description={report.headline}>
   <ReportView ctx={ctx} report={report} />
 </Base>

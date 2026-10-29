@@ -84,7 +84,7 @@ const otherNotes = notes.filter((note) => note.group === undefined || !shown.has
     font-family: var(--pulse-font-family-body);
     font-size: var(--pulse-font-size-sm);
     font-weight: var(--pulse-font-weight-semibold);
-    letter-spacing: 0.05em;
+    letter-spacing: calc(var(--pulse-font-tracking-caps) * 1em);
     text-transform: uppercase;
   }
 

@@ -20,8 +20,11 @@ interface ResolvedSchemaShape {
 const resolvedSchema = getSchema("tokens-resolved");
 const shape = resolvedSchema as unknown as ResolvedSchemaShape;
 
-/** Theme modes, in the order the schema lists them. */
+/** Theme modes, in the order the schema lists them; the first is the default. */
 export const MODES: readonly Mode[] = shape.properties.mode.enum;
+
+/** The mode the OS dark setting selects: the one named after the CSS `prefers-color-scheme` keyword. */
+export const OS_DARK = "dark" satisfies Mode;
 
 const resolvedValidator = compile(resolvedSchema);
 const extensionValidator = compile({
