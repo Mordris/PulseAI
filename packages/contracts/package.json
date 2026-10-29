@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "fast-check": "^4.10.2",
     "json-schema-to-typescript": "^16.0.0",
     "rfc6902": "^5.3.0",
     "typescript": "^7.0.2",

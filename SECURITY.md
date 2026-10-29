@@ -1,8 +1,8 @@
 # Security policy
 
-Report vulnerabilities privately through GitHub security advisories
-("Report a vulnerability" on the repository's Security tab). Please do not open public issues for
-security problems. Expect an acknowledgement within 7 days.
+Report vulnerabilities privately through
+[GitHub's private vulnerability reporting form](https://github.com/Mordris/PulseAI/security/advisories/new).
+Please do not open public issues for security problems. Expect an acknowledgement within 7 days.
 
 Supported versions: the latest release.
 
@@ -23,6 +23,7 @@ loader never reads an instance's copy of it (`instance_overridable: false` in
 | Secrets before they reach git | pre-commit `gitleaks` hook |
 | Vulnerable dependencies | `vulnerability-scan.yml`: OSV-Scanner over `uv.lock` and `pnpm-lock.yaml` on PRs and nightly; `dependency-review.yml` blocks new vulnerable or disallowed-license dependencies |
 | Code scanning | `codeql.yml` (Python, TypeScript, Actions) |
+| Generated adversarial inputs | `packages/contracts/test/fuzz.test.ts`: fast-check exercises schema validators, unexpected report fields, and source URL schemes on every Node CI run |
 | Workflow security | `workflow-security.yml` (zizmor); SHA-pinned actions; `permissions: {}` defaults; `persist-credentials: false` |
 | Runtime egress audit | `step-security/harden-runner` as the first step of every job |
 | Supply chain | `scorecard.yml` (OpenSSF Scorecard), Renovate updates, release SBOM (SPDX) and build provenance attestations |
@@ -39,3 +40,6 @@ truth).
 Checks that come from reusable workflows report as `<job> / <inner job>`; the OSV-Scanner pull
 request check is `scan-pr / osv-scan`. When you add or rename a job, confirm the reported name in a
 CI run before adding it to `ruleset.required_checks` in `.github/repository.yml`.
+
+See [Scorecard findings](docs/scorecard.md) for the evidence and limitations behind the project's
+Scorecard alert dispositions.
