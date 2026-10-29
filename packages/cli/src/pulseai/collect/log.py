@@ -15,11 +15,19 @@ def _stderr_logger(*_args: object) -> structlog.PrintLogger:
 
 
 def configure_logging(*, json: bool, verbose: bool) -> None:
-    """Send structlog events to stderr: DEBUG and up when verbose, WARNING and up otherwise."""
+    """Send structlog events to stderr: DEBUG and up when verbose, WARNING and up otherwise.
+
+    Tracebacks are plain, without local variables: a frame can hold an auth header value, and
+    the console renderer's default (rich) prints locals.
+    """
     renderers: list[Processor] = (
         [structlog.processors.format_exc_info, structlog.processors.JSONRenderer()]
         if json
-        else [structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty())]
+        else [
+            structlog.dev.ConsoleRenderer(
+                colors=sys.stderr.isatty(), exception_formatter=structlog.dev.plain_traceback
+            )
+        ]
     )
     structlog.configure(
         processors=[
