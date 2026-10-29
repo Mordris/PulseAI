@@ -31,6 +31,8 @@ from pulseai.models.sources import (
 
 # The note on the result of a snapshot source's first run: it has nothing to compare with yet.
 BASELINE_NOTE = "baseline created"
+# The note when a snapshot source returns nothing but its earlier snapshot has entries.
+EMPTY_NOTE = "empty response; previous snapshot kept"
 
 
 @dataclass(frozen=True)
@@ -153,7 +155,9 @@ async def _snapshot(
 
     The new snapshot is compared with the latest one dated before the run date, so running a date
     again gives the same items. With no earlier snapshot there is nothing to compare, so the
-    result has no items and the note says a baseline was created.
+    result has no items and the note says a baseline was created. A response with no entries at
+    all, when the earlier snapshot has some, is an empty success: no items, nothing written, and
+    a note saying the earlier snapshot was kept.
 
     The changes are items from the start, so the window does not apply to them. Every entry of the
     response goes through `build_items`, not only the ones that changed, so a source whose entries
@@ -173,6 +177,12 @@ async def _snapshot(
     current, unkeyed = snapshot_document(rows)
     previous = ctx.snapshots.previous(source.id, ctx.run_date)
     old_entries: Mapping[str, Mapping[str, Any]] = {} if previous is None else previous["entries"]
+    if not rows and old_entries:
+        # A response with no entries at all (valid or not) is more likely an outage than the
+        # source emptying out. Reporting it would show every entry removed today and added again
+        # tomorrow, so nothing is reported and the earlier snapshot stays the one to compare with.
+        empty = BuildResult(items=[], dropped_window=0, dropped_invalid=0)
+        return _result(url, fetched, empty, note=EMPTY_NOTE)
     changes: dict[str, ItemChange] = (
         {} if previous is None else dict(diff_snapshot(previous, current))
     )

@@ -315,32 +315,61 @@ async def test_a_response_of_only_malformed_entries_fails_even_when_entries_were
     assert snapshot_files(tmp_path) == ["2026-10-28.json"]
 
 
-async def test_an_empty_response_after_entries_were_there_reports_them_removed(
-    store: SnapshotStore,
+EMPTY_NOTE = "empty response; previous snapshot kept"
+
+
+async def test_an_empty_response_keeps_the_previous_snapshot(
+    tmp_path: Path, store: SnapshotStore
 ) -> None:
+    """A transient empty 200 must not report every entry removed, and every one added after."""
     await run_day(store, DAY_1, model("a"), model("b"))
 
     result = await run_day(store, DAY_2)
 
-    assert [(item.title, item.change.kind) for item in result.items if item.change] == [
-        ("Model a", "removed"),
-        ("Model b", "removed"),
-    ]
-    assert result.dropped_invalid == 0
+    assert result.items == []
+    assert result.note == EMPTY_NOTE
+    assert (result.dropped_window, result.dropped_invalid) == (0, 0)
+    assert (result.url, result.http_status) == (URL, 200)
+    assert snapshot_files(tmp_path) == ["2026-10-28.json"]  # nothing written for the run date
+    for later in (DAY_2, DAY_3):
+        earlier = store.previous(SOURCE, later)
+        assert earlier is not None
+        assert list(earlier["entries"]) == ["a", "b"]
 
 
-async def test_a_removed_entry_that_cannot_be_reported_does_not_fail_an_empty_response(
-    store: SnapshotStore,
+async def test_the_day_after_an_empty_response_reports_no_changes(store: SnapshotStore) -> None:
+    await run_day(store, DAY_1, model("a"), model("b"))
+    await run_day(store, DAY_2)
+
+    result = await run_day(store, DAY_3, model("a"), model("b"))
+
+    assert (result.items, result.note) == ([], None)
+
+
+async def test_an_empty_response_leaves_the_snapshot_the_date_already_has(
+    tmp_path: Path, store: SnapshotStore
 ) -> None:
-    """It was malformed when it was stored; the response now holds nothing to judge."""
-    fields = dict.fromkeys(("id", "title", "url", "published", "summary", "signal"))
-    store.write(
-        SOURCE, DAY_1, {"entries": {"a": {"fields": fields | {"extra": {}}, "tracked": {}}}}
-    )
+    await run_day(store, DAY_1, model("a"))
+    await run_day(store, DAY_2, model("a"), model("b"))
+    snapshot = tmp_path / "state/snapshots/test-source/2026-10-29.json"
+    written = snapshot.read_bytes()
 
     result = await run_day(store, DAY_2)
 
-    assert (result.items, result.dropped_invalid, result.note) == ([], 0, None)
+    assert (result.items, result.note) == ([], EMPTY_NOTE)
+    assert snapshot.read_bytes() == written
+
+
+async def test_an_empty_response_after_an_empty_snapshot_is_written(
+    tmp_path: Path, store: SnapshotStore
+) -> None:
+    """Only a previous snapshot with entries is worth keeping."""
+    await run_day(store, DAY_1)
+
+    result = await run_day(store, DAY_2)
+
+    assert (result.items, result.note) == ([], None)
+    assert snapshot_files(tmp_path) == ["2026-10-28.json", "2026-10-29.json"]
 
 
 async def test_an_added_and_a_removed_entry_with_the_same_item_id_give_one_item(
