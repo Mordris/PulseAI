@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import string
 from collections.abc import Iterator, Mapping
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 # A template field `config.a.b` reads the config value at a.b.
 CONFIG_VARIABLE_ROOT = "config"
@@ -20,11 +20,26 @@ TEMPLATE_VALUE_TYPES = (str, int, float)
 MISSING = object()
 
 
+class TemplatePart(NamedTuple):
+    """Literal text, then the field that follows it (None after the last literal)."""
+
+    literal: str
+    field: str | None
+    # The field carries a format spec or a conversion, as in {x:>5} or {x!r}.
+    formatted: bool
+
+
+def template_parts(text: str) -> Iterator[TemplatePart]:
+    """A template split into literals and fields. Raises ValueError for unbalanced braces."""
+    for literal, field, spec, conversion in string.Formatter().parse(text):
+        yield TemplatePart(literal, field, formatted=bool(spec) or conversion is not None)
+
+
 def template_fields(text: str) -> Iterator[str]:
     """The named fields of a template, in order. Raises ValueError for unbalanced braces."""
-    for _, field, _, _ in string.Formatter().parse(text):
-        if field:
-            yield field
+    for part in template_parts(text):
+        if part.field:
+            yield part.field
 
 
 def config_variable(field: str, config: Mapping[str, Any]) -> object:

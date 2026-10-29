@@ -1,6 +1,13 @@
 import pytest
 
-from pulseai.templates import MISSING, config_variable, is_template_value, template_fields
+from pulseai.templates import (
+    MISSING,
+    TemplatePart,
+    config_variable,
+    is_template_value,
+    template_fields,
+    template_parts,
+)
 
 CONFIG = {"window": {"max_hours": 72}, "name": "x", "deep": {"a": {"b": 1.5}}, "flag": True}
 
@@ -15,6 +22,30 @@ def test_template_fields_lists_named_fields_in_order() -> None:
 
 def test_template_fields_skips_literals_escaped_braces_and_empty_fields() -> None:
     assert list(template_fields("plain {{literal}} {} text")) == []
+
+
+def test_template_parts_split_a_template_into_literals_and_fields() -> None:
+    parts = list(template_parts("a/{date}/b{{c}}/{config.x}"))
+    assert "".join(part.literal for part in parts) == "a//b{c}/"
+    assert [part.field for part in parts if part.field is not None] == ["date", "config.x"]
+    assert parts[0] == TemplatePart("a/", "date", formatted=False)
+
+
+def test_template_parts_keeps_trailing_literals_and_empty_fields() -> None:
+    assert list(template_parts("{date}/tail")) == [
+        TemplatePart("", "date", formatted=False),
+        TemplatePart("/tail", None, formatted=False),
+    ]
+    assert list(template_parts("x{}")) == [TemplatePart("x", "", formatted=False)]
+
+
+@pytest.mark.parametrize("text", ["{date:%Y}", "{date!r}", "{date!s:>5}"])
+def test_template_parts_flags_format_specs_and_conversions(text: str) -> None:
+    assert [part.formatted for part in template_parts(text)] == [True]
+
+
+def test_template_parts_does_not_flag_plain_fields() -> None:
+    assert [part.formatted for part in template_parts("{date}{config.a.b}")] == [False, False]
 
 
 @pytest.mark.parametrize("text", ["https://x/{date", "https://x/date}"])
