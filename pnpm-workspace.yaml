@@ -4,7 +4,3 @@ packages:
 # images instead of copying them (docs/adr/0002-site-rendering.md).
 ignoredOptionalDependencies:
   - sharp
-overrides:
-  # GHSA-238p-pmpm-9mq7: katex before 0.18.2, which mermaid 12.1 pins to ^0.16. Mermaid 12.2 moves
-  # to katex ^0.18; drop this override once Renovate updates mermaid.
-  "mermaid>katex": ^0.18.11

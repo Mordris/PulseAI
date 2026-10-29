@@ -1,0 +1,7 @@
+# OSV-Scanner exceptions. Each entry needs a reason and an expiry date; on expiry the scan fails
+# again and the entry gets reviewed.
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2026-12-31
+reason = "deepmerge 4.3.1 is the latest release and has no fix. It arrives only through Style Dictionary (@pulseai/tokens), which merges its own options and the engine's and instance's token files at build time, so no untrusted input reaches mergeObject(). Drop this once Style Dictionary or deepmerge ships a fix."

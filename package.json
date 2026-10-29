@@ -20,9 +20,9 @@
     "demo:e2e": "pnpm --filter @pulseai/site exec node scripts/playwright-docker.ts"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
-    "@commitlint/cli": "^21.2.3",
-    "@commitlint/config-conventional": "^21.2.3",
+    "@biomejs/biome": "^2.6.3",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
   }

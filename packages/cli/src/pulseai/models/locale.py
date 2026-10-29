@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, constr
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from typing_extensions import TypeAliasType
 
 StringsAdditionalProperty = TypeAliasType(
@@ -24,4 +24,7 @@ class Locale(BaseModel):
     schema_version: Literal[1]
     language: Annotated[str, Field(pattern="^[a-z]{2,3}(-[A-Z]{2})?$")]
     fallback: Annotated[str | None, Field(pattern="^[a-z]{2,3}(-[A-Z]{2})?$")]
-    strings: dict[constr(pattern=r"^[a-z0-9_]+(?:\.[a-z0-9_-]+)+$"), StringsAdditionalProperty]
+    strings: dict[
+        Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]+(?:\.[a-z0-9_-]+)+$")],
+        StringsAdditionalProperty,
+    ]
