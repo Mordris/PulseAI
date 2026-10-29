@@ -1,0 +1,241 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - openrouter.ai
+      user-agent:
+      - PulseAI/0.0.0 (+https://github.com/Mordris/PulseAI)
+    method: GET
+    uri: https://openrouter.ai/robots.txt
+  response:
+    body:
+      string: 'User-Agent: *
+
+        Allow: /
+
+        Disallow: /seo/
+
+
+        Sitemap: https://openrouter.ai/sitemap.xml
+
+        Sitemap: https://openrouter.ai/blog/sitemap-index.xml
+
+        '
+    headers:
+      access-control-allow-origin:
+      - '*'
+      alt-svc:
+      - h3=":443"; ma=86400
+      cache-control:
+      - public, max-age=0, must-revalidate
+      cf-cache-status:
+      - BYPASS
+      cf-ray:
+      - a52457c59d3a4135-IST
+      connection:
+      - keep-alive
+      content-disposition:
+      - inline; filename="robots.txt"
+      content-length:
+      - '137'
+      content-security-policy:
+      - 'default-src ''self''; base-uri ''self''; object-src ''none''; script-src
+        ''self'' ''unsafe-eval'' ''unsafe-inline'' https://clerk.openrouter.ai https://*.protect.clerk.com
+        https://*.client.protect.clerk.com https://challenges.cloudflare.com https://checkout.stripe.com
+        https://connect-js.stripe.com https://js.stripe.com https://maps.googleapis.com
+        https://www.googletagmanager.com https://*.googletagmanager.com ''wasm-unsafe-eval''
+        https://unpkg.com https://esm.sh https://static.cloudflareinsights.com https://cdn.jsdelivr.net
+        https://*.algolia.net https://*.algolianet.com https://app.buildwithfern.com
+        https://prod.ferndocs.com https://cdn.segment.com https://jobs.ashbyhq.com
+        https://*.posthog.com https://cdn.tldraw.com; connect-src ''self'' blob: https://model-assets.openrouter.ai
+        https://clerk.openrouter.ai https://*.protect.clerk.com https://*.client.protect.clerk.com
+        https://*.protect.clerk.com:* https://clerk-telemetry.com https://checkout.stripe.com
+        https://api.stripe.com https://m.stripe.com https://maps.googleapis.com *.google-analytics.com
+        https://www.googletagmanager.com https://www.google.com https://*.analytics.google.com
+        https://analytics.google.com https://*.google-analytics.com https://*.googletagmanager.com
+        https://*.g.doubleclick.net https://fonts.googleapis.com https://raw.githubusercontent.com
+        wss://www.walletlink.org/rpc https://static.cloudflareinsights.com https://esm.sh
+        https://*.browser-intake-datadoghq.com https://browser-intake-us5-datadoghq.com
+        https://rum.browser-intake-us5-datadoghq.com https://api-na2.hsforms.com https://*.algolia.net
+        https://*.algolianet.com https://app.buildwithfern.com https://prod.ferndocs.com
+        https://api.segment.io https://cdn.segment.com https://www.openrouter.ai https://openrouter.ai
+        https://jobs.ashbyhq.com https://api.ashbyhq.com/ https://*.posthog.com https://cdn.tldraw.com
+        https://wrapped.openrouter.ai https://storage.googleapis.com; frame-src ''self''
+        https://model-assets.openrouter.ai https://*.protect.clerk.com https://*.client.protect.clerk.com
+        https://challenges.cloudflare.com https://checkout.stripe.com https://connect-js.stripe.com
+        https://js.stripe.com https://hooks.stripe.com https://m.stripe.network https://us5.datadoghq.com
+        https://share-na2.hsforms.com https://www.youtube.com https://app.buildwithfern.com
+        https://prod.ferndocs.com https://jobs.ashbyhq.com; img-src ''self'' data:
+        blob: https://*.github.io https://model-assets.openrouter.ai https://img.clerk.com
+        https://*.stripe.com https://www.googletagmanager.com www.google.com https://*.google-analytics.com
+        https://*.googletagmanager.com https://analytics.google.com https://*.analytics.google.com
+        https://*.g.doubleclick.net https://source.unsplash.com https://t0.gstatic.com
+        https://imagedelivery.net https://raw.githubusercontent.com https://*.algolia.io
+        https://files.buildwithfern.com https://icons.ferndocs.com https://cdn.tldraw.com
+        https://wrapped.openrouter.ai; media-src ''self'' data: blob: https://model-assets.openrouter.ai
+        https://vgi-bench-mirror.openrouter.ai; worker-src ''self'' blob: data:; style-src
+        ''self'' ''unsafe-inline'' sha256-0hAheEzaMe6uXIKV4EehS9pu1am1lj/KnnzrOYqckXk=
+        https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://app.buildwithfern.com
+        https://prod.ferndocs.com https://jobs.ashbyhq.com https://*.posthog.com https://cdn.tldraw.com;
+        frame-ancestors ''self''; font-src ''self'' https://fonts.gstatic.com https://cdn.jsdelivr.net
+        https://cdn.tldraw.com; upgrade-insecure-requests'
+      content-security-policy-report-only:
+      - 'default-src ''self''; base-uri ''self''; object-src ''none''; script-src
+        ''self'' ''unsafe-inline'' https://clerk.openrouter.ai https://*.protect.clerk.com
+        https://*.client.protect.clerk.com https://challenges.cloudflare.com https://checkout.stripe.com
+        https://connect-js.stripe.com https://js.stripe.com https://maps.googleapis.com
+        https://www.googletagmanager.com https://*.googletagmanager.com ''wasm-unsafe-eval''
+        https://unpkg.com https://esm.sh https://static.cloudflareinsights.com https://cdn.jsdelivr.net
+        https://*.algolia.net https://*.algolianet.com https://app.buildwithfern.com
+        https://prod.ferndocs.com https://cdn.segment.com https://jobs.ashbyhq.com
+        https://*.posthog.com https://cdn.tldraw.com; connect-src ''self'' blob: https://model-assets.openrouter.ai
+        https://clerk.openrouter.ai https://*.protect.clerk.com https://*.client.protect.clerk.com
+        https://*.protect.clerk.com:* https://clerk-telemetry.com https://checkout.stripe.com
+        https://api.stripe.com https://m.stripe.com https://maps.googleapis.com *.google-analytics.com
+        https://www.googletagmanager.com https://www.google.com https://*.analytics.google.com
+        https://analytics.google.com https://*.google-analytics.com https://*.googletagmanager.com
+        https://*.g.doubleclick.net https://fonts.googleapis.com https://raw.githubusercontent.com
+        wss://www.walletlink.org/rpc https://static.cloudflareinsights.com https://esm.sh
+        https://*.browser-intake-datadoghq.com https://browser-intake-us5-datadoghq.com
+        https://rum.browser-intake-us5-datadoghq.com https://api-na2.hsforms.com https://*.algolia.net
+        https://*.algolianet.com https://app.buildwithfern.com https://prod.ferndocs.com
+        https://api.segment.io https://cdn.segment.com https://www.openrouter.ai https://openrouter.ai
+        https://jobs.ashbyhq.com https://api.ashbyhq.com/ https://*.posthog.com https://cdn.tldraw.com
+        https://wrapped.openrouter.ai https://storage.googleapis.com; frame-src ''self''
+        https://model-assets.openrouter.ai https://*.protect.clerk.com https://*.client.protect.clerk.com
+        https://challenges.cloudflare.com https://checkout.stripe.com https://connect-js.stripe.com
+        https://js.stripe.com https://hooks.stripe.com https://m.stripe.network https://us5.datadoghq.com
+        https://share-na2.hsforms.com https://www.youtube.com https://app.buildwithfern.com
+        https://prod.ferndocs.com https://jobs.ashbyhq.com; img-src ''self'' data:
+        blob: https://*.github.io https://model-assets.openrouter.ai https://img.clerk.com
+        https://*.stripe.com https://www.googletagmanager.com www.google.com https://*.google-analytics.com
+        https://*.googletagmanager.com https://analytics.google.com https://*.analytics.google.com
+        https://*.g.doubleclick.net https://source.unsplash.com https://t0.gstatic.com
+        https://imagedelivery.net https://raw.githubusercontent.com https://*.algolia.io
+        https://files.buildwithfern.com https://icons.ferndocs.com https://cdn.tldraw.com
+        https://wrapped.openrouter.ai; media-src ''self'' data: blob: https://model-assets.openrouter.ai
+        https://vgi-bench-mirror.openrouter.ai; worker-src ''self'' blob: data:; style-src
+        ''self'' ''unsafe-inline'' sha256-0hAheEzaMe6uXIKV4EehS9pu1am1lj/KnnzrOYqckXk=
+        https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://app.buildwithfern.com
+        https://prod.ferndocs.com https://jobs.ashbyhq.com https://*.posthog.com https://cdn.tldraw.com;
+        frame-ancestors ''self''; font-src ''self'' https://fonts.gstatic.com https://cdn.jsdelivr.net
+        https://cdn.tldraw.com; script-src-attr ''none'''
+      content-type:
+      - text/plain; charset=utf-8
+      date:
+      - Thu, 29 Oct 2026 18:46:24 GMT
+      etag:
+      - W/"2e22c2a1a8d55538c6c572aad1925bdb"
+      last-modified:
+      - Thu, 29 Oct 2026 16:57:39 GMT
+      permissions-policy:
+      - payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com"
+        "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")
+      referrer-policy:
+      - no-referrer, strict-origin-when-cross-origin
+      server:
+      - cloudflare
+      strict-transport-security:
+      - max-age=63072000
+      transfer-encoding:
+      - chunked
+      vary:
+      - User-Agent, RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-matched-path:
+      - /robots.txt
+      x-vercel-cache:
+      - HIT
+      x-vercel-id:
+      - fra1::645b6-1793299584929-d35bbe5a49ce
+    status:
+      code: 200
+      message: OK
+- request:
+    body: ''
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - openrouter.ai
+      user-agent:
+      - PulseAI/0.0.0 (+https://github.com/Mordris/PulseAI)
+    method: GET
+    uri: https://openrouter.ai/api/v1/models
+  response:
+    body:
+      string: '{"data":[{"id":"particle-ai/particle-1","canonical_slug":"particle-ai/particle-1-20261027","hugging_face_id":null,"name":"Particle
+        AI: Particle-1","created":1793207893,"description":"Particle-1 is a token-efficient
+        agentic coding model from Particle AI, post-trained on DeepSeek V4.1 Flash.
+        It is suited for software engineering work such as terminal workflows, codebase
+        changes, and data...","context_length":1048576,"architecture":{"modality":"text+image->text","input_modalities":["text","image"],"output_modalities":["text"],"tokenizer":"Other","instruct_type":null},"pricing":{"prompt":"0.00000025","completion":"0.000001","input_cache_read":"0.00000003"},"top_provider":{"context_length":1048576,"max_completion_tokens":131072,"is_moderated":false},"per_request_limits":null,"supported_parameters":["frequency_penalty","include_reasoning","logprobs","max_tokens","min_p","presence_penalty","reasoning","reasoning_effort","repetition_penalty","response_format","seed","stop","structured_outputs","temperature","tool_choice","tools","top_k","top_logprobs","top_p"],"default_parameters":{},"supported_voices":null,"knowledge_cutoff":null,"expiration_date":null,"links":{"details":"/api/v1/models/particle-ai/particle-1-20261027/endpoints"},"reasoning":{"mandatory":false,"default_enabled":true,"supported_efforts":["max","xhigh","high","medium","low","minimal","none"],"default_effort":"high"}},{"id":"openai/gpt-6.1-terra","canonical_slug":"openai/gpt-6.1-terra-20261026","hugging_face_id":null,"name":"OpenAI:
+        GPT-6.1 Terra","created":1793038409,"description":"GPT-6.1 Terra is the mid-tier
+        model in OpenAI''s GPT-6.1 series, priced below GPT-6.1 Sol. It is suited
+        for everyday agentic, coding, and writing work, is particularly strong at
+        understanding screenshots...","context_length":1050000,"architecture":{"modality":"text+image+file->text","input_modalities":["file","image","text"],"output_modalities":["text"],"tokenizer":"GPT","instruct_type":null},"pricing":{"prompt":"0.000001","completion":"0.000005","web_search":"0.01","input_cache_read":"0.00000005","input_cache_write":"0.00000125","overrides":[{"min_prompt_tokens":272000,"prompt":"0.000002","completion":"0.0000075","input_cache_read":"0.0000001","input_cache_write":"0.0000025"}]},"top_provider":{"context_length":1050000,"max_completion_tokens":128000,"is_moderated":true},"per_request_limits":null,"supported_parameters":["include_reasoning","max_completion_tokens","max_tokens","reasoning","reasoning_effort","response_format","seed","structured_outputs","tool_choice","tools","verbosity"],"default_parameters":{},"supported_voices":null,"knowledge_cutoff":null,"expiration_date":null,"links":{"details":"/api/v1/models/openai/gpt-6.1-terra-20261026/endpoints"},"benchmarks":{"design_arena":[],"artificial_analysis":{"intelligence_index":51,"coding_index":null,"agentic_index":null}},"reasoning":{"mandatory":false,"default_enabled":true,"supported_efforts":["max","xhigh","high","medium","low","none"],"default_effort":"medium"}},{"id":"recursive/flint-v1.0:free","canonical_slug":"recursive/flint-v1.0-20261021","hugging_face_id":"RecursiveSI/flint","name":"Recursive:
+        Flint (free)","created":1792622765,"description":"Flint is an open-weight
+        mixture-of-experts model from Recursive, with about 2.5B active parameters
+        out of 40B total, built by Recursive''s autoresearch system Eureka Machine
+        for coding agents. It is suited...","context_length":262144,"architecture":{"modality":"text->text","input_modalities":["text"],"output_modalities":["text"],"tokenizer":"Other","instruct_type":null},"pricing":{"prompt":"0","completion":"0"},"top_provider":{"context_length":262144,"max_completion_tokens":235929,"is_moderated":false},"per_request_limits":null,"supported_parameters":["include_reasoning","logprobs","max_tokens","reasoning","response_format","seed","stop","temperature","tools","top_logprobs","top_p"],"default_parameters":{},"supported_voices":null,"knowledge_cutoff":null,"expiration_date":null,"links":{"details":"/api/v1/models/recursive/flint-v1.0-20261021/endpoints"},"reasoning":{"mandatory":true}},{"id":"openai/gpt-4","canonical_slug":"openai/gpt-4","hugging_face_id":null,"name":"OpenAI:
+        GPT-4","created":1685232000,"description":"OpenAI''s flagship model, GPT-4
+        is a large-scale multimodal language model capable of solving difficult problems
+        with greater accuracy than previous models due to its broader general knowledge
+        and advanced reasoning...","context_length":8191,"architecture":{"modality":"text->text","input_modalities":["text"],"output_modalities":["text"],"tokenizer":"GPT","instruct_type":null},"pricing":{"prompt":"0.00003","completion":"0.00006"},"top_provider":{"context_length":8191,"max_completion_tokens":4096,"is_moderated":false},"per_request_limits":null,"supported_parameters":["frequency_penalty","logit_bias","logprobs","max_completion_tokens","presence_penalty","response_format","seed","stop","temperature","tool_choice","tools","top_logprobs","top_p"],"default_parameters":{},"supported_voices":null,"knowledge_cutoff":"2021-09-30","expiration_date":null,"links":{"details":"/api/v1/models/openai/gpt-4/endpoints"},"benchmarks":{"design_arena":[],"artificial_analysis":{"intelligence_index":null,"coding_index":13.1,"agentic_index":null}}},{"id":"moonshotai/kimi-k3.1-pro","canonical_slug":"moonshotai/kimi-k3.1-pro-20261023","hugging_face_id":null,"name":"MoonshotAI:
+        Kimi K3.1 Pro","created":1792778188,"description":"Kimi K3.1 Pro is Moonshot
+        AI''s flagship open-weight multimodal reasoning model and a post-trained successor
+        to Kimi K3, with a 1M-token context window. It is built for long-horizon coding,
+        3D...","context_length":1048576,"architecture":{"modality":"text+image+video->text","input_modalities":["text","image","video"],"output_modalities":["text"],"tokenizer":"Other","instruct_type":null},"pricing":{"prompt":"0.000002","completion":"0.00001","input_cache_read":"0.0000002"},"top_provider":{"context_length":1048576,"max_completion_tokens":943718,"is_moderated":false},"per_request_limits":null,"supported_parameters":["frequency_penalty","include_reasoning","logprobs","max_tokens","presence_penalty","reasoning","reasoning_effort","response_format","stop","structured_outputs","tool_choice","tools","top_logprobs"],"default_parameters":{"top_p":0.95},"supported_voices":null,"knowledge_cutoff":null,"expiration_date":null,"links":{"details":"/api/v1/models/moonshotai/kimi-k3.1-pro-20261023/endpoints"},"benchmarks":{"design_arena":[{"arena":"models","category":"3d","elo":1451,"win_rate":72.7,"rank":2},{"arena":"models","category":"codecategories","elo":1354,"win_rate":61,"rank":5},{"arena":"models","category":"dataviz","elo":1300,"win_rate":55.7,"rank":14},{"arena":"models","category":"gamedev","elo":1410,"win_rate":66.9,"rank":3},{"arena":"models","category":"svg","elo":1328,"win_rate":62.3,"rank":1},{"arena":"models","category":"uicomponent","elo":1399,"win_rate":66.5,"rank":1},{"arena":"models","category":"website","elo":1326,"win_rate":58.1,"rank":5}],"artificial_analysis":{"intelligence_index":46,"coding_index":null,"agentic_index":null}},"reasoning":{"mandatory":false,"default_enabled":true,"supported_efforts":["max","high","low","none"],"default_effort":"max"}}],"total_count":5,"links":{"next":null}}'
+    headers:
+      access-control-allow-origin:
+      - '*'
+      access-control-expose-headers:
+      - X-Generation-Id,X-Provider-Name,request-id,cf-ray
+      age:
+      - '5'
+      alt-svc:
+      - h3=":443"; ma=86400
+      cache-control:
+      - public, max-age=120, stale-while-revalidate=3600, stale-if-error=3600
+      cf-cache-status:
+      - HIT
+      cf-ray:
+      - a52457c61e7c4135-IST
+      connection:
+      - keep-alive
+      content-length:
+      - '7268'
+      content-type:
+      - application/json
+      date:
+      - Thu, 29 Oct 2026 18:46:24 GMT
+      permissions-policy:
+      - payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com"
+        "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")
+      referrer-policy:
+      - no-referrer, strict-origin-when-cross-origin
+      server:
+      - cloudflare
+      transfer-encoding:
+      - chunked
+      vary:
+      - Host, User-Agent, Originator, Anthropic-Version
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+version: 1

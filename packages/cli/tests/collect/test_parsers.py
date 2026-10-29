@@ -7,7 +7,7 @@ import pytest
 
 from pulseai.collect.fetch import FetchError
 from pulseai.collect.normalize import parse_timestamp
-from pulseai.collect.parsers import RawEntry, parse_feed, parse_json
+from pulseai.collect.parsers import RawEntry, parse_feed, parse_json, parse_json_keyed
 from pulseai.models.sources import FieldMap
 
 RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -354,3 +354,69 @@ def test_parse_json_bad_expression_is_parse_error(expression: str) -> None:
             parse_json(encode([{"x": 1}]), items, fields)
 
         assert caught.value.reason == "parse_error"
+
+
+# --- parse_json_keyed --------------------------------------------------------------------------
+
+MODEL_FIELDS = FieldMap.model_validate({"id": "id", "title": "name", "url": "link"})
+
+MODELS: list[dict[str, Any]] = [
+    {"id": "a/x", "name": "X", "link": "https://example.com/x", "pricing": {"prompt": "0.1"}},
+    {"id": 7, "name": "Seven", "link": "https://example.com/7", "limit": 4},
+    {"name": "No key", "link": "https://example.com/n"},
+]
+
+
+def test_parse_json_keyed_reads_key_and_tracked_values_from_the_same_item() -> None:
+    rows = parse_json_keyed(
+        encode({"data": MODELS}), "data[*]", MODEL_FIELDS, "id", ["pricing.prompt", "limit"]
+    )
+
+    # The key is whatever the expression gave: the caller decides what a usable key is.
+    assert [row.key for row in rows] == ["a/x", 7, None]
+    assert [row.entry.title for row in rows] == ["X", "Seven", "No key"]
+    assert [row.tracked for row in rows] == [
+        {"pricing.prompt": "0.1", "limit": None},
+        {"pricing.prompt": None, "limit": 4},
+        {"pricing.prompt": None, "limit": None},
+    ]
+
+
+def test_parse_json_keyed_entries_are_the_ones_parse_json_gives() -> None:
+    content = encode({"data": MODELS})
+
+    rows = parse_json_keyed(content, "data[*]", MODEL_FIELDS, "id", [])
+
+    assert [row.entry for row in rows] == parse_json(content, "data[*]", MODEL_FIELDS)
+    assert [row.tracked for row in rows] == [{}, {}, {}]
+
+
+def test_parse_json_keyed_a_type_error_in_one_item_leaves_that_value_empty() -> None:
+    """length() cannot take a number, so the item with a numeric id has no key."""
+    rows = parse_json_keyed(encode({"data": MODELS}), "data[*]", MODEL_FIELDS, "length(id)", [])
+
+    assert [row.key for row in rows] == [3, None, None]
+
+
+@pytest.mark.parametrize(
+    ("items", "key", "track"),
+    [("((", "id", []), ("[*]", "((", []), ("[*]", "id", ["no_such_function(@)"])],
+    ids=["items", "key", "track"],
+)
+def test_parse_json_keyed_bad_expression_is_parse_error(
+    items: str, key: str, track: list[str]
+) -> None:
+    with pytest.raises(FetchError) as caught:
+        parse_json_keyed(encode([{"id": "a"}]), items, MODEL_FIELDS, key, track)
+
+    assert caught.value.reason == "parse_error"
+
+
+@pytest.mark.parametrize("content", [b"not json", b'{"data": {"a": 1}}'], ids=["text", "object"])
+def test_parse_json_keyed_content_that_is_not_a_list_of_items_is_parse_error(
+    content: bytes,
+) -> None:
+    with pytest.raises(FetchError) as caught:
+        parse_json_keyed(content, "data", MODEL_FIELDS, "id", [])
+
+    assert caught.value.reason == "parse_error"

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import io
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -45,6 +45,19 @@ class RawEntry:
     summary: str | None
     signal: object
     extra: Mapping[str, object]
+
+
+@dataclass(frozen=True)
+class KeyedEntry:
+    """One entry of a snapshot source, with what the registry says to compare it by.
+
+    `key` and the `tracked` values (by expression) are whatever the expressions gave, read from
+    the same JSON item as `entry`. A key may be missing or not text; the caller decides.
+    """
+
+    key: object
+    entry: RawEntry
+    tracked: Mapping[str, object]
 
 
 @dataclass(frozen=True)
@@ -114,12 +127,35 @@ def _entry(data: object, mapping: _Mapping) -> RawEntry:
     )
 
 
+def _failed(exc: JMESPathError) -> FetchError:
+    return FetchError("parse_error", f"a JMESPath expression failed: {exc}")
+
+
 def _entries(items: list[Any], mapping: _Mapping) -> list[RawEntry]:
     try:
         return [_entry(item, mapping) for item in items]
     except JMESPathError as exc:
-        msg = f"a JMESPath expression failed: {exc}"
-        raise FetchError("parse_error", msg) from None
+        raise _failed(exc) from None
+
+
+def _keyed(
+    items: list[Any],
+    mapping: _Mapping,
+    key: ParsedResult,
+    tracked: Mapping[str, ParsedResult],
+) -> list[KeyedEntry]:
+    entries = _entries(items, mapping)
+    try:
+        return [
+            KeyedEntry(
+                key=_search(key, item),
+                entry=entry,
+                tracked={name: _search(parsed, item) for name, parsed in tracked.items()},
+            )
+            for item, entry in zip(items, entries, strict=True)
+        ]
+    except JMESPathError as exc:
+        raise _failed(exc) from None
 
 
 def parse_feed(content: bytes, fields: FieldMap | None) -> list[RawEntry]:
@@ -143,18 +179,13 @@ def parse_feed(content: bytes, fields: FieldMap | None) -> list[RawEntry]:
     return _entries(list(parsed.entries), mapping)
 
 
-def parse_json(content: bytes, items: str, fields: FieldMap) -> list[RawEntry]:
-    """The entries `items` selects from a JSON document, mapped with `fields`.
-
-    `items` must select a list. Raises FetchError("parse_error") for content that is not JSON, an
-    `items` that selects anything else, and a JMESPath expression that cannot be used.
-    """
+def _select(content: bytes, items: str) -> list[Any]:
+    """The JSON items `items` selects. Raises FetchError("parse_error") when it cannot."""
     try:
         document = json.loads(content)
     except (ValueError, RecursionError):  # JSONDecodeError and UnicodeDecodeError are ValueErrors
         raise FetchError("parse_error", "the response is not valid JSON") from None
     select = _compile(items)
-    mapping = _mapping(fields, {})
     try:
         selected: object = select.search(document)
     except JMESPathError as exc:
@@ -164,4 +195,31 @@ def parse_json(content: bytes, items: str, fields: FieldMap) -> list[RawEntry]:
         kind = "nothing" if selected is None else f"a {type(selected).__name__}"
         msg = f"JMESPath items expression {items!r} selected {kind}, not a list"
         raise FetchError("parse_error", msg)
-    return _entries(cast(list[Any], selected), mapping)
+    return cast(list[Any], selected)
+
+
+def parse_json(content: bytes, items: str, fields: FieldMap) -> list[RawEntry]:
+    """The entries `items` selects from a JSON document, mapped with `fields`.
+
+    `items` must select a list. Raises FetchError("parse_error") for content that is not JSON, an
+    `items` that selects anything else, and a JMESPath expression that cannot be used.
+    """
+    selected = _select(content, items)
+    return _entries(selected, _mapping(fields, {}))
+
+
+def parse_json_keyed(
+    content: bytes,
+    items: str,
+    fields: FieldMap,
+    key: str,
+    track: Sequence[str],
+) -> list[KeyedEntry]:
+    """Like `parse_json`, with each entry's `key` and `track`ed values read from the same item.
+
+    The entries are the ones `parse_json` gives, in the same order. A `key` or `track` expression
+    that has no value for an item, or is the wrong type for it, gives None for that item.
+    """
+    selected = _select(content, items)
+    mapping = _mapping(fields, {})
+    return _keyed(selected, mapping, _compile(key), {name: _compile(name) for name in track})

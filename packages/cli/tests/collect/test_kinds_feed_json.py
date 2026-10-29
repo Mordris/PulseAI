@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -10,6 +11,7 @@ from pydantic import TypeAdapter
 from pulseai.collect.fetch import Fetcher, FetchError
 from pulseai.collect.kinds import KindResult, SourceContext, run_collector
 from pulseai.collect.normalize import parse_timestamp
+from pulseai.collect.snapshots import SnapshotStore
 from pulseai.collect.window import Window
 from pulseai.config import load_config
 from pulseai.models.collected import CollectedItem
@@ -19,6 +21,10 @@ pytestmark = pytest.mark.anyio
 
 NOW = datetime(2026, 10, 29, 6, 0, tzinfo=UTC)
 ITEM = TypeAdapter(CollectedItem)
+
+# The feed and json kinds never touch snapshots. A run that tried to write one here would fail,
+# because an unprivileged user cannot create this directory.
+NO_SNAPSHOTS = SnapshotStore(Path("/nonexistent/instance"), keep=2)
 
 # The cassettes were recorded on this day, and this window runs from a week before it to its end.
 # The feeds and lists hold older entries too, which the window drops.
@@ -81,7 +87,11 @@ async def no_sleep(_delay: float) -> None:
 
 
 def context(
-    fetcher: Fetcher, *, window: Window = RECORDED_WINDOW, run_date: date = RECORDED_ON
+    fetcher: Fetcher,
+    *,
+    window: Window = RECORDED_WINDOW,
+    run_date: date = RECORDED_ON,
+    snapshots: SnapshotStore = NO_SNAPSHOTS,
 ) -> SourceContext:
     config = load_config()  # inside a test, where PULSE__ variables are cleared
     return SourceContext(
@@ -90,6 +100,7 @@ def context(
         run_date=run_date,
         settings=config.collect,
         config=config.model_dump(mode="json"),
+        snapshots=snapshots,
         now=NOW,
     )
 
@@ -122,13 +133,14 @@ async def collect(
     changelog: bool | None = None,
     window: Window = RECORDED_WINDOW,
     run_date: date = RECORDED_ON,
+    snapshots: SnapshotStore = NO_SNAPSHOTS,
     robots: bool = True,
     environ: dict[str, str] | None = None,
 ) -> KindResult:
     async with make_fetcher(transport, robots=robots, environ=environ) as fetcher:
         return await run_collector(
             source(collector, changelog=changelog),
-            context(fetcher, window=window, run_date=run_date),
+            context(fetcher, window=window, run_date=run_date, snapshots=snapshots),
         )
 
 
