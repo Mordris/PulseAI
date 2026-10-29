@@ -86,7 +86,7 @@ def _item(
     canonical = canonical_url(url) if url else None
     if title is None or url is None or canonical is None or not canonical.startswith(HTTPS_PREFIX):
         return None
-    fields = {
+    fields: dict[str, object] = {
         "id": item_id(source_id, mapped_id=entry.id, canonical=canonical),
         "source_id": source_id,
         "title": title,
@@ -95,9 +95,14 @@ def _item(
         "summary": clean_text(entry.summary, settings.summary_max_chars),
         "signal": _number(entry.signal),
         "extra": _extra(entry.extra),
-        "detected_at": detected_at,
-        "change": None if change is None else change(entry),
     }
+    # Left out unless there is a value: the schema does not allow null for either, and the repo
+    # dumps models with exclude_unset, so an explicit None would be written as null.
+    if detected_at is not None:
+        fields["detected_at"] = detected_at
+    changed = None if change is None else change(entry)
+    if changed is not None:
+        fields["change"] = changed
     try:
         if published is None:
             return UndatedItem.model_validate(fields | {"published": None, "undated": True})

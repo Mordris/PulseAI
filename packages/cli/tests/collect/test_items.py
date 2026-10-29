@@ -8,17 +8,26 @@ import pytest
 from pydantic import TypeAdapter
 
 from pulseai.collect.items import BuildResult, build_items
+from pulseai.collect.normalize import format_timestamp
 from pulseai.collect.parsers import RawEntry
 from pulseai.collect.window import Window
 from pulseai.config import load_config
-from pulseai.models.collected import CollectedItem, DatedItem, ItemChange, UndatedItem
+from pulseai.models.collected import (
+    CollectedItem,
+    CollectedSource,
+    DatedItem,
+    ItemChange,
+    UndatedItem,
+)
 from pulseai.models.config import CollectConfig
+from pulseai.schemas import validate_document
 
 SOURCE = "test-source"
 SINCE = datetime(2026, 10, 28, 0, 0, tzinfo=UTC)
 UNTIL = datetime(2026, 10, 29, 0, 0, tzinfo=UTC)
 WINDOW = Window(since=SINCE, until=UNTIL)
 NOON = "2026-10-28T12:00:00Z"
+COLLECTED_SCHEMA = "collected.schema.json"
 
 ITEM = TypeAdapter(CollectedItem)
 
@@ -382,3 +391,79 @@ def test_text_with_a_lone_surrogate_can_still_be_written() -> None:
     item = only(result)
     assert item.model_dump_json().encode("utf-8")
     assert item.extra == {"k": "x?"}
+
+
+# --- items dumped into a collected file --------------------------------------------------------
+
+
+def collected_file(items: list[CollectedItem]) -> dict[str, Any]:
+    """A whole collected file, dumped the way the repo dumps models (`exclude_unset`)."""
+    document = CollectedSource.model_validate(
+        {
+            "schema_version": 1,
+            "source": {
+                "id": SOURCE,
+                "name": "Test source",
+                "tier": "T1",
+                "trust": 3,
+                "sections": ["research"],
+                "kind": "json",
+                "url": "https://example.com/feed",
+            },
+            "window": {"since": format_timestamp(SINCE), "until": format_timestamp(UNTIL)},
+            "collected_at": NOON,
+            "items": items,
+        }
+    )
+    return document.model_dump(mode="json", exclude_unset=True)
+
+
+def test_dumped_items_validate_against_the_collected_schema() -> None:
+    change = ItemChange.model_validate(
+        {"kind": "changed", "fields": [{"path": "pricing", "old": None, "new": 2}]}
+    )
+    detected = datetime(2026, 10, 28, 15, 30, tzinfo=UTC)
+    dated = build(entry(title="Dated", url="https://example.com/1"))
+    undated = build(
+        entry(title="Undated", url="https://example.com/2", published=None), changelog=True
+    )
+    changed = build(
+        entry(title="Changed", url="https://example.com/3"),
+        detected_at=detected,
+        change=lambda _: change,
+    )
+    detected_only = build(
+        entry(title="Detected only", url="https://example.com/4"),
+        detected_at=detected,
+        change=lambda _: None,
+    )
+    items = [*dated.items, *undated.items, *changed.items, *detected_only.items]
+    assert len(items) == 4
+
+    document = collected_file(items)
+
+    assert validate_document(document, COLLECTED_SCHEMA) == []
+    assert [item["undated"] for item in document["items"]] == [False, True, False, False]
+
+
+def test_an_item_without_a_change_or_detection_time_dumps_without_those_keys() -> None:
+    """The schema allows neither key to be null, so an item that has none must not carry them."""
+    item = only(build(entry()))
+
+    dumped = item.model_dump(mode="json", exclude_unset=True)
+
+    assert "change" not in dumped
+    assert "detected_at" not in dumped
+    # Required but nullable: present as null, not left out.
+    assert (dumped["summary"], dumped["signal"]) == (None, None)
+
+
+def test_change_and_detection_time_dump_when_given() -> None:
+    change = ItemChange.model_validate({"kind": "added", "fields": []})
+    detected = datetime(2026, 10, 28, 15, 30, tzinfo=UTC)
+
+    item = only(build(entry(), detected_at=detected, change=lambda _: change))
+
+    dumped = item.model_dump(mode="json", exclude_unset=True)
+    assert dumped["detected_at"] == "2026-10-28T15:30:00Z"
+    assert dumped["change"] == {"kind": "added", "fields": []}

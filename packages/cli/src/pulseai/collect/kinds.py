@@ -98,15 +98,16 @@ def _windowed(
 
 
 def _result(url: str, fetched: FetchResult, built: BuildResult) -> KindResult:
-    """The source's result, or a failure when nothing was kept and some entries were invalid.
+    """The source's result, or a failure when every entry it returned was invalid (design §12).
 
     Each kind goes through this, so a source whose entries are all malformed fails the same way
-    whatever its kind.
+    whatever its kind. `dropped_window` counts only valid entries, so any of them means the
+    source did return something usable and an empty result is a success.
     """
-    if not built.items and built.dropped_invalid:
+    if not built.items and built.dropped_invalid and not built.dropped_window:
         msg = (
-            f"{built.dropped_invalid} entries had no usable title or https URL, "
-            "and no item was kept"
+            f"all {built.dropped_invalid} entries had no usable title or https URL, "
+            "so no item was kept"
         )
         raise FetchError("invalid_items", msg)
     return KindResult(

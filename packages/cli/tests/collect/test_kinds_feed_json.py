@@ -271,7 +271,7 @@ async def test_source_with_only_invalid_items_fails_invalid_items() -> None:
         await collect(JSON_COLLECTOR, serving(JSON_URL, document), robots=False)
 
     assert caught.value.reason == "invalid_items"
-    assert caught.value.detail.startswith("2 entries")
+    assert caught.value.detail.startswith("all 2 entries")
 
 
 async def test_feed_with_only_invalid_items_fails_invalid_items() -> None:
@@ -298,6 +298,35 @@ async def test_source_with_some_invalid_items_succeeds() -> None:
 
     assert [item.title for item in result.items] == ["Good"]
     assert (result.dropped_invalid, result.dropped_window) == (3, 0)
+
+
+async def test_a_valid_entry_outside_the_window_and_an_invalid_one_is_an_empty_success() -> None:
+    """Design §12: a source fails only when every entry is malformed; this one has a good entry."""
+    document = {
+        "items": [
+            {"title": "Old", "url": "https://example.com/old", "date": "2020-01-01"},
+            {"title": "No url", "date": "2026-10-28"},
+        ]
+    }
+
+    result = await collect(JSON_COLLECTOR, serving(JSON_URL, document), robots=False)
+
+    assert result.items == []
+    assert (result.dropped_window, result.dropped_invalid) == (1, 1)
+
+
+async def test_the_same_holds_for_a_feed() -> None:
+    body = rss(
+        "<title>Old</title><link>https://example.com/old</link>"
+        "<pubDate>Wed, 01 Jan 2020 10:00:00 GMT</pubDate>",
+        f"<title>No link</title>{FRESH}",
+    )
+    collector = {"kind": "rss", "url": FEED_URL}
+
+    result = await collect(collector, serving(FEED_URL, body), robots=False)
+
+    assert result.items == []
+    assert (result.dropped_window, result.dropped_invalid) == (1, 1)
 
 
 async def test_a_source_with_nothing_in_the_window_is_not_an_error() -> None:
