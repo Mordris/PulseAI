@@ -43,12 +43,12 @@ security:
   dependabot_alerts: true
 ruleset:
   name: main
-  required_approvals: 0
+  required_approvals: 1
   linear_history: true
   dismiss_stale_reviews_on_push: true
   required_review_thread_resolution: true
   require_code_owner_review: false
-  require_last_push_approval: false
+  require_last_push_approval: true
   strict_required_status_checks_policy: true
   # Job names exactly as GitHub reports them (confirmed from the first CI run on PR #1).
   required_checks:
