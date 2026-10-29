@@ -11,6 +11,7 @@ repos:
       - id: trailing-whitespace
       - id: check-merge-conflict
       - id: check-added-large-files
+        exclude: ^packages/cli/tests/collect/cassettes/  # recorded responses; one feed is ~1 MB
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.3
     hooks:

@@ -47,7 +47,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["packages/cli/tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --block-network"
 markers = ["slow: builds artifacts or spawns subprocesses"]
 
 [dependency-groups]
@@ -59,6 +59,7 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
+    "pytest-recording>=0.14.0",
     "respx>=0.23.1",
     "ruff>=0.17.3",
     "types-jmespath>=1.1.0.20260724",

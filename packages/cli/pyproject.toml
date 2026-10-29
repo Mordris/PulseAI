@@ -11,6 +11,7 @@ dependencies = [
     "anyio>=4.15.1",
     "coloraide>=8.13.1",
     "courlan>=1.4.0",
+    "feedparser>=6.0.14",
     "hishel[httpx]>=1.4.0",
     "httpx>=0.28.1",
     "jmespath>=1.1.0",
