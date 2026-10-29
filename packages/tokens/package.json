@@ -1,6 +1,6 @@
 {
   "name": "@pulseai/tokens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "PulseAI design tokens: DTCG layers resolved with Style Dictionary",
   "license": "MIT",
