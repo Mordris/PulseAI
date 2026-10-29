@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -129,4 +130,79 @@ def test_feed_items_default_and_override(tmp_path: Path) -> None:
 def test_feed_items_must_be_positive(tmp_path: Path) -> None:
     (tmp_path / "pulse.config.yaml").write_text("site:\n  feed_items: 0\n", encoding="utf-8")
     with pytest.raises(ConfigError, match=r"feed_items.*less than the minimum"):
+        load_config(tmp_path)
+
+
+def test_collect_defaults_load() -> None:
+    cfg = load_config(None)
+    assert cfg.collect.respect_robots is True
+    assert cfg.collect.concurrency >= 1
+    assert "{version}" in cfg.collect.user_agent
+
+
+def test_collect_defaults_are_the_documented_values() -> None:
+    assert load_config().collect.model_dump() == {
+        "user_agent": "PulseAI/{version} (+https://github.com/Mordris/PulseAI)",
+        "concurrency": 8,
+        "per_host_per_minute": 30,
+        "timeout_seconds": 20,
+        "retries": 3,
+        "max_wait_seconds": 120,
+        "max_redirects": 5,
+        "max_response_bytes": 10485760,
+        "summary_max_chars": 600,
+        "title_max_chars": 300,
+        "respect_robots": True,
+        "cache_dir": ".pulse/http-cache",
+        "snapshot_keep": 14,
+        "meta_fetch_limit": 20,
+        "max_child_sitemaps": 50,
+    }
+
+
+def test_collect_instance_and_env_overrides(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "pulse.config.yaml").write_text(
+        "collect:\n  concurrency: 2\n  respect_robots: false\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("PULSE__COLLECT__PER_HOST_PER_MINUTE", "5")
+    cfg = load_config(tmp_path)
+    assert cfg.collect.concurrency == 2
+    assert cfg.collect.respect_robots is False
+    assert cfg.collect.per_host_per_minute == 5
+    assert cfg.collect.retries == 3
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("user_agent", "PulseAI"),
+        ("user_agent", "PulseAI/{version}\r\nX-Injected: 1"),
+        ("concurrency", 0),
+        ("per_host_per_minute", 0),
+        ("timeout_seconds", 0),
+        ("timeout_seconds", 301),
+        ("retries", -1),
+        ("retries", 11),
+        ("max_wait_seconds", -1),
+        ("max_redirects", -1),
+        ("max_response_bytes", 0),
+        ("summary_max_chars", 0),
+        ("title_max_chars", 0),
+        ("respect_robots", "sometimes"),
+        ("cache_dir", ""),
+        ("cache_dir", "/var/cache/pulse"),
+        ("snapshot_keep", 1),
+        ("meta_fetch_limit", 0),
+        ("max_child_sitemaps", 0),
+        ("surprise", 1),
+    ],
+)
+def test_invalid_collect_values_are_rejected(tmp_path: Path, key: str, value: object) -> None:
+    # JSON is valid YAML, so json.dumps writes any scalar the way YAML will read it back.
+    (tmp_path / "pulse.config.yaml").write_text(
+        f"collect:\n  {key}: {json.dumps(value)}\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigError, match=key):
         load_config(tmp_path)

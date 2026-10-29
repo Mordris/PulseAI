@@ -16,6 +16,7 @@
     "url": { "type": "string", "format": "uri", "pattern": "^https://" },
     "urlTemplate": { "type": "string", "pattern": "^https://\\S+$" },
     "jmespath": { "type": "string", "minLength": 1 },
+    "pathGlob": { "type": "string", "pattern": "^/\\S*$" },
     "envName": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
     "tier": { "enum": ["T1", "T1-data", "T2", "T3"] },
     "trust": { "type": "integer", "minimum": 1, "maximum": 5 },
@@ -46,6 +47,10 @@
         "trust": { "$ref": "#/$defs/trust" },
         "enabled": { "type": "boolean" },
         "notes": { "type": "string" },
+        "changelog": {
+          "type": "boolean",
+          "description": "Keep undated items (the source is a changelog or release list). Default false."
+        },
         "via": { "const": "collector" },
         "collector": { "$ref": "#/$defs/collector" }
       }
@@ -103,6 +108,12 @@
             "domains": {
               "type": "array",
               "items": { "type": "string", "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$" }
+            },
+            "pages": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/url" },
+              "description": "Pages an agent should fetch and read directly, for labs with neither a feed nor a sitemap."
             }
           }
         }
@@ -112,7 +123,8 @@
       "oneOf": [
         { "$ref": "#/$defs/feedCollector" },
         { "$ref": "#/$defs/jsonCollector" },
-        { "$ref": "#/$defs/snapshotCollector" }
+        { "$ref": "#/$defs/snapshotCollector" },
+        { "$ref": "#/$defs/sitemapCollector" }
       ]
     },
     "http": {
@@ -123,6 +135,10 @@
         "auth_header": { "type": "string", "minLength": 1 },
         "auth_env": { "$ref": "#/$defs/envName" },
         "auth_prefix": { "type": "string" },
+        "auth_optional": {
+          "type": "boolean",
+          "description": "Send the request without auth when auth_env is unset, instead of failing. Default false."
+        },
         "timeout_seconds": { "type": "number", "exclusiveMinimum": 0, "maximum": 300 },
         "rate_limit_per_minute": { "type": "integer", "minimum": 1 },
         "retries": { "type": "integer", "minimum": 0, "maximum": 10 }
@@ -139,7 +155,13 @@
         "url": { "$ref": "#/$defs/jmespath" },
         "published": { "$ref": "#/$defs/jmespath" },
         "summary": { "$ref": "#/$defs/jmespath" },
-        "signal": { "$ref": "#/$defs/jmespath" }
+        "signal": { "$ref": "#/$defs/jmespath" },
+        "extra": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": { "$ref": "#/$defs/jmespath" },
+          "description": "More values to keep on each item, as output key to JMESPath."
+        }
       }
     },
     "feedCollector": {
@@ -150,6 +172,7 @@
       "properties": {
         "kind": { "enum": ["rss", "atom"] },
         "url": { "$ref": "#/$defs/urlTemplate" },
+        "fields": { "$ref": "#/$defs/fieldMap" },
         "http": { "$ref": "#/$defs/http" }
       }
     },
@@ -178,6 +201,34 @@
         "key": { "$ref": "#/$defs/jmespath" },
         "track": { "type": "array", "items": { "$ref": "#/$defs/jmespath" } },
         "fields": { "$ref": "#/$defs/fieldMap" },
+        "http": { "$ref": "#/$defs/http" }
+      }
+    },
+    "sitemapCollector": {
+      "title": "SitemapCollector",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url", "include"],
+      "properties": {
+        "kind": { "const": "sitemap" },
+        "url": { "$ref": "#/$defs/urlTemplate" },
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/pathGlob" },
+          "description": "URL path globs to keep, each starting with /."
+        },
+        "exclude": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/pathGlob" },
+          "description": "URL path globs to drop from the included set."
+        },
+        "meta_fetch_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Most pages read per run; defaults to collect.meta_fetch_limit."
+        },
         "http": { "$ref": "#/$defs/http" }
       }
     }

@@ -1,5 +1,7 @@
 /* Generated from schema/ by packages/contracts/scripts/generate-types.ts. Do not edit. */
 
+export type * as CollectRunSchema from "./collect-run.ts";
+export type * as CollectedSchema from "./collected.ts";
 export type * as ConfigSchema from "./config.ts";
 export type * as EngineSchema from "./engine.ts";
 export type * as ItemTypesSchema from "./item-types.ts";

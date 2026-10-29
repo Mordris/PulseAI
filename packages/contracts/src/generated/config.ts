@@ -23,6 +23,7 @@ export interface PulseConfig {
   deep_dive: DeepDiveConfig;
   confidence: ConfidenceConfig;
   window: WindowConfig;
+  collect: CollectConfig;
   models_by_role: {
     [k: string]: string | undefined;
   };
@@ -74,6 +75,71 @@ export interface ConfidenceConfig {
 }
 export interface WindowConfig {
   max_hours: number;
+}
+/**
+ * Defaults for pulse collect. A source's own http block overrides the HTTP settings.
+ */
+export interface CollectConfig {
+  /**
+   * User-Agent template in printable ASCII; {version} becomes the engine version.
+   */
+  user_agent: string;
+  /**
+   * Most sources fetched at the same time.
+   */
+  concurrency: number;
+  /**
+   * Requests per minute to one host, unless a source sets a lower rate_limit_per_minute.
+   */
+  per_host_per_minute: number;
+  /**
+   * Request timeout.
+   */
+  timeout_seconds: number;
+  /**
+   * Retries after a network error, 429 or 5xx.
+   */
+  retries: number;
+  /**
+   * Longest Retry-After or rate-limit reset worth waiting for; a longer wait fails the source.
+   */
+  max_wait_seconds: number;
+  /**
+   * Most redirects followed per request.
+   */
+  max_redirects: number;
+  /**
+   * Largest response body read; a bigger one fails the source.
+   */
+  max_response_bytes: number;
+  /**
+   * Item summaries are cut to this many characters.
+   */
+  summary_max_chars: number;
+  /**
+   * Item titles are cut to this many characters.
+   */
+  title_max_chars: number;
+  /**
+   * Check robots.txt before fetching a page.
+   */
+  respect_robots: boolean;
+  /**
+   * HTTP cache directory, relative to the instance.
+   */
+  cache_dir: string;
+  /**
+   * Dated snapshots kept per source. Two are needed so that re-running a date still has the earlier snapshot to compare with.
+   */
+  snapshot_keep: number;
+  /**
+   * Default for the most pages a sitemap source reads per run.
+   */
+  meta_fetch_limit: number;
+  /**
+   * Most child sitemaps followed from a sitemap index.
+   */
+  max_child_sitemaps: number;
 }
 export interface LimitsConfig {
   run_minutes: number;

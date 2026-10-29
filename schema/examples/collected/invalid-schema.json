@@ -1,0 +1,72 @@
+[
+  {
+    "name": "wrong schema version",
+    "patch": [{ "op": "replace", "path": "/schema_version", "value": 2 }]
+  },
+  {
+    "name": "unknown top-level key",
+    "patch": [{ "op": "add", "path": "/surprise", "value": 1 }]
+  },
+  {
+    "name": "window without until",
+    "patch": [{ "op": "remove", "path": "/window/until" }]
+  },
+  {
+    "name": "timestamp with lowercase t and z",
+    "patch": [{ "op": "replace", "path": "/collected_at", "value": "2026-10-29t17:00:03z" }]
+  },
+  {
+    "name": "source kind is not a collector kind",
+    "patch": [{ "op": "replace", "path": "/source/kind", "value": "html" }]
+  },
+  {
+    "name": "dated item without a timestamp",
+    "patch": [{ "op": "replace", "path": "/items/0/published", "value": null }]
+  },
+  {
+    "name": "dated item flagged undated",
+    "patch": [{ "op": "replace", "path": "/items/0/undated", "value": true }]
+  },
+  {
+    "name": "undated item with a timestamp",
+    "patch": [{ "op": "replace", "path": "/items/1/published", "value": "2026-10-28T09:00:00Z" }]
+  },
+  {
+    "name": "undated flag missing",
+    "patch": [{ "op": "remove", "path": "/items/0/undated" }]
+  },
+  {
+    "name": "item id without a source prefix",
+    "patch": [{ "op": "replace", "path": "/items/0/id", "value": "3f2a9c1e0b4d5a67" }]
+  },
+  {
+    "name": "item id with uppercase",
+    "patch": [{ "op": "replace", "path": "/items/0/id", "value": "Example-Lab:3f2a9c1e0b4d5a67" }]
+  },
+  {
+    "name": "item url is not https",
+    "patch": [
+      { "op": "replace", "path": "/items/0/url", "value": "http://example.com/news/launch" }
+    ]
+  },
+  {
+    "name": "unknown item key",
+    "patch": [{ "op": "add", "path": "/items/0/surprise", "value": 1 }]
+  },
+  {
+    "name": "extra value is not a scalar",
+    "patch": [{ "op": "add", "path": "/items/1/extra/nested", "value": { "a": 1 } }]
+  },
+  {
+    "name": "extra key is not an id",
+    "patch": [{ "op": "add", "path": "/items/1/extra/Bad Key", "value": 1 }]
+  },
+  {
+    "name": "unknown change kind",
+    "patch": [{ "op": "replace", "path": "/items/1/change/kind", "value": "renamed" }]
+  },
+  {
+    "name": "field change without a new value",
+    "patch": [{ "op": "remove", "path": "/items/1/change/fields/0/new" }]
+  }
+]

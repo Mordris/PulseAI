@@ -10,10 +10,11 @@ export type Tier = "T1" | "T1-data" | "T2" | "T3";
  */
 export type SectionIds = [Id, ...Id[]];
 export type Trust = number;
-export type Collector = FeedCollector | JsonCollector | SnapshotCollector;
+export type Collector = FeedCollector | JsonCollector | SnapshotCollector | SitemapCollector;
 export type UrlTemplate = string;
-export type EnvName = string;
 export type Jmespath = string;
+export type EnvName = string;
+export type PathGlob = string;
 
 /**
  * Research sources (sources/registry/*.yaml). Each source is read by the generic collector, an MCP tool, or web search.
@@ -31,18 +32,41 @@ export interface CollectorSource {
   trust: Trust;
   enabled: boolean;
   notes?: string;
+  /**
+   * Keep undated items (the source is a changelog or release list). Default false.
+   */
+  changelog?: boolean;
   via: "collector";
   collector: Collector;
 }
 export interface FeedCollector {
   kind: "rss" | "atom";
   url: UrlTemplate;
+  fields?: FieldMap;
   http?: HttpOptions;
+}
+export interface FieldMap {
+  id?: Jmespath;
+  title: Jmespath;
+  url: Jmespath;
+  published?: Jmespath;
+  summary?: Jmespath;
+  signal?: Jmespath;
+  /**
+   * More values to keep on each item, as output key to JMESPath.
+   */
+  extra?: {
+    [k: string]: Jmespath | undefined;
+  };
 }
 export interface HttpOptions {
   auth_header?: string;
   auth_env?: EnvName;
   auth_prefix?: string;
+  /**
+   * Send the request without auth when auth_env is unset, instead of failing. Default false.
+   */
+  auth_optional?: boolean;
   timeout_seconds?: number;
   rate_limit_per_minute?: number;
   retries?: number;
@@ -54,14 +78,6 @@ export interface JsonCollector {
   fields: FieldMap;
   http?: HttpOptions;
 }
-export interface FieldMap {
-  id?: Jmespath;
-  title: Jmespath;
-  url: Jmespath;
-  published?: Jmespath;
-  summary?: Jmespath;
-  signal?: Jmespath;
-}
 export interface SnapshotCollector {
   kind: "json-snapshot-diff";
   url: UrlTemplate;
@@ -69,6 +85,27 @@ export interface SnapshotCollector {
   key: Jmespath;
   track?: Jmespath[];
   fields: FieldMap;
+  http?: HttpOptions;
+}
+export interface SitemapCollector {
+  kind: "sitemap";
+  url: UrlTemplate;
+  /**
+   * URL path globs to keep, each starting with /.
+   *
+   * @minItems 1
+   */
+  include: [PathGlob, ...PathGlob[]];
+  /**
+   * URL path globs to drop from the included set.
+   *
+   * @minItems 1
+   */
+  exclude?: [PathGlob, ...PathGlob[]];
+  /**
+   * Most pages read per run; defaults to collect.meta_fetch_limit.
+   */
+  meta_fetch_limit?: number;
   http?: HttpOptions;
 }
 export interface McpSource {
@@ -106,4 +143,8 @@ export interface SearchSpec {
    */
   queries: [Text, ...Text[]];
   domains?: string[];
+  /**
+   * Pages an agent should fetch and read directly, for labs with neither a feed nor a sitemap.
+   */
+  pages?: Url[];
 }

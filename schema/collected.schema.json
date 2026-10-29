@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:collected",
+  "title": "CollectedSource",
+  "description": "What pulse collect read from one source (runs/<date>/collected/<source-id>.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "window", "collected_at", "items"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "source": { "$ref": "#/$defs/sourceInfo" },
+    "window": { "$ref": "#/$defs/timeWindow" },
+    "collected_at": { "$ref": "#/$defs/timestamp" },
+    "items": { "type": "array", "items": { "$ref": "#/$defs/collectedItem" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "sectionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "httpsUrl": { "type": "string", "pattern": "^https://\\S+$" },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+      "description": "RFC 3339 timestamp. The pattern requires an uppercase T and Z, which is all Zod accepts, so Python and TypeScript agree."
+    },
+    "itemId": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "<source-id>:<slug or hash of the canonical URL>, stable across runs."
+    },
+    "scalar": { "type": ["string", "number", "boolean", "null"] },
+    "sourceInfo": {
+      "title": "SourceInfo",
+      "description": "The registry entry this file was collected from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "tier", "trust", "sections", "kind", "url"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "tier": { "enum": ["T1", "T1-data", "T2", "T3"] },
+        "trust": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "kind": { "enum": ["rss", "atom", "json", "json-snapshot-diff", "sitemap"] },
+        "url": {
+          "$ref": "#/$defs/httpsUrl",
+          "description": "The URL that was fetched, with its template variables expanded."
+        }
+      }
+    },
+    "timeWindow": {
+      "title": "TimeWindow",
+      "description": "The collection window: items published in [since, until) were kept.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["since", "until"],
+      "properties": {
+        "since": { "$ref": "#/$defs/timestamp" },
+        "until": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "collectedItem": {
+      "description": "One item. A dated item carries its publication time; an undated one (a changelog entry, a snapshot change) has undated true and published null.",
+      "oneOf": [{ "$ref": "#/$defs/datedItem" }, { "$ref": "#/$defs/undatedItem" }]
+    },
+    "datedItem": {
+      "title": "DatedItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_id",
+        "title",
+        "url",
+        "canonical_url",
+        "published",
+        "undated",
+        "summary",
+        "signal",
+        "extra"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/itemId" },
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "canonical_url": { "$ref": "#/$defs/httpsUrl" },
+        "published": { "$ref": "#/$defs/timestamp" },
+        "undated": { "const": false },
+        "summary": { "type": ["string", "null"] },
+        "signal": { "type": ["number", "null"] },
+        "extra": { "$ref": "#/$defs/extra" },
+        "detected_at": { "$ref": "#/$defs/timestamp" },
+        "change": { "$ref": "#/$defs/itemChange" }
+      }
+    },
+    "undatedItem": {
+      "title": "UndatedItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_id",
+        "title",
+        "url",
+        "canonical_url",
+        "published",
+        "undated",
+        "summary",
+        "signal",
+        "extra"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/itemId" },
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "canonical_url": { "$ref": "#/$defs/httpsUrl" },
+        "published": { "type": "null" },
+        "undated": { "const": true },
+        "summary": { "type": ["string", "null"] },
+        "signal": { "type": ["number", "null"] },
+        "extra": { "$ref": "#/$defs/extra" },
+        "detected_at": { "$ref": "#/$defs/timestamp" },
+        "change": { "$ref": "#/$defs/itemChange" }
+      }
+    },
+    "extra": {
+      "description": "Values the registry's fields.extra map picked from the entry, by output key.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/scalar" }
+    },
+    "itemChange": {
+      "title": "ItemChange",
+      "description": "What changed since the earlier snapshot (json-snapshot-diff and sitemap sources).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "fields"],
+      "properties": {
+        "kind": { "enum": ["added", "removed", "changed", "updated"] },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/fieldChange" } }
+      }
+    },
+    "fieldChange": {
+      "title": "FieldChange",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "old", "new"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "old": {},
+        "new": {}
+      }
+    }
+  }
+}

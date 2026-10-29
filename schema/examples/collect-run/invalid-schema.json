@@ -1,0 +1,64 @@
+[
+  {
+    "name": "wrong schema version",
+    "patch": [{ "op": "replace", "path": "/schema_version", "value": 2 }]
+  },
+  {
+    "name": "unknown top-level key",
+    "patch": [{ "op": "add", "path": "/surprise", "value": 1 }]
+  },
+  {
+    "name": "timestamp without T and Z",
+    "patch": [{ "op": "replace", "path": "/updated_at", "value": "2026-10-29 17:00:09" }]
+  },
+  {
+    "name": "offline flag is not a boolean",
+    "patch": [{ "op": "replace", "path": "/options/offline", "value": "yes" }]
+  },
+  {
+    "name": "failed row without a reason",
+    "patch": [{ "op": "remove", "path": "/sources/3/reason" }]
+  },
+  {
+    "name": "skipped row without a reason",
+    "patch": [{ "op": "remove", "path": "/sources/4/reason" }]
+  },
+  {
+    "name": "ok row with a reason",
+    "patch": [{ "op": "add", "path": "/sources/0/reason", "value": "timeout" }]
+  },
+  {
+    "name": "reason outside the list",
+    "patch": [{ "op": "replace", "path": "/sources/3/reason", "value": "http_404" }]
+  },
+  {
+    "name": "unknown status",
+    "patch": [{ "op": "replace", "path": "/sources/0/status", "value": "partial" }]
+  },
+  {
+    "name": "http status out of range",
+    "patch": [{ "op": "replace", "path": "/sources/0/http_status", "value": 99 }]
+  },
+  {
+    "name": "redirect target is a URL, not a host",
+    "patch": [
+      { "op": "replace", "path": "/sources/2/redirected_to", "value": "https://cdn.example.com/" }
+    ]
+  },
+  {
+    "name": "negative item count",
+    "patch": [{ "op": "replace", "path": "/sources/0/items", "value": -1 }]
+  },
+  {
+    "name": "row without a duration",
+    "patch": [{ "op": "remove", "path": "/sources/0/duration_ms" }]
+  },
+  {
+    "name": "source kind is not a collector kind",
+    "patch": [{ "op": "replace", "path": "/sources/0/kind", "value": "html" }]
+  },
+  {
+    "name": "not-collected row via the collector",
+    "patch": [{ "op": "replace", "path": "/not_collected/0/via", "value": "collector" }]
+  }
+]

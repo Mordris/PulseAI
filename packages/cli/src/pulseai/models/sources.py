@@ -22,6 +22,9 @@ type UrlTemplate = Annotated[str, Field(pattern="^https://\\S+$")]
 type Jmespath = Annotated[str, Field(min_length=1)]
 
 
+type PathGlob = Annotated[str, Field(pattern="^/\\S*$")]
+
+
 type EnvName = Annotated[str, Field(pattern="^[A-Z][A-Z0-9_]*$")]
 
 
@@ -68,6 +71,12 @@ class SearchSpec(BaseModel):
     )
     queries: Annotated[list[Text], Field(min_length=1)]
     domains: list[Domain] | None = None
+    pages: Annotated[
+        list[Url] | None,
+        Field(
+            description="Pages an agent should fetch and read directly, for labs with neither a feed nor a sitemap."
+        ),
+    ] = None
 
 
 class SearchSource(BaseModel):
@@ -93,6 +102,12 @@ class HttpOptions(BaseModel):
     auth_header: Annotated[str | None, Field(min_length=1)] = None
     auth_env: EnvName | None = None
     auth_prefix: str | None = None
+    auth_optional: Annotated[
+        bool | None,
+        Field(
+            description="Send the request without auth when auth_env is unset, instead of failing. Default false."
+        ),
+    ] = None
     timeout_seconds: Annotated[float | None, Field(gt=0.0, le=300.0)] = None
     rate_limit_per_minute: Annotated[int | None, Field(ge=1)] = None
     retries: Annotated[int | None, Field(ge=0, le=10)] = None
@@ -108,6 +123,12 @@ class FieldMap(BaseModel):
     published: Jmespath | None = None
     summary: Jmespath | None = None
     signal: Jmespath | None = None
+    extra: Annotated[
+        dict[Id, Jmespath] | None,
+        Field(
+            description="More values to keep on each item, as output key to JMESPath."
+        ),
+    ] = None
 
 
 class FeedCollector(BaseModel):
@@ -116,6 +137,7 @@ class FeedCollector(BaseModel):
     )
     kind: Literal["rss", "atom"]
     url: UrlTemplate
+    fields: FieldMap | None = None
     http: HttpOptions | None = None
 
 
@@ -143,7 +165,35 @@ class SnapshotCollector(BaseModel):
     http: HttpOptions | None = None
 
 
-type Collector = FeedCollector | JsonCollector | SnapshotCollector
+class SitemapCollector(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    kind: Literal["sitemap"]
+    url: UrlTemplate
+    include: Annotated[
+        list[PathGlob],
+        Field(
+            description="URL path globs to keep, each starting with /.", min_length=1
+        ),
+    ]
+    exclude: Annotated[
+        list[PathGlob] | None,
+        Field(
+            description="URL path globs to drop from the included set.", min_length=1
+        ),
+    ] = None
+    meta_fetch_limit: Annotated[
+        int | None,
+        Field(
+            description="Most pages read per run; defaults to collect.meta_fetch_limit.",
+            ge=1,
+        ),
+    ] = None
+    http: HttpOptions | None = None
+
+
+type Collector = FeedCollector | JsonCollector | SnapshotCollector | SitemapCollector
 
 
 class CollectorSource(BaseModel):
@@ -158,6 +208,12 @@ class CollectorSource(BaseModel):
     trust: Trust
     enabled: bool
     notes: str | None = None
+    changelog: Annotated[
+        bool | None,
+        Field(
+            description="Keep undated items (the source is a changelog or release list). Default false."
+        ),
+    ] = None
     via: Literal["collector"]
     collector: Collector
 

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "source": {
+    "id": "example-lab",
+    "name": "Example Lab",
+    "tier": "T1",
+    "trust": 4,
+    "sections": ["models"],
+    "kind": "rss",
+    "url": "https://example.com/feed.xml"
+  },
+  "window": {
+    "since": "2026-10-26T17:00:00Z",
+    "until": "2026-10-29T17:00:00Z"
+  },
+  "collected_at": "2026-10-29T17:00:03Z",
+  "items": [
+    {
+      "id": "example-lab:3f2a9c1e0b4d5a67",
+      "source_id": "example-lab",
+      "title": "Example Lab launches a new model",
+      "url": "https://example.com/news/launch?utm_source=feed",
+      "canonical_url": "https://example.com/news/launch",
+      "published": "2026-10-28T09:00:00Z",
+      "undated": false,
+      "summary": "A short plain-text summary of the announcement.",
+      "signal": null,
+      "extra": {}
+    },
+    {
+      "id": "example-lab:release-1-2-0",
+      "source_id": "example-lab",
+      "title": "v1.2.0",
+      "url": "https://example.com/releases/v1.2.0",
+      "canonical_url": "https://example.com/releases/v1.2.0",
+      "published": null,
+      "undated": true,
+      "summary": null,
+      "signal": 12.5,
+      "extra": { "prerelease": false },
+      "detected_at": "2026-10-29T17:00:01Z",
+      "change": {
+        "kind": "changed",
+        "fields": [{ "path": "context_length", "old": 200000, "new": 1000000 }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulseai:schema:collect-run",
+  "title": "CollectRun",
+  "description": "The outcome of one pulse collect run, one row per selected source (runs/<date>/collected/collect.json). A partial re-run keeps the other sources' rows and refreshes updated_at.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "engine_version",
+    "run_date",
+    "started_at",
+    "updated_at",
+    "window",
+    "options",
+    "sources",
+    "not_collected"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "engine_version": { "type": "string", "minLength": 1 },
+    "run_date": { "type": "string", "format": "date" },
+    "started_at": { "$ref": "#/$defs/timestamp" },
+    "updated_at": { "$ref": "#/$defs/timestamp" },
+    "window": { "$ref": "#/$defs/runWindow" },
+    "options": { "$ref": "#/$defs/runOptions" },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/sourceOutcome" } },
+    "not_collected": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/notCollected" },
+      "description": "Enabled sources that pulse collect does not read (via mcp or search), listed so the researchers handle them."
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$" },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "sectionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+      "description": "RFC 3339 timestamp. The pattern requires an uppercase T and Z, which is all Zod accepts, so Python and TypeScript agree."
+    },
+    "collectorKind": { "enum": ["rss", "atom", "json", "json-snapshot-diff", "sitemap"] },
+    "count": { "type": "integer", "minimum": 0 },
+    "runWindow": {
+      "title": "RunWindow",
+      "description": "The collection window: items published in [since, until) were kept.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["since", "until"],
+      "properties": {
+        "since": { "$ref": "#/$defs/timestamp" },
+        "until": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "runOptions": {
+      "title": "RunOptions",
+      "description": "The command-line choices for this run. Empty lists mean no filter.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sections", "sources", "offline"],
+      "properties": {
+        "sections": { "$ref": "#/$defs/ids" },
+        "sources": { "$ref": "#/$defs/ids" },
+        "offline": { "type": "boolean" }
+      }
+    },
+    "sourceOutcome": {
+      "description": "One source's result. ok and empty rows have no reason; failed and skipped rows must give one. items counts the items written to the source's file, and unread the sitemap candidates left unread past meta_fetch_limit.",
+      "oneOf": [{ "$ref": "#/$defs/succeededOutcome" }, { "$ref": "#/$defs/failedOutcome" }]
+    },
+    "succeededOutcome": {
+      "title": "SucceededOutcome",
+      "description": "A source that was read: ok, or empty when nothing was left after filtering.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "sections",
+        "kind",
+        "http_status",
+        "items",
+        "items_dropped_window",
+        "items_dropped_invalid",
+        "duration_ms",
+        "from_cache",
+        "redirected_to",
+        "note",
+        "unread"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["ok", "empty"] },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "kind": { "$ref": "#/$defs/collectorKind" },
+        "http_status": { "$ref": "#/$defs/httpStatus" },
+        "items": { "$ref": "#/$defs/count" },
+        "items_dropped_window": { "$ref": "#/$defs/count" },
+        "items_dropped_invalid": { "$ref": "#/$defs/count" },
+        "duration_ms": { "$ref": "#/$defs/count" },
+        "from_cache": { "type": "boolean" },
+        "redirected_to": { "$ref": "#/$defs/redirectHost" },
+        "note": { "type": ["string", "null"] },
+        "unread": { "$ref": "#/$defs/count" }
+      }
+    },
+    "failedOutcome": {
+      "title": "FailedOutcome",
+      "description": "A source with no usable result: failed while reading, or skipped before any request.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "reason",
+        "sections",
+        "kind",
+        "http_status",
+        "items",
+        "items_dropped_window",
+        "items_dropped_invalid",
+        "duration_ms",
+        "from_cache",
+        "redirected_to",
+        "note",
+        "unread"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["failed", "skipped"] },
+        "reason": { "$ref": "#/$defs/reason" },
+        "sections": { "$ref": "#/$defs/sectionIds" },
+        "kind": { "$ref": "#/$defs/collectorKind" },
+        "http_status": { "$ref": "#/$defs/httpStatus" },
+        "items": { "$ref": "#/$defs/count" },
+        "items_dropped_window": { "$ref": "#/$defs/count" },
+        "items_dropped_invalid": { "$ref": "#/$defs/count" },
+        "duration_ms": { "$ref": "#/$defs/count" },
+        "from_cache": { "type": "boolean" },
+        "redirected_to": { "$ref": "#/$defs/redirectHost" },
+        "note": { "type": ["string", "null"] },
+        "unread": { "$ref": "#/$defs/count" }
+      }
+    },
+    "httpStatus": {
+      "type": ["integer", "null"],
+      "minimum": 100,
+      "maximum": 599,
+      "description": "The final response status, or null when no response was received."
+    },
+    "redirectHost": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9.-]+(?::\\d{1,5})?$",
+      "description": "The host a redirect ended on when it differs from the requested one, otherwise null."
+    },
+    "reason": {
+      "enum": [
+        "http_error",
+        "timeout",
+        "network_error",
+        "rate_limited",
+        "robots_disallowed",
+        "missing_auth_env",
+        "parse_error",
+        "invalid_items",
+        "too_large",
+        "offline_miss"
+      ]
+    },
+    "notCollected": {
+      "title": "NotCollected",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "via", "sections"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "via": { "enum": ["mcp", "search"] },
+        "sections": { "$ref": "#/$defs/sectionIds" }
+      }
+    }
+  }
+}

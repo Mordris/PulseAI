@@ -57,6 +57,91 @@ class WindowConfig(BaseModel):
     max_hours: Annotated[int, Field(ge=24, le=336)]
 
 
+class CollectConfig(BaseModel):
+    """
+    Defaults for pulse collect. A source's own http block overrides the HTTP settings.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    user_agent: Annotated[
+        str,
+        Field(
+            description="User-Agent template in printable ASCII; {version} becomes the engine version.",
+            pattern="^[\\x20-\\x7e]*\\{version\\}[\\x20-\\x7e]*$",
+        ),
+    ]
+    concurrency: Annotated[
+        int, Field(description="Most sources fetched at the same time.", ge=1)
+    ]
+    per_host_per_minute: Annotated[
+        int,
+        Field(
+            description="Requests per minute to one host, unless a source sets a lower rate_limit_per_minute.",
+            ge=1,
+        ),
+    ]
+    timeout_seconds: Annotated[
+        float, Field(description="Request timeout.", gt=0.0, le=300.0)
+    ]
+    retries: Annotated[
+        int,
+        Field(description="Retries after a network error, 429 or 5xx.", ge=0, le=10),
+    ]
+    max_wait_seconds: Annotated[
+        int,
+        Field(
+            description="Longest Retry-After or rate-limit reset worth waiting for; a longer wait fails the source.",
+            ge=0,
+        ),
+    ]
+    max_redirects: Annotated[
+        int, Field(description="Most redirects followed per request.", ge=0)
+    ]
+    max_response_bytes: Annotated[
+        int,
+        Field(
+            description="Largest response body read; a bigger one fails the source.",
+            ge=1,
+        ),
+    ]
+    summary_max_chars: Annotated[
+        int, Field(description="Item summaries are cut to this many characters.", ge=1)
+    ]
+    title_max_chars: Annotated[
+        int, Field(description="Item titles are cut to this many characters.", ge=1)
+    ]
+    respect_robots: Annotated[
+        bool, Field(description="Check robots.txt before fetching a page.")
+    ]
+    cache_dir: Annotated[
+        str,
+        Field(
+            description="HTTP cache directory, relative to the instance.",
+            pattern="^[^/]",
+        ),
+    ]
+    snapshot_keep: Annotated[
+        int,
+        Field(
+            description="Dated snapshots kept per source. Two are needed so that re-running a date still has the earlier snapshot to compare with.",
+            ge=2,
+        ),
+    ]
+    meta_fetch_limit: Annotated[
+        int,
+        Field(
+            description="Default for the most pages a sitemap source reads per run.",
+            ge=1,
+        ),
+    ]
+    max_child_sitemaps: Annotated[
+        int,
+        Field(description="Most child sitemaps followed from a sitemap index.", ge=1),
+    ]
+
+
 ModelsByRoleAdditionalProperty = TypeAliasType(
     "ModelsByRoleAdditionalProperty", Annotated[str, Field(min_length=1)]
 )
@@ -236,6 +321,13 @@ class PulseConfig(BaseModel):
     deep_dive: Annotated[DeepDiveConfig, Field(title="DeepDiveConfig")]
     confidence: Annotated[ConfidenceConfig, Field(title="ConfidenceConfig")]
     window: Annotated[WindowConfig, Field(title="WindowConfig")]
+    collect: Annotated[
+        CollectConfig,
+        Field(
+            description="Defaults for pulse collect. A source's own http block overrides the HTTP settings.",
+            title="CollectConfig",
+        ),
+    ]
     models_by_role: Annotated[
         dict[Id, ModelsByRoleAdditionalProperty], Field(min_length=1)
     ]

@@ -79,3 +79,25 @@ describe("report examples", () => {
     expect(getSchema("item-types/paper")).toHaveProperty("title", "PaperDetail");
   });
 });
+
+// The collect output schemas lean on oneOf, which Zod reads differently from JSON Schema
+// validators, so the same examples and patch cases that Python checks run here too.
+describe.each(["collected", "collect-run"])("%s examples", (name) => {
+  const check = validator(name);
+  const minimal = readData(`schema/examples/${name}/valid/minimal.json`);
+
+  it("accepts the minimal example", () => {
+    const result = check.safeParse(minimal);
+    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
+  });
+
+  const cases = readData(`schema/examples/${name}/invalid-schema.json`) as PatchCase[];
+  for (const testCase of cases) {
+    it(`rejects: ${testCase.name}`, () => {
+      const doc = structuredClone(minimal);
+      const errors = applyPatch(doc, testCase.patch).filter((e) => e !== null);
+      expect(errors).toEqual([]);
+      expect(check.safeParse(doc).success).toBe(false);
+    });
+  }
+});
