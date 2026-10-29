@@ -540,6 +540,12 @@ def test_required_auth_env_unset_warns(tmp_path: Path) -> None:
     assert _errors(issues) == []
 
 
+def test_required_auth_env_empty_warns_like_unset(tmp_path: Path) -> None:
+    _write_sources(tmp_path, _authenticated_source())
+    issues = check_registries(tmp_path, environ={"EXAMPLE_KEY": ""})
+    assert any(i.level == "warning" and "EXAMPLE_KEY" in i.message for i in issues)
+
+
 def test_required_auth_env_set_is_silent(tmp_path: Path) -> None:
     _write_sources(tmp_path, _authenticated_source())
     assert _warnings(check_registries(tmp_path, environ={"EXAMPLE_KEY": "secret"})) == []

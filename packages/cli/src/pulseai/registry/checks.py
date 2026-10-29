@@ -243,7 +243,8 @@ def _check_auth_env(sources: list[dict[str, Any]], environ: Mapping[str, str]) -
     for where, _, collector in _enabled_collectors(sources):
         http = collector.get("http", {})
         name = http.get("auth_env")
-        if name is not None and not http.get("auth_optional", False) and name not in environ:
+        # An empty value counts as unset, as it does when the fetcher builds the header.
+        if name is not None and not http.get("auth_optional", False) and not environ.get(name):
             yield _warning(
                 where,
                 f"environment variable {name!r} (http.auth_env) is not set; collection will fail "
