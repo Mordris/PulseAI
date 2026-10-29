@@ -44,10 +44,22 @@
     "patch": [{ "op": "replace", "path": "/items/0/id", "value": "Example-Lab:3f2a9c1e0b4d5a67" }]
   },
   {
-    "name": "item url is not https",
+    "name": "item url has a non-http scheme",
+    "patch": [{ "op": "replace", "path": "/items/0/url", "value": "ftp://example.com/news/launch" }]
+  },
+  {
+    "name": "canonical url is not https",
     "patch": [
-      { "op": "replace", "path": "/items/0/url", "value": "http://example.com/news/launch" }
+      {
+        "op": "replace",
+        "path": "/items/0/canonical_url",
+        "value": "http://example.com/news/launch"
+      }
     ]
+  },
+  {
+    "name": "source url is not https",
+    "patch": [{ "op": "replace", "path": "/source/url", "value": "http://example.com/feed.xml" }]
   },
   {
     "name": "unknown item key",

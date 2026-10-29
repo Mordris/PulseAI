@@ -17,6 +17,7 @@ export type CollectedItem = DatedItem | UndatedItem;
  * <source-id>:<slug or hash of the canonical URL>, stable across runs.
  */
 export type ItemId = string;
+export type HttpUrl = string;
 export type HttpsUrl = string;
 export type Scalar = string | number | boolean | null;
 
@@ -56,7 +57,7 @@ export interface DatedItem {
   id: ItemId;
   source_id: Id;
   title: string;
-  url: HttpsUrl;
+  url: HttpUrl;
   canonical_url: HttpsUrl;
   published: Timestamp;
   undated: false;
@@ -88,7 +89,7 @@ export interface UndatedItem {
   id: ItemId;
   source_id: Id;
   title: string;
-  url: HttpsUrl;
+  url: HttpUrl;
   canonical_url: HttpsUrl;
   published: null;
   undated: true;

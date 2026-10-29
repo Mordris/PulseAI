@@ -21,6 +21,7 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/id" }
     },
+    "httpUrl": { "type": "string", "pattern": "^https?://\\S+$" },
     "httpsUrl": { "type": "string", "pattern": "^https://\\S+$" },
     "timestamp": {
       "type": "string",
@@ -89,7 +90,7 @@
         "id": { "$ref": "#/$defs/itemId" },
         "source_id": { "$ref": "#/$defs/id" },
         "title": { "type": "string", "minLength": 1 },
-        "url": { "$ref": "#/$defs/httpsUrl" },
+        "url": { "$ref": "#/$defs/httpUrl" },
         "canonical_url": { "$ref": "#/$defs/httpsUrl" },
         "published": { "$ref": "#/$defs/timestamp" },
         "undated": { "const": false },
@@ -120,7 +121,7 @@
         "id": { "$ref": "#/$defs/itemId" },
         "source_id": { "$ref": "#/$defs/id" },
         "title": { "type": "string", "minLength": 1 },
-        "url": { "$ref": "#/$defs/httpsUrl" },
+        "url": { "$ref": "#/$defs/httpUrl" },
         "canonical_url": { "$ref": "#/$defs/httpsUrl" },
         "published": { "type": "null" },
         "undated": { "const": true },

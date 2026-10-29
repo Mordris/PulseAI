@@ -31,7 +31,7 @@
       "id": "example-lab:release-1-2-0",
       "source_id": "example-lab",
       "title": "v1.2.0",
-      "url": "https://example.com/releases/v1.2.0",
+      "url": "http://example.com/releases/v1.2.0",
       "canonical_url": "https://example.com/releases/v1.2.0",
       "published": null,
       "undated": true,

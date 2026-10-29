@@ -13,6 +13,9 @@ type Id = Annotated[str, Field(pattern="^[a-z0-9]+(?:[_-][a-z0-9]+)*$")]
 type SectionIds = Annotated[list[Id], Field(min_length=1)]
 
 
+type HttpUrl = Annotated[str, Field(pattern="^https?://\\S+$")]
+
+
 type HttpsUrl = Annotated[str, Field(pattern="^https://\\S+$")]
 
 
@@ -108,7 +111,7 @@ class DatedItem(BaseModel):
     id: ItemId
     source_id: Id
     title: Annotated[str, Field(min_length=1)]
-    url: HttpsUrl
+    url: HttpUrl
     canonical_url: HttpsUrl
     published: Timestamp
     undated: Literal[False]
@@ -126,7 +129,7 @@ class UndatedItem(BaseModel):
     id: ItemId
     source_id: Id
     title: Annotated[str, Field(min_length=1)]
-    url: HttpsUrl
+    url: HttpUrl
     canonical_url: HttpsUrl
     published: None
     undated: Literal[True]

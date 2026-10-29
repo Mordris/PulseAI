@@ -371,8 +371,9 @@ def test_collected_timestamps_accept_fractions_and_offsets() -> None:
 @pytest.mark.parametrize(
     "fields",
     [
-        {"url": "http://example.com/news/launch"},
+        {"url": "ftp://example.com/news/launch"},
         {"canonical_url": "http://example.com/news/launch"},
+        {"canonical_url": "ftp://example.com/news/launch"},
         {"url": "https://example.com/a b"},
         {"title": ""},
         {"source_id": "Example Lab"},
@@ -384,8 +385,9 @@ def test_collected_timestamps_accept_fractions_and_offsets() -> None:
         {"surprise": True},
     ],
     ids=[
-        "http-url",
+        "ftp-url",
         "http-canonical",
+        "ftp-canonical",
         "url-with-space",
         "empty-title",
         "bad-source-id",
@@ -399,6 +401,22 @@ def test_collected_timestamps_accept_fractions_and_offsets() -> None:
 )
 def test_collected_item_rejects_bad_fields(fields: dict[str, Any]) -> None:
     assert validate_document(_collected(_item(**fields)), COLLECTED)
+
+
+@pytest.mark.parametrize("undated", [False, True])
+def test_collected_item_url_may_be_http_but_canonical_url_must_be_https(undated: bool) -> None:
+    # The stored URL is whatever the source linked to; the canonical one must be https (design 13).
+    dating = {"published": None, "undated": True} if undated else {}
+    plain_http = _item(url="http://example.com/news/launch", **dating)
+    assert validate_document(_collected(plain_http), COLLECTED) == []
+    assert (
+        validate_document(_collected(_item(url="https://example.com/a", **dating)), COLLECTED) == []
+    )
+    for bad in ("ftp://example.com/a", "javascript:alert(1)", "//example.com/a"):
+        assert validate_document(_collected(_item(url=bad, **dating)), COLLECTED), bad
+        assert validate_document(_collected(_item(canonical_url=bad, **dating)), COLLECTED), bad
+    insecure = _item(canonical_url="http://example.com/news/launch", **dating)
+    assert validate_document(_collected(insecure), COLLECTED)
 
 
 def test_collected_item_accepts_nullable_and_scalar_values() -> None:
