@@ -1,12 +1,14 @@
 cff-version: 1.2.0
-message: If you use PulseAI in research or publications, please cite it using these metadata.
-title: "PulseAI: a daily, verified AI and software research routine for Claude Code"
+message: >-
+  If you use PulseAI in research or publications, please cite it using these
+  metadata.
+title: 'PulseAI: a daily, verified AI and software research routine for Claude Code'
 type: software
 authors:
   - name: PulseAI contributors
 repository-code: https://github.com/Mordris/PulseAI
 license: MIT
-version: 0.1.0
+version: 0.2.0
 keywords:
   - claude-code
   - research-automation
@@ -15,6 +17,6 @@ keywords:
   - daily-digest
   - mcp
 abstract: >-
-  PulseAI researches what changed in AI and software every day, verifies each item against primary
-  sources, compares it with earlier coverage, and publishes one consistently designed,
-  chart-rich report.
+  PulseAI researches what changed in AI and software every day, verifies each
+  item against primary sources, compares it with earlier coverage, and publishes
+  one consistently designed, chart-rich report.

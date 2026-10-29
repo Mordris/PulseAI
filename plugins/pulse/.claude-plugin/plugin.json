@@ -1,8 +1,15 @@
 {
   "name": "pulse",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Research, verify, design, and publish one daily AI and software report",
-  "author": { "name": "PulseAI contributors" },
+  "author": {
+    "name": "PulseAI contributors"
+  },
   "license": "MIT",
-  "keywords": ["research", "news", "ai", "daily-report"]
+  "keywords": [
+    "research",
+    "news",
+    "ai",
+    "daily-report"
+  ]
 }
